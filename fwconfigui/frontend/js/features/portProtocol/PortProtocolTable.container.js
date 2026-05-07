@@ -1,7 +1,8 @@
 function PortProtocolTable({ setLoading, setError }) {
   const [items, setItems] = React.useState([]);
-  const [showForm, setShowForm] = React.useState(false);
-  const [form, setForm] = React.useState({ filename: "port-protocol-1.yaml", name: "", port: "", service: "" });
+  const [editingKey, setEditingKey] = React.useState("");
+  const [draft, setDraft] = React.useState({ filename: "port-protocol-1.yaml", name: "", port: "", service: "" });
+  const [originalRef, setOriginalRef] = React.useState({ filename: "", name: "" });
   const [confirmDelete, setConfirmDelete] = React.useState({ show: false, row: null });
 
   const load = React.useCallback(async () => {
@@ -45,18 +46,22 @@ function PortProtocolTable({ setLoading, setError }) {
   });
 
   const onAdd = React.useCallback(() => {
-    setForm({ filename: "port-protocol-1.yaml", name: "", port: "", service: "" });
-    setShowForm(true);
+    setDraft({ filename: "port-protocol-1.yaml", name: "", port: "", service: "" });
+    setOriginalRef({ filename: "", name: "" });
+    setEditingKey("__new__");
   }, []);
 
   const onEdit = React.useCallback((row) => {
-    setForm({
-      filename: safeTrim(row.filename),
-      name: safeTrim(row.name),
+    const f = safeTrim(row.filename);
+    const n = safeTrim(row.name);
+    setDraft({
+      filename: f,
+      name: n,
       port: safeTrim(row?.data?.["port-protocol"]?.port),
       service: safeTrim(row?.data?.["port-protocol"]?.service),
     });
-    setShowForm(true);
+    setOriginalRef({ filename: f, name: n });
+    setEditingKey(`${f}:${n}`);
   }, []);
 
   const onDelete = React.useCallback((row) => {
@@ -64,29 +69,57 @@ function PortProtocolTable({ setLoading, setError }) {
   }, []);
 
   const canSubmit = React.useMemo(() => {
-    return isNonEmptyString(form.filename) && isNonEmptyString(form.name) && isNonEmptyString(form.port) && isNonEmptyString(form.service);
-  }, [form]);
+    return (
+      isNonEmptyString(draft.filename) &&
+      isNonEmptyString(draft.name) &&
+      isNonEmptyString(draft.port) &&
+      isNonEmptyString(draft.service)
+    );
+  }, [draft]);
+
+  const onCancelEdit = React.useCallback(() => {
+    setEditingKey("");
+    setDraft({ filename: "port-protocol-1.yaml", name: "", port: "", service: "" });
+    setOriginalRef({ filename: "", name: "" });
+  }, []);
 
   const onSave = React.useCallback(async () => {
     try {
       setLoading(true);
       setError("");
+
+      const nextFilename = safeTrim(draft.filename);
+      const nextName = safeTrim(draft.name);
+      const nextPort = safeTrim(draft.port);
+      const nextService = safeTrim(draft.service);
+
       await saveFwConfigItem("port-protocol", {
-        filename: form.filename,
-        name: form.name,
+        filename: nextFilename,
+        name: nextName,
         data: {
-          name: form.name,
-          "port-protocol": { port: form.port, service: form.service },
+          name: nextName,
+          "port-protocol": { port: nextPort, service: nextService },
         },
       });
-      setShowForm(false);
+
+      const oldFilename = safeTrim(originalRef.filename);
+      const oldName = safeTrim(originalRef.name);
+      const shouldDeleteOld =
+        isNonEmptyString(oldFilename) &&
+        isNonEmptyString(oldName) &&
+        (oldFilename !== nextFilename || oldName !== nextName);
+      if (shouldDeleteOld) {
+        await deleteFwConfigItem("port-protocol", { filename: oldFilename, name: oldName });
+      }
+
+      onCancelEdit();
       await load();
     } catch (e) {
       setError(formatError(e));
     } finally {
       setLoading(false);
     }
-  }, [form, setLoading, setError, load]);
+  }, [draft, originalRef, setLoading, setError, load, onCancelEdit]);
 
   const onConfirmDelete = React.useCallback(async () => {
     const row = confirmDelete.row;
@@ -112,46 +145,13 @@ function PortProtocolTable({ setLoading, setError }) {
         onAdd={onAdd}
         onEdit={onEdit}
         onDelete={onDelete}
+        editingKey={editingKey}
+        draft={draft}
+        setDraft={setDraft}
+        canSubmit={canSubmit}
+        onCancelEdit={onCancelEdit}
+        onSave={onSave}
       />
-
-      {showForm ? (
-        <div className="modalOverlay" onClick={(e) => e.target === e.currentTarget && setShowForm(false)}>
-          <div className="modalCard">
-            <div className="modalHeader">
-              <h3 style={{ margin: 0 }}>{isNonEmptyString(form.name) ? "Edit" : "Add"} port-protocol</h3>
-              <button className="btn" onClick={() => setShowForm(false)}>
-                Close
-              </button>
-            </div>
-            <div className="fieldGrid" style={{ marginTop: 12 }}>
-              <div className="field">
-                <div className="muted">File</div>
-                <input className="input" value={form.filename} onChange={(e) => setForm((p) => ({ ...p, filename: e.target.value }))} />
-              </div>
-              <div className="field">
-                <div className="muted">Name</div>
-                <input className="input" value={form.name} onChange={(e) => setForm((p) => ({ ...p, name: e.target.value }))} />
-              </div>
-              <div className="field">
-                <div className="muted">Port</div>
-                <input className="input" value={form.port} onChange={(e) => setForm((p) => ({ ...p, port: e.target.value }))} />
-              </div>
-              <div className="field">
-                <div className="muted">Service</div>
-                <input className="input" value={form.service} onChange={(e) => setForm((p) => ({ ...p, service: e.target.value }))} />
-              </div>
-            </div>
-            <div className="modalActions">
-              <button className="btn" onClick={() => setShowForm(false)}>
-                Cancel
-              </button>
-              <button className="btn btn-primary" disabled={!canSubmit} onClick={onSave}>
-                Save
-              </button>
-            </div>
-          </div>
-        </div>
-      ) : null}
 
       <ConfirmationModal
         show={confirmDelete.show}

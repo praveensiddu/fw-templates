@@ -7,11 +7,17 @@ from pathlib import Path
 
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.responses import FileResponse
 from fastapi.staticfiles import StaticFiles
 
 from backend.config.settings import settings
 from backend.exceptions.handlers import register_exception_handlers
+from backend.routers.business_purpose import router as business_purpose_router
+from backend.routers.env import router as env_router
 from backend.routers.fwconfig import router as fwconfig_router
+from backend.routers.fwrules import router as fwrules_router
+from backend.routers.keywords import router as keywords_router
+from backend.routers.port_protocol import router as port_protocol_router
 from backend.utils.yaml_utils import write_yaml_dict
 from backend.utils.workspace import ensure_fwconfigfiles_root
 
@@ -90,6 +96,11 @@ app.add_middleware(
 register_exception_handlers(app)
 
 app.include_router(fwconfig_router)
+app.include_router(fwrules_router)
+app.include_router(keywords_router)
+app.include_router(port_protocol_router)
+app.include_router(env_router)
+app.include_router(business_purpose_router)
 
 app.mount(
     "/static",
@@ -97,12 +108,20 @@ app.mount(
     name="static",
 )
 
-# Serve frontend entry
-app.mount(
-    "/",
-    StaticFiles(directory=str(FRONTEND_DIR), html=True),
-    name="frontend",
-)
+INDEX_HTML = FRONTEND_DIR / "index.html"
+
+
+@app.get("/", include_in_schema=False)
+def frontend_index():
+    return FileResponse(INDEX_HTML)
+
+
+@app.get("/{full_path:path}", include_in_schema=False)
+def frontend_spa_fallback(full_path: str):
+    # Let API and static routes behave normally; everything else is a SPA route.
+    if full_path.startswith("api") or full_path.startswith("static"):
+        return FileResponse(INDEX_HTML)
+    return FileResponse(INDEX_HTML)
 
 
 if __name__ == "__main__":

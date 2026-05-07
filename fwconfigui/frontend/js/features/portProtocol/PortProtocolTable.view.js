@@ -5,6 +5,12 @@ function PortProtocolTableView({
   onAdd,
   onEdit,
   onDelete,
+  editingKey,
+  draft,
+  setDraft,
+  canSubmit,
+  onCancelEdit,
+  onSave,
 }) {
   return (
     <div className="card" style={{ padding: 12 }}>
@@ -61,7 +67,108 @@ function PortProtocolTableView({
           </tr>
         </thead>
         <tbody>
+          {editingKey === "__new__" ? (
+            <tr key="__new__">
+              <td>
+                <input
+                  className="filterInput"
+                  value={draft.filename}
+                  onChange={(e) => setDraft((p) => ({ ...p, filename: e.target.value }))}
+                  placeholder="port-protocol-1.yaml"
+                />
+              </td>
+              <td>
+                <input
+                  className="filterInput"
+                  value={draft.name}
+                  onChange={(e) => setDraft((p) => ({ ...p, name: e.target.value }))}
+                  placeholder="name"
+                />
+              </td>
+              <td>
+                <input
+                  className="filterInput"
+                  value={draft.port}
+                  onChange={(e) => setDraft((p) => ({ ...p, port: e.target.value }))}
+                  placeholder="port"
+                />
+              </td>
+              <td>
+                <input
+                  className="filterInput"
+                  value={draft.service}
+                  onChange={(e) => setDraft((p) => ({ ...p, service: e.target.value }))}
+                  placeholder="service"
+                />
+              </td>
+              <td>
+                <button className="iconBtn iconBtn-primary" title="Save" disabled={!canSubmit} onClick={onSave}>
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                    <polyline points="20 6 9 17 4 12" />
+                  </svg>
+                </button>
+                <button className="iconBtn" title="Cancel" onClick={onCancelEdit}>
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                    <path d="M18 6L6 18" />
+                    <path d="M6 6l12 12" />
+                  </svg>
+                </button>
+              </td>
+            </tr>
+          ) : null}
+
           {rows.map((r, idx) => (
+            (() => {
+              const rowKey = `${r.filename}:${r.name || idx}`;
+              const isEditingRow = editingKey === rowKey;
+              if (isEditingRow) {
+                return (
+                  <tr key={rowKey}>
+                    <td>
+                      <input
+                        className="filterInput"
+                        value={draft.filename}
+                        onChange={(e) => setDraft((p) => ({ ...p, filename: e.target.value }))}
+                      />
+                    </td>
+                    <td>
+                      <input
+                        className="filterInput"
+                        value={draft.name}
+                        onChange={(e) => setDraft((p) => ({ ...p, name: e.target.value }))}
+                      />
+                    </td>
+                    <td>
+                      <input
+                        className="filterInput"
+                        value={draft.port}
+                        onChange={(e) => setDraft((p) => ({ ...p, port: e.target.value }))}
+                      />
+                    </td>
+                    <td>
+                      <input
+                        className="filterInput"
+                        value={draft.service}
+                        onChange={(e) => setDraft((p) => ({ ...p, service: e.target.value }))}
+                      />
+                    </td>
+                    <td>
+                      <button className="iconBtn iconBtn-primary" title="Save" disabled={!canSubmit} onClick={onSave}>
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                          <polyline points="20 6 9 17 4 12" />
+                        </svg>
+                      </button>
+                      <button className="iconBtn" title="Cancel" onClick={onCancelEdit}>
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                          <path d="M18 6L6 18" />
+                          <path d="M6 6l12 12" />
+                        </svg>
+                      </button>
+                    </td>
+                  </tr>
+                );
+              }
+              return (
             <tr key={`${r.filename}:${r.name || idx}`}>
               <td>{r.filename}</td>
               <td>{r.name}</td>
@@ -85,6 +192,8 @@ function PortProtocolTableView({
                 </button>
               </td>
             </tr>
+              );
+            })()
           ))}
           {rows.length === 0 ? (
             <tr>

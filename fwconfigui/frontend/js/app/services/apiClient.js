@@ -70,3 +70,20 @@ async function postJson(url, body) {
   }
   return await res.json();
 }
+
+async function putJson(url, body) {
+  const res = await fetch(url, {
+    method: "PUT",
+    headers: { Accept: "application/json", "Content-Type": "application/json" },
+    body: JSON.stringify(body || {}),
+  });
+  if (!res.ok) {
+    const info = await readErrorMessage(res);
+    const err = new Error(info.message);
+    err.status = info.status;
+    err.body = info.body;
+    err.rawText = info.rawText;
+    throw err;
+  }
+  return await res.json();
+}

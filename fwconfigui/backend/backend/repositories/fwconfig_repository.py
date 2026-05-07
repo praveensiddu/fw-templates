@@ -78,10 +78,12 @@ class FwConfigRepository:
         if not isinstance(lst, list):
             lst = []
 
+        match_key = "appflowid" if yaml_type == "fw-rules" else "name"
+
         next_lst: List[Dict[str, Any]] = []
         replaced = False
         for existing in lst:
-            if isinstance(existing, dict) and str(existing.get("name", "")).strip() == item_name:
+            if isinstance(existing, dict) and str(existing.get(match_key, "")).strip() == item_name:
                 next_lst.append(entry)
                 replaced = True
             else:
@@ -118,8 +120,10 @@ class FwConfigRepository:
         if not isinstance(lst, list):
             lst = []
 
+        match_key = "appflowid" if yaml_type == "fw-rules" else "name"
+
         before = len(lst)
-        next_lst = [x for x in lst if not (isinstance(x, dict) and str(x.get("name", "")).strip() == item_name)]
+        next_lst = [x for x in lst if not (isinstance(x, dict) and str(x.get(match_key, "")).strip() == item_name)]
 
         if len(next_lst) == before:
             logger.warning("Item not found for delete: %s in %s", item_name, file_name)

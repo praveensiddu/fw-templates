@@ -1,7 +1,8 @@
 function BusinessPurposeTable({ setLoading, setError }) {
   const [items, setItems] = React.useState([]);
-  const [showForm, setShowForm] = React.useState(false);
-  const [form, setForm] = React.useState({ filename: "business-purpose-1.yaml", name: "", bp: "" });
+  const [editingKey, setEditingKey] = React.useState("");
+  const [draft, setDraft] = React.useState({ filename: "business-purpose-1.yaml", name: "", bp: "" });
+  const [originalRef, setOriginalRef] = React.useState({ filename: "", name: "" });
   const [confirmDelete, setConfirmDelete] = React.useState({ show: false, row: null });
 
   const load = React.useCallback(async () => {
@@ -40,17 +41,21 @@ function BusinessPurposeTable({ setLoading, setError }) {
   });
 
   const onAdd = React.useCallback(() => {
-    setForm({ filename: "business-purpose-1.yaml", name: "", bp: "" });
-    setShowForm(true);
+    setDraft({ filename: "business-purpose-1.yaml", name: "", bp: "" });
+    setOriginalRef({ filename: "", name: "" });
+    setEditingKey("__new__");
   }, []);
 
   const onEdit = React.useCallback((row) => {
-    setForm({
-      filename: safeTrim(row.filename),
-      name: safeTrim(row.name),
+    const f = safeTrim(row.filename);
+    const n = safeTrim(row.name);
+    setDraft({
+      filename: f,
+      name: n,
       bp: safeTrim(row?.data?.["business-purpose"]),
     });
-    setShowForm(true);
+    setOriginalRef({ filename: f, name: n });
+    setEditingKey(`${f}:${n}`);
   }, []);
 
   const onDelete = React.useCallback((row) => {
@@ -58,29 +63,51 @@ function BusinessPurposeTable({ setLoading, setError }) {
   }, []);
 
   const canSubmit = React.useMemo(() => {
-    return isNonEmptyString(form.filename) && isNonEmptyString(form.name) && isNonEmptyString(form.bp);
-  }, [form]);
+    return isNonEmptyString(draft.filename) && isNonEmptyString(draft.name) && isNonEmptyString(draft.bp);
+  }, [draft]);
+
+  const onCancelEdit = React.useCallback(() => {
+    setEditingKey("");
+    setDraft({ filename: "business-purpose-1.yaml", name: "", bp: "" });
+    setOriginalRef({ filename: "", name: "" });
+  }, []);
 
   const onSave = React.useCallback(async () => {
     try {
       setLoading(true);
       setError("");
+
+      const nextFilename = safeTrim(draft.filename);
+      const nextName = safeTrim(draft.name);
+      const nextBp = safeTrim(draft.bp);
+
       await saveFwConfigItem("business-purpose", {
-        filename: form.filename,
-        name: form.name,
+        filename: nextFilename,
+        name: nextName,
         data: {
-          name: form.name,
-          "business-purpose": form.bp,
+          name: nextName,
+          "business-purpose": nextBp,
         },
       });
-      setShowForm(false);
+
+      const oldFilename = safeTrim(originalRef.filename);
+      const oldName = safeTrim(originalRef.name);
+      const shouldDeleteOld =
+        isNonEmptyString(oldFilename) &&
+        isNonEmptyString(oldName) &&
+        (oldFilename !== nextFilename || oldName !== nextName);
+      if (shouldDeleteOld) {
+        await deleteFwConfigItem("business-purpose", { filename: oldFilename, name: oldName });
+      }
+
+      onCancelEdit();
       await load();
     } catch (e) {
       setError(formatError(e));
     } finally {
       setLoading(false);
     }
-  }, [form, setLoading, setError, load]);
+  }, [draft, originalRef, setLoading, setError, load, onCancelEdit]);
 
   const onConfirmDelete = React.useCallback(async () => {
     const row = confirmDelete.row;
@@ -106,42 +133,13 @@ function BusinessPurposeTable({ setLoading, setError }) {
         onAdd={onAdd}
         onEdit={onEdit}
         onDelete={onDelete}
+        editingKey={editingKey}
+        draft={draft}
+        setDraft={setDraft}
+        canSubmit={canSubmit}
+        onCancelEdit={onCancelEdit}
+        onSave={onSave}
       />
-
-      {showForm ? (
-        <div className="modalOverlay" onClick={(e) => e.target === e.currentTarget && setShowForm(false)}>
-          <div className="modalCard">
-            <div className="modalHeader">
-              <h3 style={{ margin: 0 }}>{isNonEmptyString(form.name) ? "Edit" : "Add"} business-purpose</h3>
-              <button className="btn" onClick={() => setShowForm(false)}>
-                Close
-              </button>
-            </div>
-            <div className="fieldGrid" style={{ marginTop: 12 }}>
-              <div className="field">
-                <div className="muted">File</div>
-                <input className="input" value={form.filename} onChange={(e) => setForm((p) => ({ ...p, filename: e.target.value }))} />
-              </div>
-              <div className="field">
-                <div className="muted">Name</div>
-                <input className="input" value={form.name} onChange={(e) => setForm((p) => ({ ...p, name: e.target.value }))} />
-              </div>
-              <div className="field" style={{ gridColumn: "1 / -1" }}>
-                <div className="muted">Business Purpose</div>
-                <input className="input" value={form.bp} onChange={(e) => setForm((p) => ({ ...p, bp: e.target.value }))} />
-              </div>
-            </div>
-            <div className="modalActions">
-              <button className="btn" onClick={() => setShowForm(false)}>
-                Cancel
-              </button>
-              <button className="btn btn-primary" disabled={!canSubmit} onClick={onSave}>
-                Save
-              </button>
-            </div>
-          </div>
-        </div>
-      ) : null}
 
       <ConfirmationModal
         show={confirmDelete.show}

@@ -173,6 +173,15 @@ function FwRulesTable({ setLoading, setError }) {
   const [businessPurposeDisplayByName, setBusinessPurposeDisplayByName] = React.useState({});
   const [envNames, setEnvNames] = React.useState([]);
   const [keywordNames, setKeywordNames] = React.useState([]);
+  const [inlineEdit, setInlineEdit] = React.useState({
+    key: "",
+    row: null,
+    filename: "",
+    businessPurpose: "",
+    protocolPortRefs: [],
+    keywords: [],
+    envs: [],
+  });
   const [activePage, setActivePage] = React.useState("list");
   const [detailsMode, setDetailsMode] = React.useState("add");
   const [isEditingSource, setIsEditingSource] = React.useState(false);
@@ -190,6 +199,35 @@ function FwRulesTable({ setLoading, setError }) {
     envs: [],
   });
   const [confirmDelete, setConfirmDelete] = React.useState({ show: false, row: null });
+  const [yamlEditor, setYamlEditor] = React.useState({ show: false, row: null, appflowid: "", yaml: "" });
+
+  function extractLockedAppflowIdFromYaml(yamlText, fallbackAppflowid) {
+    const lines = String(yamlText || "").split(/\r?\n/);
+    let locked = safeTrim(fallbackAppflowid);
+    const nextLines = [];
+
+    for (const line of lines) {
+      const m = String(line).match(/^\s*appflowid\s*:\s*(.*)\s*$/i);
+      if (m) {
+        const rawVal = safeTrim(m[1]);
+        if (rawVal) locked = rawVal;
+        continue;
+      }
+      nextLines.push(line);
+    }
+
+    return {
+      appflowid: locked,
+      yamlBody: nextLines.join("\n").replace(/^\n+/, ""),
+    };
+  }
+
+  function removeAnyAppflowIdLines(yamlText) {
+    return String(yamlText || "")
+      .split(/\r?\n/)
+      .filter((l) => !/^\s*appflowid\s*:/i.test(String(l)))
+      .join("\n");
+  }
 
   const endpointEnvOptions = React.useMemo(() => {
     const list = Array.isArray(form?.envs) ? form.envs : [];
@@ -471,6 +509,105 @@ function FwRulesTable({ setLoading, setError }) {
     setConfirmDelete({ show: true, row });
   }, []);
 
+  const onEditYaml = React.useCallback(
+    async (row) => {
+      try {
+        setLoading(true);
+        setError("");
+        const filename = safeTrim(row?.filename);
+        const appflowid = safeTrim(row?.data?.appflowid) || safeTrim(row?.name);
+        const res = await fetchJson(
+          `/api/v1/fwconfig/fw-rules/yaml?filename=${encodeURIComponent(filename)}&appflowid=${encodeURIComponent(appflowid)}`
+        );
+        const rawYaml = String(res?.yaml || "");
+        const extracted = extractLockedAppflowIdFromYaml(rawYaml, appflowid);
+        setYamlEditor({ show: true, row, appflowid: extracted.appflowid, yaml: extracted.yamlBody });
+      } catch (e) {
+        setError(formatError(e));
+      } finally {
+        setLoading(false);
+      }
+    },
+    [setLoading, setError]
+  );
+
+  const onSaveYaml = React.useCallback(async () => {
+    const row = yamlEditor.row;
+    try {
+      setLoading(true);
+      setError("");
+      const filename = safeTrim(row?.filename);
+      const appflowid = safeTrim(row?.data?.appflowid) || safeTrim(row?.name);
+
+      const locked = safeTrim(yamlEditor.appflowid) || safeTrim(appflowid);
+      const body = removeAnyAppflowIdLines(yamlEditor.yaml);
+      const finalYaml = `appflowid: ${locked}\n${String(body || "").replace(/^\n+/, "")}`;
+
+      await putJson(
+        `/api/v1/fwconfig/fw-rules/yaml?filename=${encodeURIComponent(filename)}&appflowid=${encodeURIComponent(appflowid)}`,
+        { yaml_text: finalYaml }
+      );
+      setYamlEditor({ show: false, row: null, appflowid: "", yaml: "" });
+      await load();
+    } catch (e) {
+      setError(formatError(e));
+    } finally {
+      setLoading(false);
+    }
+  }, [yamlEditor, setLoading, setError, load]);
+
+  function generateUniqueAppflowId(existingIds, baseId) {
+    const existing = new Set((existingIds || []).map((x) => String(x).trim().toLowerCase()));
+    const base = safeTrim(baseId) || "COPY";
+    let candidate = `${base}-copy`;
+    if (!existing.has(candidate.toLowerCase())) return candidate;
+    for (let i = 2; i < 10000; i++) {
+      candidate = `${base}-copy-${i}`;
+      if (!existing.has(candidate.toLowerCase())) return candidate;
+    }
+    return `${base}-copy-${Date.now()}`;
+  }
+
+  const onCopy = React.useCallback(
+    async (row) => {
+      try {
+        setLoading(true);
+        setError("");
+
+        const allIds = (items || []).map((it) => safeTrim(it?.data?.appflowid)).filter(Boolean);
+        const currentId = safeTrim(row?.data?.appflowid);
+        const newId = generateUniqueAppflowId(allIds, currentId);
+
+        const filename = safeTrim(row?.filename) || "fw-rules-1.yaml";
+        const src = row?.data?.["source-list"] || row?.data?.source;
+        const dst = row?.data?.["destination-list"] || row?.data?.destination;
+        const refs = Array.isArray(row?.data?.["protocol-port-reference"]) ? row.data["protocol-port-reference"] : [];
+        const keywords = Array.isArray(row?.data?.keywords) ? row.data.keywords : [];
+        const envs = Array.isArray(row?.data?.envs) ? row.data.envs : [];
+
+        await saveFwConfigItem("fw-rules", {
+          filename,
+          name: newId,
+          data: {
+            appflowid: newId,
+            "source-list": src,
+            "destination-list": dst,
+            "protocol-port-reference": refs,
+            business_purpose: safeTrim(row?.data?.business_purpose),
+            keywords,
+            envs,
+          },
+        });
+        await load();
+      } catch (e) {
+        setError(formatError(e));
+      } finally {
+        setLoading(false);
+      }
+    },
+    [items, setLoading, setError, load]
+  );
+
   const canSubmit = React.useMemo(() => {
     return isNonEmptyString(form.filename) && isNonEmptyString(form.appflowid);
   }, [form]);
@@ -508,7 +645,6 @@ function FwRulesTable({ setLoading, setError }) {
         filename: form.filename,
         name: safeTrim(form.appflowid),
         data: {
-          name: safeTrim(form.appflowid),
           appflowid: form.appflowid,
           "source-list": source,
           "destination-list": destination,
@@ -546,6 +682,76 @@ function FwRulesTable({ setLoading, setError }) {
     }
   }, [confirmDelete, setLoading, setError, load]);
 
+  const getRowKey = React.useCallback((row) => {
+    const filename = safeTrim(row?.filename);
+    const appflowid = safeTrim(row?.data?.appflowid) || safeTrim(row?.name);
+    return `${filename}::${appflowid}`;
+  }, []);
+
+  const onStartInlineEdit = React.useCallback(
+    (row) => {
+      const key = getRowKey(row);
+      const bp = safeTrim(row?.data?.business_purpose);
+      const pp = Array.isArray(row?.data?.["protocol-port-reference"]) ? row.data["protocol-port-reference"] : [];
+      const kw = Array.isArray(row?.data?.keywords) ? row.data.keywords : [];
+      const envs = Array.isArray(row?.data?.envs) ? row.data.envs : [];
+      setInlineEdit({
+        key,
+        row,
+        filename: safeTrim(row?.filename),
+        businessPurpose: bp,
+        protocolPortRefs: pp,
+        keywords: kw,
+        envs,
+      });
+    },
+    [getRowKey]
+  );
+
+  const onCancelInlineEdit = React.useCallback(() => {
+    setInlineEdit({ key: "", row: null, filename: "", businessPurpose: "", protocolPortRefs: [], keywords: [], envs: [] });
+  }, []);
+
+  const onSaveInlineEdit = React.useCallback(async () => {
+    const row = inlineEdit.row;
+    if (!row) return;
+
+    try {
+      setLoading(true);
+      setError("");
+
+      const oldFilename = safeTrim(row?.filename);
+      const newFilename = safeTrim(inlineEdit.filename) || oldFilename;
+      const appflowid = safeTrim(row?.data?.appflowid) || safeTrim(row?.name);
+
+      const nextData = {
+        ...(row?.data || {}),
+        appflowid,
+        business_purpose: safeTrim(inlineEdit.businessPurpose),
+        "protocol-port-reference": Array.isArray(inlineEdit.protocolPortRefs) ? inlineEdit.protocolPortRefs : [],
+        keywords: Array.isArray(inlineEdit.keywords) ? inlineEdit.keywords : [],
+        envs: Array.isArray(inlineEdit.envs) ? inlineEdit.envs : [],
+      };
+      delete nextData.name;
+
+      await saveFwConfigItem("fw-rules", { filename: newFilename, name: appflowid, data: nextData });
+      if (oldFilename && newFilename && oldFilename !== newFilename) {
+        try {
+          await deleteFwConfigItem("fw-rules", { filename: oldFilename, name: appflowid });
+        } catch (e) {
+          // ignore
+        }
+      }
+
+      onCancelInlineEdit();
+      await load();
+    } catch (e) {
+      setError(formatError(e));
+    } finally {
+      setLoading(false);
+    }
+  }, [inlineEdit, setLoading, setError, load, onCancelInlineEdit]);
+
   return (
     <>
       {activePage === "details" ? (
@@ -581,9 +787,57 @@ function FwRulesTable({ setLoading, setError }) {
           setFilters={setFilters}
           onAdd={onAdd}
           onEdit={onEdit}
+          onEditYaml={onEditYaml}
+          onCopy={onCopy}
           onDelete={onDelete}
+          inlineEdit={inlineEdit}
+          getRowKey={getRowKey}
+          onStartInlineEdit={onStartInlineEdit}
+          onCancelInlineEdit={onCancelInlineEdit}
+          onSaveInlineEdit={onSaveInlineEdit}
+          setInlineEdit={setInlineEdit}
+          businessPurposeNames={businessPurposeNames}
+          keywordNames={keywordNames}
+          envNames={envNames}
+          portProtocolNames={portProtocolNames}
+          MultiSelectPicker={MultiSelectPicker}
         />
       )}
+
+      {yamlEditor.show ? (
+        <div
+          className="modalOverlay"
+          onClick={(e) =>
+            e.target === e.currentTarget && setYamlEditor({ show: false, row: null, appflowid: "", yaml: "" })
+          }
+        >
+          <div className="modalCard">
+            <div className="modalHeader">
+              <h3 style={{ margin: 0 }}>Edit YAML</h3>
+              <button className="btn" onClick={() => setYamlEditor({ show: false, row: null, appflowid: "", yaml: "" })}>
+                Close
+              </button>
+            </div>
+            <div style={{ marginTop: 12 }}>
+              <input className="input" value={`appflowid: ${safeTrim(yamlEditor.appflowid)}`} readOnly />
+              <textarea
+                className="input"
+                style={{ fontFamily: "ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace", minHeight: 420 }}
+                value={yamlEditor.yaml}
+                onChange={(e) => setYamlEditor((p) => ({ ...p, yaml: removeAnyAppflowIdLines(e.target.value) }))}
+              />
+            </div>
+            <div className="modalActions">
+              <button className="btn" onClick={() => setYamlEditor({ show: false, row: null, appflowid: "", yaml: "" })}>
+                Cancel
+              </button>
+              <button className="btn btn-primary" onClick={onSaveYaml}>
+                Save
+              </button>
+            </div>
+          </div>
+        </div>
+      ) : null}
 
       <ConfirmationModal
         show={confirmDelete.show}

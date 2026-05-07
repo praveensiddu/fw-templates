@@ -21,13 +21,18 @@ class FwConfigService:
     def list_items(self, yaml_type: str) -> List[Dict[str, Any]]:
         rows: List[Dict[str, Any]] = []
         for filename, entry in self.repo.read_items(yaml_type):
-            name = str(entry.get("name", "") or "").strip() or None
+            if yaml_type == "fw-rules":
+                name = str(entry.get("appflowid", "") or "").strip() or None
+            else:
+                name = str(entry.get("name", "") or "").strip() or None
             rows.append({"filename": filename, "name": name, "data": entry})
         return rows
 
     def save_item(self, yaml_type: str, filename: str, name: str, data: Dict[str, Any]) -> None:
         payload = dict(data or {})
-        payload["name"] = str(name or "").strip()
+        item_key = str(name or "").strip()
+        if yaml_type != "fw-rules":
+            payload["name"] = item_key
 
         if yaml_type == "port-protocol":
             pp = payload.get("port-protocol")
@@ -47,6 +52,10 @@ class FwConfigService:
             if not str(payload.get("appflowid", "") or "").strip():
                 raise ValidationError("data.appflowid", "is required")
 
+            # Use appflowid as the unique key; do not persist a separate name field.
+            item_key = str(payload.get("appflowid", "") or "").strip()
+            payload.pop("name", None)
+
         if yaml_type == "env":
             if not str(payload.get("name", "") or "").strip():
                 raise ValidationError("name", "is required")
@@ -55,7 +64,7 @@ class FwConfigService:
             if not str(payload.get("name", "") or "").strip():
                 raise ValidationError("name", "is required")
 
-        self.repo.upsert_item(yaml_type, filename=filename, name=name, entry=payload)
+        self.repo.upsert_item(yaml_type, filename=filename, name=item_key, entry=payload)
 
     def delete_item(self, yaml_type: str, filename: str, name: str) -> None:
         if yaml_type in {"port-protocol", "business-purpose"}:
