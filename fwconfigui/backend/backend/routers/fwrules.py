@@ -69,6 +69,11 @@ def get_rule_yaml(
             continue
         if not isinstance(entry, dict):
             continue
+        if "business_purpose" in entry:
+            raise ValidationError(
+                "data.business_purpose",
+                "is not supported; rename to 'business-purpose-reference'",
+            )
         entry_appflowid = str(entry.get("appflowid", "") or "").strip()
         if key == entry_appflowid:
             txt = yaml.safe_dump(entry, sort_keys=False)

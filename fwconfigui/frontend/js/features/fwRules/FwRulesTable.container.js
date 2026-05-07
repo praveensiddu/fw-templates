@@ -356,10 +356,11 @@ function FwRulesTable({ setLoading, setError }) {
   const rows = React.useMemo(() => {
     return (items || []).map((it) => {
       const refs = Array.isArray(it?.data?.["protocol-port-reference"]) ? it.data["protocol-port-reference"] : [];
-      const envs = Array.isArray(it?.data?.envs) ? it.data.envs : [];
       const src = it?.data?.["source-list"] || it?.data?.source;
       const dst = it?.data?.["destination-list"] || it?.data?.destination;
       const keywords = Array.isArray(it?.data?.keywords) ? it.data.keywords : [];
+      const envs = Array.isArray(it?.data?.envs) ? it.data.envs : [];
+      const bpRef = safeTrim(it?.data?.["business-purpose-reference"]);
       const appflowid = safeTrim(it?.data?.appflowid);
       return {
         ...it,
@@ -375,7 +376,7 @@ function FwRulesTable({ setLoading, setError }) {
           .filter(Boolean)
           .join(", "),
         businessPurposeDisplay:
-          businessPurposeDisplayByName?.[safeTrim(it?.data?.business_purpose)] || safeTrim(it?.data?.business_purpose),
+          businessPurposeDisplayByName?.[bpRef] || bpRef,
         keywordsDisplay: keywords.map((x) => safeTrim(x)).filter(Boolean).join(", "),
         envsJoined: envs.join(", "),
       };
@@ -458,11 +459,11 @@ function FwRulesTable({ setLoading, setError }) {
     setIsEditingDestination(false);
     setForm({
       filename: safeTrim(row.filename),
-      appflowid: safeTrim(row?.data?.appflowid),
+      appflowid: safeTrim(row?.data?.appflowid) || safeTrim(row?.name),
       sourceItems: fallbackSrc,
       destinationItems: fallbackDst,
       protocolPortRefs: refs,
-      businessPurpose: safeTrim(row?.data?.business_purpose),
+      businessPurpose: safeTrim(row?.data?.["business-purpose-reference"]),
       keywords: Array.isArray(row?.data?.keywords) ? row.data.keywords : [],
       envs: Array.isArray(row?.data?.envs) ? row.data.envs : [],
     });
@@ -609,7 +610,7 @@ function FwRulesTable({ setLoading, setError }) {
             "source-list": src,
             "destination-list": dst,
             "protocol-port-reference": refs,
-            business_purpose: safeTrim(row?.data?.business_purpose),
+            "business-purpose-reference": safeTrim(row?.data?.["business-purpose-reference"]),
             keywords,
             envs,
           },
@@ -665,7 +666,7 @@ function FwRulesTable({ setLoading, setError }) {
           "source-list": source,
           "destination-list": destination,
           "protocol-port-reference": refs,
-          business_purpose: safeTrim(form.businessPurpose),
+          "business-purpose-reference": safeTrim(form.businessPurpose),
           keywords,
           envs,
         },
@@ -707,7 +708,7 @@ function FwRulesTable({ setLoading, setError }) {
   const onStartInlineEdit = React.useCallback(
     (row) => {
       const key = getRowKey(row);
-      const bp = safeTrim(row?.data?.business_purpose);
+      const bp = safeTrim(row?.data?.["business-purpose-reference"]);
       const pp = Array.isArray(row?.data?.["protocol-port-reference"]) ? row.data["protocol-port-reference"] : [];
       const kw = Array.isArray(row?.data?.keywords) ? row.data.keywords : [];
       const envs = Array.isArray(row?.data?.envs) ? row.data.envs : [];
@@ -743,11 +744,12 @@ function FwRulesTable({ setLoading, setError }) {
       const nextData = {
         ...(row?.data || {}),
         appflowid,
-        business_purpose: safeTrim(inlineEdit.businessPurpose),
+        "business-purpose-reference": safeTrim(inlineEdit.businessPurpose),
         "protocol-port-reference": Array.isArray(inlineEdit.protocolPortRefs) ? inlineEdit.protocolPortRefs : [],
         keywords: Array.isArray(inlineEdit.keywords) ? inlineEdit.keywords : [],
         envs: Array.isArray(inlineEdit.envs) ? inlineEdit.envs : [],
       };
+      delete nextData.business_purpose;
       delete nextData.name;
 
       await saveFwConfigItem("fw-rules", { filename: newFilename, name: appflowid, data: nextData });

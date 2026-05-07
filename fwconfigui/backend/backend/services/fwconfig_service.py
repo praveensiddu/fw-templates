@@ -52,6 +52,12 @@ class FwConfigService:
             if not str(payload.get("appflowid", "") or "").strip():
                 raise ValidationError("data.appflowid", "is required")
 
+            if "business_purpose" in payload:
+                raise ValidationError(
+                    "data.business_purpose",
+                    "is not supported; rename to 'business-purpose-reference'",
+                )
+
             # Use appflowid as the unique key; do not persist a separate name field.
             item_key = str(payload.get("appflowid", "") or "").strip()
             payload.pop("name", None)
@@ -83,7 +89,7 @@ class FwConfigService:
             if not isinstance(entry, dict):
                 continue
             rules = entry.get("protocol-port-reference")
-            bp = entry.get("business_purpose")
+            bp = entry.get("business-purpose-reference")
             if isinstance(rules, list) and ref_name in [str(x) for x in rules]:
                 used_by.append({"filename": filename, "appflowid": str(entry.get("appflowid", "") or "")})
                 continue
