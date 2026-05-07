@@ -7,6 +7,7 @@ function MultiSelectPicker({
 }) {
   const [query, setQuery] = React.useState("");
   const [open, setOpen] = React.useState(false);
+  const rootRef = React.useRef(null);
 
   const normalizedOptions = Array.isArray(options) ? options : [];
   const selected = Array.isArray(values) ? values : [];
@@ -16,6 +17,20 @@ function MultiSelectPicker({
     if (!q) return normalizedOptions;
     return normalizedOptions.filter((x) => String(x).toLowerCase().includes(q));
   }, [normalizedOptions, query]);
+
+  React.useEffect(() => {
+    if (!open) return;
+
+    const onDocMouseDown = (e) => {
+      const el = rootRef.current;
+      if (!el) return;
+      if (el.contains(e.target)) return;
+      setOpen(false);
+    };
+
+    document.addEventListener("mousedown", onDocMouseDown);
+    return () => document.removeEventListener("mousedown", onDocMouseDown);
+  }, [open]);
 
   function addValue(name) {
     const v = String(name || "").trim();
@@ -36,6 +51,7 @@ function MultiSelectPicker({
 
   return (
     <div
+      ref={rootRef}
       style={{ position: "relative", flex: 1 }}
       onBlur={(e) => {
         if (!e.currentTarget.contains(e.relatedTarget)) setOpen(false);
