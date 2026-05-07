@@ -47,6 +47,22 @@ async def lifespan(app: FastAPI):
             },
             sort_keys=False,
         )
+
+    keywords_dir = ws_root / "keywords"
+    keywords_dir.mkdir(parents=True, exist_ok=True)
+    keywords_file = keywords_dir / "keywords-1.yaml"
+    if not keywords_file.exists():
+        write_yaml_dict(
+            keywords_file,
+            {
+                "keywords-list": [
+                    {"name": "pii"},
+                    {"name": "pci"},
+                    {"name": "sox"},
+                ]
+            },
+            sort_keys=False,
+        )
     yield
 
     logger.info("=" * 80)

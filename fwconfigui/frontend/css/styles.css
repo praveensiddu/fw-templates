@@ -130,7 +130,7 @@ body {
   background: var(--card);
   border: 1px solid var(--border);
   border-radius: 14px;
-  overflow: hidden;
+  overflow: visible;
 }
 
 table {
@@ -189,6 +189,50 @@ tbody tr:hover td {
 
 .muted {
   color: var(--muted);
+}
+
+.fwBlockHeader {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 10px 12px;
+  background: rgba(13, 110, 253, 0.05);
+  border-bottom: 1px solid rgba(0, 0, 0, 0.08);
+}
+
+.fwBlockHeaderLeft {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.fwBlockHeaderIcon {
+  width: 22px;
+  height: 22px;
+  border-radius: 50%;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(13, 110, 253, 0.12);
+  color: #0d6efd;
+}
+
+.fwBlockHeaderIcon svg {
+  width: 14px;
+  height: 14px;
+  display: block;
+}
+
+.fwBlockTitle {
+  font-weight: 650;
+  color: rgba(0, 0, 0, 0.85);
+}
+
+.fwBlockActions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
 }
 
 .modalOverlay {

@@ -47,6 +47,10 @@ class FwConfigService:
             if not str(payload.get("appflowid", "") or "").strip():
                 raise ValidationError("data.appflowid", "is required")
 
+        if yaml_type == "keywords":
+            if not str(payload.get("name", "") or "").strip():
+                raise ValidationError("name", "is required")
+
         self.repo.upsert_item(yaml_type, filename=filename, name=name, entry=payload)
 
     def delete_item(self, yaml_type: str, filename: str, name: str) -> None:

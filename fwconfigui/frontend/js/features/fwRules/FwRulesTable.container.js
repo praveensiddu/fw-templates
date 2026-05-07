@@ -172,31 +172,62 @@ function FwRulesTable({ setLoading, setError }) {
   const [businessPurposeNames, setBusinessPurposeNames] = React.useState([]);
   const [businessPurposeDisplayByName, setBusinessPurposeDisplayByName] = React.useState({});
   const [envNames, setEnvNames] = React.useState([]);
-  const [showForm, setShowForm] = React.useState(false);
+  const [keywordNames, setKeywordNames] = React.useState([]);
+  const [activePage, setActivePage] = React.useState("list");
+  const [detailsMode, setDetailsMode] = React.useState("add");
+  const [isEditingSource, setIsEditingSource] = React.useState(false);
+  const [isEditingDestination, setIsEditingDestination] = React.useState(false);
+  const [savedSourceItems, setSavedSourceItems] = React.useState([]);
+  const [savedDestinationItems, setSavedDestinationItems] = React.useState([]);
   const [form, setForm] = React.useState({
     filename: "fw-rules-1.yaml",
     appflowid: "",
-    sourceGroup: "",
-    sourceEnvs: [],
-    destinationGroup: "",
-    destinationEnvs: [],
+    sourceItems: [],
+    destinationItems: [],
     businessPurpose: "",
     protocolPortRefs: [],
-    keywords: "",
+    keywords: [],
     envs: [],
   });
   const [confirmDelete, setConfirmDelete] = React.useState({ show: false, row: null });
+
+  const endpointEnvOptions = React.useMemo(() => {
+    const list = Array.isArray(form?.envs) ? form.envs : [];
+    return list.map((x) => safeTrim(x)).filter(Boolean);
+  }, [form?.envs]);
+
+  React.useEffect(() => {
+    setForm((p) => {
+      const allowed = new Set(endpointEnvOptions.map((x) => String(x).toLowerCase()));
+
+      const pruneItems = (items) => {
+        const list = Array.isArray(items) ? items : [];
+        return list.map((it) => {
+          const envs = Array.isArray(it?.envs)
+            ? it.envs.filter((e) => allowed.has(String(e).toLowerCase()))
+            : [];
+          return { ...(it || {}), envs };
+        });
+      };
+
+      const nextSourceItems = pruneItems(p?.sourceItems);
+      const nextDestinationItems = pruneItems(p?.destinationItems);
+
+      return { ...p, sourceItems: nextSourceItems, destinationItems: nextDestinationItems };
+    });
+  }, [endpointEnvOptions]);
 
   const load = React.useCallback(async () => {
     try {
       setLoading(true);
       setError("");
 
-      const [fwResp, ppResp, bpResp, envResp] = await Promise.all([
+      const [fwResp, ppResp, bpResp, envResp, kwResp] = await Promise.all([
         listFwConfigItems("fw-rules"),
         listFwConfigItems("port-protocol"),
         listFwConfigItems("business-purpose"),
         listFwConfigItems("env"),
+        listFwConfigItems("keywords"),
       ]);
 
       setItems(fwResp?.items || []);
@@ -241,6 +272,12 @@ function FwRulesTable({ setLoading, setError }) {
         .filter(Boolean)
         .sort((a, b) => a.localeCompare(b));
       setEnvNames(envs);
+
+      const kws = (kwResp?.items || [])
+        .map((x) => safeTrim(x?.name))
+        .filter(Boolean)
+        .sort((a, b) => a.localeCompare(b));
+      setKeywordNames(kws);
     } catch (e) {
       setError(formatError(e));
     } finally {
@@ -266,8 +303,8 @@ function FwRulesTable({ setLoading, setError }) {
     return (items || []).map((it) => {
       const refs = Array.isArray(it?.data?.["protocol-port-reference"]) ? it.data["protocol-port-reference"] : [];
       const envs = Array.isArray(it?.data?.envs) ? it.data.envs : [];
-      const src = it?.data?.source;
-      const dst = it?.data?.destination;
+      const src = it?.data?.["source-list"] || it?.data?.source;
+      const dst = it?.data?.["destination-list"] || it?.data?.destination;
       const keywords = Array.isArray(it?.data?.keywords) ? it.data.keywords : [];
       const appflowid = safeTrim(it?.data?.appflowid);
       return {
@@ -296,8 +333,8 @@ function FwRulesTable({ setLoading, setError }) {
     initialFilters: {
       filename: "",
       appflowid: "",
-      source: "",
-      destination: "",
+      "source-list": "",
+      "destination-list": "",
       ppref: "",
       bp: "",
       keywords: "",
@@ -306,8 +343,8 @@ function FwRulesTable({ setLoading, setError }) {
     fieldMapping: (row) => ({
       filename: safeTrim(row.filename),
       appflowid: safeTrim(row.appflowid),
-      source: safeTrim(row.sourceDisplay),
-      destination: safeTrim(row.destinationDisplay),
+      "source-list": safeTrim(row.sourceDisplay),
+      "destination-list": safeTrim(row.destinationDisplay),
       ppref: safeTrim(row.protocolPortDisplay),
       bp: safeTrim(row.businessPurposeDisplay),
       keywords: safeTrim(row.keywordsDisplay),
@@ -317,39 +354,117 @@ function FwRulesTable({ setLoading, setError }) {
   });
 
   const onAdd = React.useCallback(() => {
+    setDetailsMode("add");
+    setIsEditingSource(true);
+    setIsEditingDestination(true);
     setForm({
       filename: "fw-rules-1.yaml",
       appflowid: "",
-      sourceGroup: "",
-      sourceEnvs: [],
-      destinationGroup: "",
-      destinationEnvs: [],
+      sourceItems: [{ group: "", envs: [] }],
+      destinationItems: [{ group: "", envs: [] }],
       businessPurpose: "",
       protocolPortRefs: [],
-      keywords: "",
+      keywords: [],
       envs: [],
     });
-    setShowForm(true);
+    setSavedSourceItems([{ group: "", envs: [] }]);
+    setSavedDestinationItems([{ group: "", envs: [] }]);
+    setActivePage("details");
   }, []);
 
   const onEdit = React.useCallback((row) => {
+    setDetailsMode("edit");
     const refs = Array.isArray(row?.data?.["protocol-port-reference"]) ? row.data["protocol-port-reference"] : [];
-    const src0 = Array.isArray(row?.data?.source) && row.data.source.length ? row.data.source[0] : null;
-    const dst0 = Array.isArray(row?.data?.destination) && row.data.destination.length ? row.data.destination[0] : null;
-    const keywords = Array.isArray(row?.data?.keywords) ? row.data.keywords.join(",") : "";
+    const srcItems = Array.isArray(row?.data?.["source-list"])
+      ? row.data["source-list"]
+      : Array.isArray(row?.data?.source)
+        ? row.data.source
+        : [];
+    const dstItems = Array.isArray(row?.data?.["destination-list"])
+      ? row.data["destination-list"]
+      : Array.isArray(row?.data?.destination)
+        ? row.data.destination
+        : [];
+
+    const normalizedSrc = srcItems.map((x) => ({
+      group: safeTrim(x?.group),
+      envs: Array.isArray(x?.envs) ? x.envs : [],
+    }));
+    const normalizedDst = dstItems.map((x) => ({
+      group: safeTrim(x?.group),
+      envs: Array.isArray(x?.envs) ? x.envs : [],
+    }));
+
+    const fallbackSrc = normalizedSrc.length ? normalizedSrc : [{ group: "", envs: [] }];
+    const fallbackDst = normalizedDst.length ? normalizedDst : [{ group: "", envs: [] }];
+
+    setSavedSourceItems(fallbackSrc);
+    setSavedDestinationItems(fallbackDst);
+    setIsEditingSource(false);
+    setIsEditingDestination(false);
     setForm({
       filename: safeTrim(row.filename),
       appflowid: safeTrim(row?.data?.appflowid),
-      sourceGroup: safeTrim(src0?.group),
-      sourceEnvs: Array.isArray(src0?.envs) ? src0.envs : [],
-      destinationGroup: safeTrim(dst0?.group),
-      destinationEnvs: Array.isArray(dst0?.envs) ? dst0.envs : [],
+      sourceItems: fallbackSrc,
+      destinationItems: fallbackDst,
       protocolPortRefs: refs,
       businessPurpose: safeTrim(row?.data?.business_purpose),
-      keywords,
+      keywords: Array.isArray(row?.data?.keywords) ? row.data.keywords : [],
       envs: Array.isArray(row?.data?.envs) ? row.data.envs : [],
     });
-    setShowForm(true);
+    setActivePage("details");
+  }, []);
+
+  const onDiscardSourceEdits = React.useCallback(() => {
+    setForm((p) => ({ ...p, sourceItems: Array.isArray(savedSourceItems) ? savedSourceItems : [] }));
+    setIsEditingSource(false);
+  }, [savedSourceItems]);
+
+  const onSubmitSourceEdits = React.useCallback(() => {
+    const next = Array.isArray(form?.sourceItems) ? form.sourceItems : [];
+    setSavedSourceItems(next);
+    setIsEditingSource(false);
+  }, [form]);
+
+  const onAddSourceItem = React.useCallback(() => {
+    setForm((p) => {
+      const next = Array.isArray(p?.sourceItems) ? [...p.sourceItems] : [];
+      next.push({ group: "", envs: [] });
+      return { ...p, sourceItems: next };
+    });
+  }, []);
+
+  const onRemoveSourceItem = React.useCallback((idx) => {
+    setForm((p) => {
+      const next = Array.isArray(p?.sourceItems) ? p.sourceItems.filter((_, i) => i !== idx) : [];
+      return { ...p, sourceItems: next };
+    });
+  }, []);
+
+  const onDiscardDestinationEdits = React.useCallback(() => {
+    setForm((p) => ({ ...p, destinationItems: Array.isArray(savedDestinationItems) ? savedDestinationItems : [] }));
+    setIsEditingDestination(false);
+  }, [savedDestinationItems]);
+
+  const onSubmitDestinationEdits = React.useCallback(() => {
+    const next = Array.isArray(form?.destinationItems) ? form.destinationItems : [];
+    setSavedDestinationItems(next);
+    setIsEditingDestination(false);
+  }, [form]);
+
+  const onAddDestinationItem = React.useCallback(() => {
+    setForm((p) => {
+      const next = Array.isArray(p?.destinationItems) ? [...p.destinationItems] : [];
+      next.push({ group: "", envs: [] });
+      return { ...p, destinationItems: next };
+    });
+  }, []);
+
+  const onRemoveDestinationItem = React.useCallback((idx) => {
+    setForm((p) => {
+      const next = Array.isArray(p?.destinationItems) ? p.destinationItems.filter((_, i) => i !== idx) : [];
+      return { ...p, destinationItems: next };
+    });
   }, []);
 
   const onDelete = React.useCallback((row) => {
@@ -370,15 +485,24 @@ function FwRulesTable({ setLoading, setError }) {
         : [];
       const envs = Array.isArray(form.envs) ? form.envs.map((x) => safeTrim(x)).filter(Boolean) : [];
 
-      const sourceEnvs = Array.isArray(form.sourceEnvs) ? form.sourceEnvs.map((x) => safeTrim(x)).filter(Boolean) : [];
-      const destinationEnvs = Array.isArray(form.destinationEnvs)
-        ? form.destinationEnvs.map((x) => safeTrim(x)).filter(Boolean)
-        : [];
+      const keywords = Array.isArray(form.keywords) ? form.keywords.map((x) => safeTrim(x)).filter(Boolean) : [];
 
-      const keywords = safeTrim(form.keywords)
-        .split(",")
-        .map((x) => safeTrim(x))
-        .filter(Boolean);
+      const sourceItems = Array.isArray(form?.sourceItems) ? form.sourceItems : [];
+      const destinationItems = Array.isArray(form?.destinationItems) ? form.destinationItems : [];
+
+      const source = sourceItems
+        .map((x) => ({
+          group: safeTrim(x?.group),
+          envs: Array.isArray(x?.envs) ? x.envs.map((e) => safeTrim(e)).filter(Boolean) : [],
+        }))
+        .filter((x) => isNonEmptyString(x.group) || (Array.isArray(x.envs) && x.envs.length > 0));
+
+      const destination = destinationItems
+        .map((x) => ({
+          group: safeTrim(x?.group),
+          envs: Array.isArray(x?.envs) ? x.envs.map((e) => safeTrim(e)).filter(Boolean) : [],
+        }))
+        .filter((x) => isNonEmptyString(x.group) || (Array.isArray(x.envs) && x.envs.length > 0));
 
       await saveFwConfigItem("fw-rules", {
         filename: form.filename,
@@ -386,15 +510,19 @@ function FwRulesTable({ setLoading, setError }) {
         data: {
           name: safeTrim(form.appflowid),
           appflowid: form.appflowid,
-          source: [{ group: safeTrim(form.sourceGroup), envs: sourceEnvs }],
-          destination: [{ group: safeTrim(form.destinationGroup), envs: destinationEnvs }],
+          "source-list": source,
+          "destination-list": destination,
           "protocol-port-reference": refs,
           business_purpose: safeTrim(form.businessPurpose),
           keywords,
           envs,
         },
       });
-      setShowForm(false);
+      setActivePage("list");
+      setSavedSourceItems(source);
+      setSavedDestinationItems(destination);
+      setIsEditingSource(false);
+      setIsEditingDestination(false);
       await load();
     } catch (e) {
       setError(formatError(e));
@@ -420,116 +548,42 @@ function FwRulesTable({ setLoading, setError }) {
 
   return (
     <>
-      <FwRulesTableView
-        rows={sortedRows}
-        filters={filters}
-        setFilters={setFilters}
-        onAdd={onAdd}
-        onEdit={onEdit}
-        onDelete={onDelete}
-      />
-
-      {showForm ? (
-        <div className="modalOverlay" onClick={(e) => e.target === e.currentTarget && setShowForm(false)}>
-          <div className="modalCard">
-            <div className="modalHeader">
-              <h3 style={{ margin: 0 }}>{isNonEmptyString(form.appflowid) ? "Edit" : "Add"} fw-rule</h3>
-              <button className="btn" onClick={() => setShowForm(false)}>
-                Close
-              </button>
-            </div>
-            <div className="fieldGrid" style={{ marginTop: 12 }}>
-              <div className="field">
-                <div className="muted">File</div>
-                <input className="input" value={form.filename} onChange={(e) => setForm((p) => ({ ...p, filename: e.target.value }))} />
-              </div>
-              <div className="field">
-                <div className="muted">App Flow ID</div>
-                <input className="input" value={form.appflowid} onChange={(e) => setForm((p) => ({ ...p, appflowid: e.target.value }))} />
-              </div>
-              <div className="field">
-                <div className="muted">Source Group</div>
-                <input className="input" value={form.sourceGroup} onChange={(e) => setForm((p) => ({ ...p, sourceGroup: e.target.value }))} />
-              </div>
-              <div className="field">
-                <div className="muted">Source Envs</div>
-                <MultiSelectPicker
-                  options={envNames}
-                  values={Array.isArray(form.sourceEnvs) ? form.sourceEnvs : []}
-                  onChange={(next) => setForm((p) => ({ ...p, sourceEnvs: next }))}
-                  placeholder="Add env..."
-                  inputTestId="fw-rule-edit-source-envs"
-                />
-              </div>
-              <div className="field">
-                <div className="muted">Destination Group</div>
-                <input
-                  className="input"
-                  value={form.destinationGroup}
-                  onChange={(e) => setForm((p) => ({ ...p, destinationGroup: e.target.value }))}
-                />
-              </div>
-              <div className="field">
-                <div className="muted">Destination Envs</div>
-                <MultiSelectPicker
-                  options={envNames}
-                  values={Array.isArray(form.destinationEnvs) ? form.destinationEnvs : []}
-                  onChange={(next) => setForm((p) => ({ ...p, destinationEnvs: next }))}
-                  placeholder="Add env..."
-                  inputTestId="fw-rule-edit-destination-envs"
-                />
-              </div>
-              <div className="field">
-                <div className="muted">Protocol-Port References</div>
-                <MultiSelectPicker
-                  options={portProtocolNames}
-                  values={Array.isArray(form.protocolPortRefs) ? form.protocolPortRefs : []}
-                  onChange={(next) => setForm((p) => ({ ...p, protocolPortRefs: next }))}
-                  placeholder="Add protocol-port ref..."
-                  inputTestId="fw-rule-edit-protocol-port-refs"
-                />
-              </div>
-              <div className="field">
-                <div className="muted">Business Purpose</div>
-                <select
-                  className="filterInput"
-                  value={safeTrim(form.businessPurpose)}
-                  onChange={(e) => setForm((p) => ({ ...p, businessPurpose: e.target.value }))}
-                >
-                  <option value="">Select...</option>
-                  {businessPurposeNames.map((n) => (
-                    <option key={n} value={n}>
-                      {n}
-                    </option>
-                  ))}
-                </select>
-              </div>
-              <div className="field">
-                <div className="muted">Keywords (comma-separated)</div>
-                <input className="input" value={form.keywords} onChange={(e) => setForm((p) => ({ ...p, keywords: e.target.value }))} />
-              </div>
-              <div className="field">
-                <div className="muted">Envs</div>
-                <MultiSelectPicker
-                  options={envNames}
-                  values={Array.isArray(form.envs) ? form.envs : []}
-                  onChange={(next) => setForm((p) => ({ ...p, envs: next }))}
-                  placeholder="Add env..."
-                  inputTestId="fw-rule-edit-envs"
-                />
-              </div>
-            </div>
-            <div className="modalActions">
-              <button className="btn" onClick={() => setShowForm(false)}>
-                Cancel
-              </button>
-              <button className="btn btn-primary" disabled={!canSubmit} onClick={onSave}>
-                Save
-              </button>
-            </div>
-          </div>
-        </div>
-      ) : null}
+      {activePage === "details" ? (
+        <FwRuleDetailsView
+          mode={detailsMode}
+          form={form}
+          setForm={setForm}
+          canSubmit={canSubmit}
+          onBack={() => setActivePage("list")}
+          onSave={onSave}
+          isEditingSource={isEditingSource}
+          setIsEditingSource={setIsEditingSource}
+          isEditingDestination={isEditingDestination}
+          setIsEditingDestination={setIsEditingDestination}
+          onDiscardSourceEdits={onDiscardSourceEdits}
+          onSubmitSourceEdits={onSubmitSourceEdits}
+          onAddSourceItem={onAddSourceItem}
+          onRemoveSourceItem={onRemoveSourceItem}
+          onDiscardDestinationEdits={onDiscardDestinationEdits}
+          onSubmitDestinationEdits={onSubmitDestinationEdits}
+          onAddDestinationItem={onAddDestinationItem}
+          onRemoveDestinationItem={onRemoveDestinationItem}
+          endpointEnvOptions={endpointEnvOptions}
+          envNames={envNames}
+          keywordNames={keywordNames}
+          portProtocolNames={portProtocolNames}
+          businessPurposeNames={businessPurposeNames}
+        />
+      ) : (
+        <FwRulesTableView
+          rows={sortedRows}
+          filters={filters}
+          setFilters={setFilters}
+          onAdd={onAdd}
+          onEdit={onEdit}
+          onDelete={onDelete}
+        />
+      )}
 
       <ConfirmationModal
         show={confirmDelete.show}

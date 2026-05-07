@@ -13,6 +13,9 @@ function App() {
     if (activeTab === "env") {
       return <EnvTable setLoading={setLoading} setError={setError} />;
     }
+    if (activeTab === "keywords") {
+      return <KeywordsTable setLoading={setLoading} setError={setError} />;
+    }
     return <FwRulesTable setLoading={setLoading} setError={setError} />;
   }, [activeTab]);
 

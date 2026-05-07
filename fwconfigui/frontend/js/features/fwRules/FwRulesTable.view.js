@@ -20,8 +20,8 @@ function FwRulesTableView({
           <tr>
             <th style={{ width: 220 }}>File</th>
             <th style={{ width: 140 }}>App Flow ID</th>
-            <th style={{ width: 200 }}>Source</th>
-            <th style={{ width: 200 }}>Destination</th>
+            <th style={{ width: 200 }}>Source List</th>
+            <th style={{ width: 200 }}>Destination List</th>
             <th style={{ width: 220 }}>Protocol-Port</th>
             <th style={{ width: 180 }}>Business Purpose</th>
             <th style={{ width: 200 }}>Keywords</th>
@@ -49,16 +49,16 @@ function FwRulesTableView({
               <input
                 className="filterInput"
                 placeholder="Filter source..."
-                value={filters.source}
-                onChange={(e) => setFilters((p) => ({ ...p, source: e.target.value }))}
+                value={filters["source-list"]}
+                onChange={(e) => setFilters((p) => ({ ...p, "source-list": e.target.value }))}
               />
             </th>
             <th>
               <input
                 className="filterInput"
                 placeholder="Filter destination..."
-                value={filters.destination}
-                onChange={(e) => setFilters((p) => ({ ...p, destination: e.target.value }))}
+                value={filters["destination-list"]}
+                onChange={(e) => setFilters((p) => ({ ...p, "destination-list": e.target.value }))}
               />
             </th>
             <th>

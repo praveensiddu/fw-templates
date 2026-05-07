@@ -16,6 +16,7 @@ _TYPE_TO_DIR = {
     "business-purpose": "business-purpose",
     "fw-rules": "fw-rules",
     "env": "env",
+    "keywords": "keywords",
 }
 
 _TYPE_TO_LIST_KEY = {
@@ -23,6 +24,7 @@ _TYPE_TO_LIST_KEY = {
     "business-purpose": "business-purpose-list",
     "fw-rules": "flowtemplates",
     "env": "env-list",
+    "keywords": "keywords-list",
 }
 
 

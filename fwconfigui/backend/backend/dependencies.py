@@ -12,7 +12,7 @@ def require_yaml_type(yaml_type: Optional[str]) -> str:
         raise ValidationError("type", "Missing required query parameter: type")
 
     normalized = str(yaml_type).strip().lower()
-    allowed = {"fw-rules", "port-protocol", "business-purpose", "env"}
+    allowed = {"fw-rules", "port-protocol", "business-purpose", "env", "keywords"}
     if normalized not in allowed:
         raise ValidationError("type", f"Invalid type '{normalized}'. Allowed: {', '.join(sorted(allowed))}")
 

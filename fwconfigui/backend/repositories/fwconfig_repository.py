@@ -15,12 +15,14 @@ _TYPE_TO_DIR = {
     "port-protocol": "port-protocol",
     "business-purpose": "business-purpose",
     "fw-rules": "fw-rules",
+    "keywords": "keywords",
 }
 
 _TYPE_TO_LIST_KEY = {
     "port-protocol": "port-protocol-list",
     "business-purpose": "business-purpose-list",
     "fw-rules": "flowtemplates",
+    "keywords": "keywords-list",
 }
 
 
