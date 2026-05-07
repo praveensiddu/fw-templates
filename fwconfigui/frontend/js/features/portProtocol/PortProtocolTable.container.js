@@ -89,7 +89,9 @@ function PortProtocolTable({ setLoading, setError }) {
       setError("");
 
       const nextFilename = safeTrim(draft.filename);
-      const nextName = safeTrim(draft.name);
+      const nextName = safeTrim(draft.name)
+        .toLowerCase()
+        .replace(/[^a-z]/g, "");
       const nextPort = safeTrim(draft.port);
       const nextService = safeTrim(draft.service);
 

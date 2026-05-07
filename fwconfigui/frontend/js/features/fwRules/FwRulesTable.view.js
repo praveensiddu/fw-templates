@@ -22,7 +22,7 @@ function FwRulesTableView({
   return (
     <div className="card" style={{ padding: 12 }}>
       <div className="actions">
-        <div className="muted">fw-rules yaml items</div>
+        <div className="muted">fw-rule templates</div>
         <button className="btn btn-primary" onClick={onAdd}>
           Add
         </button>
@@ -31,14 +31,44 @@ function FwRulesTableView({
       <table>
         <thead>
           <tr>
-            <th style={{ width: 220 }}>File</th>
-            <th style={{ width: 140 }}>App Flow ID</th>
+            <th style={{ width: 220 }}>
+              <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 8 }}>
+                <span>File</span>
+                <HelpIconButton docPath="/static/help/fw-rules/file.html" title="File" />
+              </div>
+            </th>
+            <th style={{ width: 140 }}>
+              <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 8 }}>
+                <span>App Flow ID</span>
+                <HelpIconButton docPath="/static/help/fw-rules/appflowid.html" title="App Flow ID" />
+              </div>
+            </th>
             <th style={{ width: 200 }}>Source List</th>
             <th style={{ width: 200 }}>Destination List</th>
-            <th style={{ width: 220 }}>Protocol-Port</th>
-            <th style={{ width: 180 }}>Business Purpose</th>
-            <th style={{ width: 200 }}>Keywords</th>
-            <th style={{ width: 220 }}>Envs</th>
+            <th style={{ width: 220 }}>
+              <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 8 }}>
+                <span>Protocol-Port</span>
+                <HelpIconButton docPath="/static/help/fw-rules/protocol-port.html" title="Protocol-Port" />
+              </div>
+            </th>
+            <th style={{ width: 180 }}>
+              <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 8 }}>
+                <span>Business Purpose</span>
+                <HelpIconButton docPath="/static/help/fw-rules/business-purpose.html" title="Business Purpose" />
+              </div>
+            </th>
+            <th style={{ width: 200 }}>
+              <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 8 }}>
+                <span>Keywords</span>
+                <HelpIconButton docPath="/static/help/fw-rules/keywords.html" title="Keywords" />
+              </div>
+            </th>
+            <th style={{ width: 220 }}>
+              <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 8 }}>
+                <span>Envs</span>
+                <HelpIconButton docPath="/static/help/fw-rules/envs.html" title="Envs" />
+              </div>
+            </th>
             <th style={{ width: 100 }}>Actions</th>
           </tr>
           <tr>

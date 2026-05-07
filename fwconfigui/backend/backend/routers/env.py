@@ -32,7 +32,10 @@ def save_item(
     payload: SaveItemRequest,
     service: FwConfigService = Depends(get_service),
 ) -> Dict[str, Any]:
-    service.save_item("env", filename=payload.filename, name=payload.name, data=payload.data)
+    name = str(payload.name or "").strip().lower()
+    data = dict(payload.data or {})
+    data["name"] = str(data.get("name", "") or name).strip().lower()
+    service.save_item("env", filename=payload.filename, name=name, data=data)
     return {"ok": True}
 
 

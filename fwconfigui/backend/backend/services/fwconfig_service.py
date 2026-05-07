@@ -43,10 +43,22 @@ class FwConfigService:
             if not str(pp.get("service", "") or "").strip():
                 raise ValidationError("data.port-protocol.service", "is required")
 
+            next_name = str(payload.get("name", "") or "").strip().lower()
+            if not next_name:
+                raise ValidationError("name", "is required")
+            payload["name"] = next_name
+            item_key = next_name
+
         if yaml_type == "business-purpose":
             bp = payload.get("business-purpose")
             if not str(bp or "").strip():
                 raise ValidationError("data.business-purpose", "is required")
+
+            next_name = str(payload.get("name", "") or "").strip().lower()
+            if not next_name:
+                raise ValidationError("name", "is required")
+            payload["name"] = next_name
+            item_key = next_name
 
         if yaml_type == "fw-rules":
             if not str(payload.get("appflowid", "") or "").strip():
@@ -59,16 +71,23 @@ class FwConfigService:
                 )
 
             # Use appflowid as the unique key; do not persist a separate name field.
-            item_key = str(payload.get("appflowid", "") or "").strip()
+            item_key = str(payload.get("appflowid", "") or "").strip().upper()
+            payload["appflowid"] = item_key
             payload.pop("name", None)
 
         if yaml_type == "env":
-            if not str(payload.get("name", "") or "").strip():
+            next_name = str(payload.get("name", "") or "").strip().lower()
+            if not next_name:
                 raise ValidationError("name", "is required")
+            payload["name"] = next_name
+            item_key = next_name
 
         if yaml_type == "keywords":
-            if not str(payload.get("name", "") or "").strip():
+            next_name = str(payload.get("name", "") or "").strip().upper()
+            if not next_name:
                 raise ValidationError("name", "is required")
+            payload["name"] = next_name
+            item_key = next_name
 
         self.repo.upsert_item(yaml_type, filename=filename, name=item_key, entry=payload)
 

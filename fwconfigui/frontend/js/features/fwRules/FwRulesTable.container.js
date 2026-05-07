@@ -459,7 +459,7 @@ function FwRulesTable({ setLoading, setError }) {
     setIsEditingDestination(false);
     setForm({
       filename: safeTrim(row.filename),
-      appflowid: safeTrim(row?.data?.appflowid) || safeTrim(row?.name),
+      appflowid: (safeTrim(row?.data?.appflowid) || safeTrim(row?.name)).toUpperCase().replace(/[^A-Z]/g, ""),
       sourceItems: fallbackSrc,
       destinationItems: fallbackDst,
       protocolPortRefs: refs,
@@ -658,11 +658,15 @@ function FwRulesTable({ setLoading, setError }) {
         }))
         .filter((x) => isNonEmptyString(x.group) || (Array.isArray(x.envs) && x.envs.length > 0));
 
+      const nextAppflowid = safeTrim(form.appflowid)
+        .toUpperCase()
+        .replace(/[^A-Z]/g, "");
+
       await saveFwConfigItem("fw-rules", {
         filename: form.filename,
-        name: safeTrim(form.appflowid),
+        name: nextAppflowid,
         data: {
-          appflowid: form.appflowid,
+          appflowid: nextAppflowid,
           "source-list": source,
           "destination-list": destination,
           "protocol-port-reference": refs,

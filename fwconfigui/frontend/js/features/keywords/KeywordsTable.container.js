@@ -70,7 +70,9 @@ function KeywordsTable({ setLoading, setError }) {
       setError("");
 
       const nextFilename = safeTrim(draft.filename);
-      const nextName = safeTrim(draft.name);
+      const nextName = safeTrim(draft.name)
+        .toUpperCase()
+        .replace(/[^A-Z]/g, "");
 
       await saveFwConfigItem("keywords", {
         filename: nextFilename,

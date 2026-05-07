@@ -23,6 +23,12 @@ function FwRuleDetailsView({
   portProtocolNames,
   businessPurposeNames,
 }) {
+  function normalizeAppFlowId(v) {
+    return String(v || "")
+      .toUpperCase()
+      .replace(/[^A-Z]/g, "");
+  }
+
   const sourceItems = Array.isArray(form?.sourceItems) ? form.sourceItems : [];
   const destinationItems = Array.isArray(form?.destinationItems) ? form.destinationItems : [];
 
@@ -49,7 +55,9 @@ function FwRuleDetailsView({
                 </span>
                 <div className="fwBlockTitle">Core</div>
               </div>
-              <div className="fwBlockActions" />
+              <div className="fwBlockActions">
+                <HelpIconButton docPath="/static/help/fw-rules/blocks/core.html" title="Core" />
+              </div>
             </div>
             <div className="fieldGrid">
               <div className="field">
@@ -65,7 +73,7 @@ function FwRuleDetailsView({
                 <input
                   className="input"
                   value={form.appflowid}
-                  onChange={(e) => setForm((p) => ({ ...p, appflowid: e.target.value }))}
+                  onChange={(e) => setForm((p) => ({ ...p, appflowid: normalizeAppFlowId(e.target.value) }))}
                 />
               </div>
             </div>
@@ -83,6 +91,7 @@ function FwRuleDetailsView({
                 <div className="fwBlockTitle">Source List</div>
               </div>
               <div className="fwBlockActions">
+                <HelpIconButton docPath="/static/help/fw-rules/blocks/source-list.html" title="Source List" />
                 {isEditingSource ? (
                   <>
                     <button className="iconBtn" title="Discard edits" onClick={onDiscardSourceEdits}>
@@ -195,6 +204,7 @@ function FwRuleDetailsView({
                 <div className="fwBlockTitle">Destination List</div>
               </div>
               <div className="fwBlockActions">
+                <HelpIconButton docPath="/static/help/fw-rules/blocks/destination-list.html" title="Destination List" />
                 {isEditingDestination ? (
                   <>
                     <button className="iconBtn" title="Discard edits" onClick={onDiscardDestinationEdits}>
@@ -306,7 +316,9 @@ function FwRuleDetailsView({
                 </span>
                 <div className="fwBlockTitle">Protocol-Port References</div>
               </div>
-              <div className="fwBlockActions" />
+              <div className="fwBlockActions">
+                <HelpIconButton docPath="/static/help/fw-rules/blocks/protocol-port-references.html" title="Protocol-Port References" />
+              </div>
             </div>
             <div className="fieldGrid">
               <div className="field" style={{ gridColumn: "1 / -1" }}>
@@ -333,7 +345,9 @@ function FwRuleDetailsView({
                 </span>
                 <div className="fwBlockTitle">Metadata</div>
               </div>
-              <div className="fwBlockActions" />
+              <div className="fwBlockActions">
+                <HelpIconButton docPath="/static/help/fw-rules/blocks/metadata.html" title="Metadata" />
+              </div>
             </div>
             <div className="fieldGrid">
               <div className="field">

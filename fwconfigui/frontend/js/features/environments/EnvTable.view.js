@@ -12,10 +12,16 @@ function EnvTableView({
   onCancelEdit,
   onSave,
 }) {
+  function normalizeEnvName(v) {
+    return String(v || "")
+      .toLowerCase()
+      .replace(/[^a-z]/g, "");
+  }
+
   return (
     <div className="card" style={{ padding: 12 }}>
       <div className="actions">
-        <div className="muted">env yaml items</div>
+        <div className="muted">env</div>
         <button className="btn btn-primary" onClick={onAdd}>
           Add
         </button>
@@ -24,8 +30,18 @@ function EnvTableView({
       <table>
         <thead>
           <tr>
-            <th style={{ width: 220 }}>File</th>
-            <th style={{ width: 220 }}>Name</th>
+            <th style={{ width: 220 }}>
+              <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 8 }}>
+                <span>File</span>
+                <HelpIconButton docPath="/static/help/environments/file.html" title="File" />
+              </div>
+            </th>
+            <th style={{ width: 220 }}>
+              <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 8 }}>
+                <span>Name</span>
+                <HelpIconButton docPath="/static/help/environments/name.html" title="Name" />
+              </div>
+            </th>
             <th style={{ width: 100 }}>Actions</th>
           </tr>
           <tr>
@@ -63,7 +79,7 @@ function EnvTableView({
                 <input
                   className="filterInput"
                   value={draft.name}
-                  onChange={(e) => setDraft((p) => ({ ...p, name: e.target.value }))}
+                  onChange={(e) => setDraft((p) => ({ ...p, name: normalizeEnvName(e.target.value) }))}
                   placeholder="name"
                 />
               </td>
@@ -101,7 +117,7 @@ function EnvTableView({
                       <input
                         className="filterInput"
                         value={draft.name}
-                        onChange={(e) => setDraft((p) => ({ ...p, name: e.target.value }))}
+                        onChange={(e) => setDraft((p) => ({ ...p, name: normalizeEnvName(e.target.value) }))}
                       />
                     </td>
                     <td>

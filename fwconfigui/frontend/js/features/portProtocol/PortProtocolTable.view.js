@@ -12,10 +12,16 @@ function PortProtocolTableView({
   onCancelEdit,
   onSave,
 }) {
+  function normalizePortProtocolName(v) {
+    return String(v || "")
+      .toLowerCase()
+      .replace(/[^a-z]/g, "");
+  }
+
   return (
     <div className="card" style={{ padding: 12 }}>
       <div className="actions">
-        <div className="muted">port-protocol yaml items</div>
+        <div className="muted">port-protocol</div>
         <button className="btn btn-primary" onClick={onAdd}>
           Add
         </button>
@@ -24,10 +30,30 @@ function PortProtocolTableView({
       <table>
         <thead>
           <tr>
-            <th style={{ width: 220 }}>File</th>
-            <th style={{ width: 220 }}>Name</th>
-            <th>Port</th>
-            <th>Service</th>
+            <th style={{ width: 220 }}>
+              <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 8 }}>
+                <span>File</span>
+                <HelpIconButton docPath="/static/help/port-protocol/file.html" title="File" />
+              </div>
+            </th>
+            <th style={{ width: 220 }}>
+              <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 8 }}>
+                <span>Name</span>
+                <HelpIconButton docPath="/static/help/port-protocol/name.html" title="Name" />
+              </div>
+            </th>
+            <th>
+              <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 8 }}>
+                <span>Port</span>
+                <HelpIconButton docPath="/static/help/port-protocol/port.html" title="Port" />
+              </div>
+            </th>
+            <th>
+              <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 8 }}>
+                <span>Service</span>
+                <HelpIconButton docPath="/static/help/port-protocol/service.html" title="Service" />
+              </div>
+            </th>
             <th style={{ width: 100 }}>Actions</th>
           </tr>
           <tr>
@@ -81,7 +107,7 @@ function PortProtocolTableView({
                 <input
                   className="filterInput"
                   value={draft.name}
-                  onChange={(e) => setDraft((p) => ({ ...p, name: e.target.value }))}
+                  onChange={(e) => setDraft((p) => ({ ...p, name: normalizePortProtocolName(e.target.value) }))}
                   placeholder="name"
                 />
               </td>
@@ -135,7 +161,7 @@ function PortProtocolTableView({
                       <input
                         className="filterInput"
                         value={draft.name}
-                        onChange={(e) => setDraft((p) => ({ ...p, name: e.target.value }))}
+                        onChange={(e) => setDraft((p) => ({ ...p, name: normalizePortProtocolName(e.target.value) }))}
                       />
                     </td>
                     <td>

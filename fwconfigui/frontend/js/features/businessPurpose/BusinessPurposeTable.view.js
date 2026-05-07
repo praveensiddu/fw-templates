@@ -12,10 +12,16 @@ function BusinessPurposeTableView({
   onCancelEdit,
   onSave,
 }) {
+  function normalizeBusinessPurposeName(v) {
+    return String(v || "")
+      .toLowerCase()
+      .replace(/[^a-z]/g, "");
+  }
+
   return (
     <div className="card" style={{ padding: 12 }}>
       <div className="actions">
-        <div className="muted">business-purpose yaml items</div>
+        <div className="muted">business-purpose</div>
         <button className="btn btn-primary" onClick={onAdd}>
           Add
         </button>
@@ -24,9 +30,24 @@ function BusinessPurposeTableView({
       <table>
         <thead>
           <tr>
-            <th style={{ width: 220 }}>File</th>
-            <th style={{ width: 220 }}>Name</th>
-            <th>Business Purpose</th>
+            <th style={{ width: 220 }}>
+              <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 8 }}>
+                <span>File</span>
+                <HelpIconButton docPath="/static/help/business-purpose/file.html" title="File" />
+              </div>
+            </th>
+            <th style={{ width: 220 }}>
+              <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 8 }}>
+                <span>Name</span>
+                <HelpIconButton docPath="/static/help/business-purpose/name.html" title="Name" />
+              </div>
+            </th>
+            <th>
+              <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 8 }}>
+                <span>Business Purpose</span>
+                <HelpIconButton docPath="/static/help/business-purpose/value.html" title="Business Purpose" />
+              </div>
+            </th>
             <th style={{ width: 100 }}>Actions</th>
           </tr>
           <tr>
@@ -72,7 +93,7 @@ function BusinessPurposeTableView({
                 <input
                   className="filterInput"
                   value={draft.name}
-                  onChange={(e) => setDraft((p) => ({ ...p, name: e.target.value }))}
+                  onChange={(e) => setDraft((p) => ({ ...p, name: normalizeBusinessPurposeName(e.target.value) }))}
                   placeholder="name"
                 />
               </td>
@@ -118,7 +139,7 @@ function BusinessPurposeTableView({
                       <input
                         className="filterInput"
                         value={draft.name}
-                        onChange={(e) => setDraft((p) => ({ ...p, name: e.target.value }))}
+                        onChange={(e) => setDraft((p) => ({ ...p, name: normalizeBusinessPurposeName(e.target.value) }))}
                       />
                     </td>
                     <td>

@@ -35,7 +35,10 @@ def save_item(
     payload: SaveItemRequest,
     service: FwConfigService = Depends(get_service),
 ) -> Dict[str, Any]:
-    service.save_item("fw-rules", filename=payload.filename, name=payload.name, data=payload.data)
+    name = str(payload.name or "").strip().upper()
+    data = dict(payload.data or {})
+    data["appflowid"] = str(data.get("appflowid", "") or name).strip().upper()
+    service.save_item("fw-rules", filename=payload.filename, name=name, data=data)
     return {"ok": True}
 
 
@@ -59,7 +62,7 @@ def get_rule_yaml(
     if not file_name:
         raise ValidationError("filename", "is required")
 
-    key = str(appflowid or "").strip()
+    key = str(appflowid or "").strip().upper()
     if not key:
         raise ValidationError("appflowid", "is required")
 
@@ -94,7 +97,7 @@ def put_rule_yaml(
     if not file_name:
         raise ValidationError("filename", "is required")
 
-    key = str(appflowid or "").strip()
+    key = str(appflowid or "").strip().upper()
     if not key:
         raise ValidationError("appflowid", "is required")
 
@@ -106,7 +109,7 @@ def put_rule_yaml(
     if not isinstance(parsed, dict):
         raise ValidationError("yaml", "must be a YAML object")
 
-    next_appflowid = str(parsed.get("appflowid", "") or "").strip()
+    next_appflowid = str(parsed.get("appflowid", "") or "").strip().upper()
     if not next_appflowid:
         raise ValidationError("data.appflowid", "is required")
 

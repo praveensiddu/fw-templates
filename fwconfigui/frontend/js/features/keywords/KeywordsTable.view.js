@@ -12,10 +12,16 @@ function KeywordsTableView({
   onCancelEdit,
   onSave,
 }) {
+  function normalizeKeywordName(v) {
+    return String(v || "")
+      .toUpperCase()
+      .replace(/[^A-Z]/g, "");
+  }
+
   return (
     <div className="card" style={{ padding: 12 }}>
       <div className="actions">
-        <div className="muted">keywords yaml items</div>
+        <div className="muted">keywords</div>
         <button className="btn btn-primary" onClick={onAdd}>
           Add
         </button>
@@ -24,8 +30,18 @@ function KeywordsTableView({
       <table>
         <thead>
           <tr>
-            <th style={{ width: 220 }}>File</th>
-            <th style={{ width: 220 }}>Name</th>
+            <th style={{ width: 220 }}>
+              <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 8 }}>
+                <span>File</span>
+                <HelpIconButton docPath="/static/help/keywords/file.html" title="File" />
+              </div>
+            </th>
+            <th style={{ width: 220 }}>
+              <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 8 }}>
+                <span>Name</span>
+                <HelpIconButton docPath="/static/help/keywords/name.html" title="Name" />
+              </div>
+            </th>
             <th style={{ width: 100 }}>Actions</th>
           </tr>
           <tr>
@@ -63,7 +79,7 @@ function KeywordsTableView({
                 <input
                   className="filterInput"
                   value={draft.name}
-                  onChange={(e) => setDraft((p) => ({ ...p, name: e.target.value }))}
+                  onChange={(e) => setDraft((p) => ({ ...p, name: normalizeKeywordName(e.target.value) }))}
                   placeholder="name"
                 />
               </td>
@@ -101,7 +117,7 @@ function KeywordsTableView({
                       <input
                         className="filterInput"
                         value={draft.name}
-                        onChange={(e) => setDraft((p) => ({ ...p, name: e.target.value }))}
+                        onChange={(e) => setDraft((p) => ({ ...p, name: normalizeKeywordName(e.target.value) }))}
                       />
                     </td>
                     <td>

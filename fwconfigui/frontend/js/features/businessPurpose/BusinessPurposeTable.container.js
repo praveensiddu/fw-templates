@@ -78,7 +78,9 @@ function BusinessPurposeTable({ setLoading, setError }) {
       setError("");
 
       const nextFilename = safeTrim(draft.filename);
-      const nextName = safeTrim(draft.name);
+      const nextName = safeTrim(draft.name)
+        .toLowerCase()
+        .replace(/[^a-z]/g, "");
       const nextBp = safeTrim(draft.bp);
 
       await saveFwConfigItem("business-purpose", {

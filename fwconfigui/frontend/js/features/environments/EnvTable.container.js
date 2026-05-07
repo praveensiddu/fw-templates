@@ -70,7 +70,9 @@ function EnvTable({ setLoading, setError }) {
       setError("");
 
       const nextFilename = safeTrim(draft.filename);
-      const nextName = safeTrim(draft.name);
+      const nextName = safeTrim(draft.name)
+        .toLowerCase()
+        .replace(/[^a-z]/g, "");
 
       await saveFwConfigItem("env", {
         filename: nextFilename,
