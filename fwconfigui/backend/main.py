@@ -14,7 +14,6 @@ from backend.config.settings import settings
 from backend.exceptions.handlers import register_exception_handlers
 from backend.routers.business_purpose import router as business_purpose_router
 from backend.routers.env import router as env_router
-from backend.routers.fwconfig import router as fwconfig_router
 from backend.routers.fwrules import router as fwrules_router
 from backend.routers.keywords import router as keywords_router
 from backend.routers.port_protocol import router as port_protocol_router
@@ -94,8 +93,6 @@ app.add_middleware(
 )
 
 register_exception_handlers(app)
-
-app.include_router(fwconfig_router)
 app.include_router(fwrules_router)
 app.include_router(keywords_router)
 app.include_router(port_protocol_router)
