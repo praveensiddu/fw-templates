@@ -1,7 +1,176 @@
+function MultiSelectPicker({
+  options,
+  values,
+  onChange,
+  placeholder,
+  inputTestId,
+}) {
+  const [query, setQuery] = React.useState("");
+  const [open, setOpen] = React.useState(false);
+
+  const normalizedOptions = Array.isArray(options) ? options : [];
+  const selected = Array.isArray(values) ? values : [];
+
+  const filteredOptions = React.useMemo(() => {
+    const q = String(query || "").trim().toLowerCase();
+    if (!q) return normalizedOptions;
+    return normalizedOptions.filter((x) => String(x).toLowerCase().includes(q));
+  }, [normalizedOptions, query]);
+
+  function addValue(name) {
+    const v = String(name || "").trim();
+    if (!v) return;
+    const exists = selected.some((x) => String(x).toLowerCase() === v.toLowerCase());
+    const nextList = exists ? selected : [...selected, v];
+    onChange(nextList);
+    setQuery("");
+    setOpen(true);
+  }
+
+  function removeValue(name) {
+    const v = String(name || "").trim();
+    if (!v) return;
+    const nextList = selected.filter((x) => String(x).toLowerCase() !== v.toLowerCase());
+    onChange(nextList);
+  }
+
+  return (
+    <div
+      style={{ position: "relative", flex: 1 }}
+      onBlur={(e) => {
+        if (!e.currentTarget.contains(e.relatedTarget)) setOpen(false);
+      }}
+    >
+      <div
+        className="filterInput"
+        style={{
+          minHeight: 36,
+          height: "auto",
+          display: "flex",
+          flexWrap: "wrap",
+          gap: 6,
+          alignItems: "center",
+          padding: "6px 8px",
+        }}
+        onMouseDown={() => setOpen(true)}
+      >
+        {(selected || []).map((c) => (
+          <span
+            key={c}
+            style={{
+              display: "inline-flex",
+              alignItems: "center",
+              gap: 6,
+              padding: "2px 8px",
+              borderRadius: 999,
+              background: "rgba(0,0,0,0.06)",
+              fontSize: 12,
+            }}
+          >
+            <span>{c}</span>
+            <button
+              type="button"
+              className="btn"
+              style={{ padding: "0 6px", lineHeight: "16px" }}
+              onClick={() => removeValue(c)}
+              aria-label={`Remove ${c}`}
+            >
+              ×
+            </button>
+          </span>
+        ))}
+        <input
+          className="filterInput"
+          style={{
+            border: "none",
+            outline: "none",
+            boxShadow: "none",
+            flex: 1,
+            minWidth: 160,
+            padding: 0,
+            margin: 0,
+            height: 22,
+          }}
+          value={query}
+          onChange={(e) => {
+            setQuery(e.target.value);
+            setOpen(true);
+          }}
+          onFocus={() => setOpen(true)}
+          onKeyDown={(e) => {
+            if (e.key === "Enter") {
+              e.preventDefault();
+              const first = filteredOptions[0];
+              if (first) addValue(first);
+              return;
+            }
+            if (e.key === "Backspace" && !query && (selected || []).length > 0) {
+              const last = (selected || [])[(selected || []).length - 1];
+              removeValue(last);
+            }
+            if (e.key === "Escape") {
+              setOpen(false);
+            }
+          }}
+          placeholder={placeholder}
+          data-testid={inputTestId}
+        />
+      </div>
+
+      {open ? (
+        <div
+          style={{
+            position: "absolute",
+            zIndex: 10001,
+            left: 0,
+            right: 0,
+            marginTop: 4,
+            background: "#fff",
+            border: "1px solid rgba(0,0,0,0.12)",
+            borderRadius: 8,
+            maxHeight: 220,
+            overflow: "auto",
+          }}
+          tabIndex={-1}
+        >
+          {filteredOptions.length === 0 ? (
+            <div className="muted" style={{ padding: 10 }}>
+              No matches
+            </div>
+          ) : (
+            filteredOptions.map((c) => (
+              <button
+                key={c}
+                type="button"
+                className="btn"
+                style={{
+                  width: "100%",
+                  textAlign: "left",
+                  border: "none",
+                  borderRadius: 0,
+                  padding: "10px 10px",
+                }}
+                onMouseDown={(e) => {
+                  e.preventDefault();
+                  addValue(c);
+                }}
+              >
+                {c}
+              </button>
+            ))
+          )}
+        </div>
+      ) : null}
+    </div>
+  );
+}
+
 function FwRulesTable({ setLoading, setError }) {
   const [items, setItems] = React.useState([]);
   const [portProtocolNames, setPortProtocolNames] = React.useState([]);
+  const [portProtocolDisplayByName, setPortProtocolDisplayByName] = React.useState({});
   const [businessPurposeNames, setBusinessPurposeNames] = React.useState([]);
+  const [businessPurposeDisplayByName, setBusinessPurposeDisplayByName] = React.useState({});
   const [envNames, setEnvNames] = React.useState([]);
   const [showForm, setShowForm] = React.useState(false);
   const [form, setForm] = React.useState({
@@ -38,11 +207,34 @@ function FwRulesTable({ setLoading, setError }) {
         .sort((a, b) => a.localeCompare(b));
       setPortProtocolNames(ppNames);
 
+      const ppDisplay = (ppResp?.items || []).reduce((acc, it) => {
+        const n = safeTrim(it?.name);
+        const pp = it?.data?.["port-protocol"];
+        const port = safeTrim(pp?.port);
+        const service = safeTrim(pp?.service);
+        if (n) {
+          const display = port && service ? `${port}-${service}` : port || service || n;
+          acc[n] = display;
+        }
+        return acc;
+      }, {});
+      setPortProtocolDisplayByName(ppDisplay);
+
       const bpNames = (bpResp?.items || [])
         .map((x) => safeTrim(x?.name))
         .filter(Boolean)
         .sort((a, b) => a.localeCompare(b));
       setBusinessPurposeNames(bpNames);
+
+      const bpDisplay = (bpResp?.items || []).reduce((acc, it) => {
+        const n = safeTrim(it?.name);
+        const bp = safeTrim(it?.data?.["business-purpose"]);
+        if (n) {
+          acc[n] = bp || n;
+        }
+        return acc;
+      }, {});
+      setBusinessPurposeDisplayByName(bpDisplay);
 
       const envs = (envResp?.items || [])
         .map((x) => safeTrim(x?.name))
@@ -84,13 +276,20 @@ function FwRulesTable({ setLoading, setError }) {
         appflowid,
         sourceDisplay: formatEndpoint(src),
         destinationDisplay: formatEndpoint(dst),
-        ppref: refs.join(", "),
-        bp: safeTrim(it?.data?.business_purpose),
+        protocolPortDisplay: refs
+          .map((r) => {
+            const key = safeTrim(r);
+            return portProtocolDisplayByName?.[key] || key;
+          })
+          .filter(Boolean)
+          .join(", "),
+        businessPurposeDisplay:
+          businessPurposeDisplayByName?.[safeTrim(it?.data?.business_purpose)] || safeTrim(it?.data?.business_purpose),
         keywordsDisplay: keywords.map((x) => safeTrim(x)).filter(Boolean).join(", "),
         envsJoined: envs.join(", "),
       };
     });
-  }, [items, formatEndpoint]);
+  }, [items, formatEndpoint, portProtocolDisplayByName, businessPurposeDisplayByName]);
 
   const { sortedRows, filters, setFilters } = useTableFilter({
     rows,
@@ -109,8 +308,8 @@ function FwRulesTable({ setLoading, setError }) {
       appflowid: safeTrim(row.appflowid),
       source: safeTrim(row.sourceDisplay),
       destination: safeTrim(row.destinationDisplay),
-      ppref: safeTrim(row.ppref),
-      bp: safeTrim(row.bp),
+      ppref: safeTrim(row.protocolPortDisplay),
+      bp: safeTrim(row.businessPurposeDisplay),
       keywords: safeTrim(row.keywordsDisplay),
       envs: safeTrim(row.envsJoined),
     }),
@@ -254,22 +453,13 @@ function FwRulesTable({ setLoading, setError }) {
               </div>
               <div className="field">
                 <div className="muted">Source Envs</div>
-                <select
-                  className="input"
-                  multiple
-                  value={Array.isArray(form.sourceEnvs) ? form.sourceEnvs : []}
-                  onChange={(e) => {
-                    const selected = Array.from(e.target.selectedOptions || []).map((o) => o.value);
-                    setForm((p) => ({ ...p, sourceEnvs: selected }));
-                  }}
-                  style={{ minHeight: 120 }}
-                >
-                  {envNames.map((n) => (
-                    <option key={n} value={n}>
-                      {n}
-                    </option>
-                  ))}
-                </select>
+                <MultiSelectPicker
+                  options={envNames}
+                  values={Array.isArray(form.sourceEnvs) ? form.sourceEnvs : []}
+                  onChange={(next) => setForm((p) => ({ ...p, sourceEnvs: next }))}
+                  placeholder="Add env..."
+                  inputTestId="fw-rule-edit-source-envs"
+                />
               </div>
               <div className="field">
                 <div className="muted">Destination Group</div>
@@ -281,46 +471,28 @@ function FwRulesTable({ setLoading, setError }) {
               </div>
               <div className="field">
                 <div className="muted">Destination Envs</div>
-                <select
-                  className="input"
-                  multiple
-                  value={Array.isArray(form.destinationEnvs) ? form.destinationEnvs : []}
-                  onChange={(e) => {
-                    const selected = Array.from(e.target.selectedOptions || []).map((o) => o.value);
-                    setForm((p) => ({ ...p, destinationEnvs: selected }));
-                  }}
-                  style={{ minHeight: 120 }}
-                >
-                  {envNames.map((n) => (
-                    <option key={n} value={n}>
-                      {n}
-                    </option>
-                  ))}
-                </select>
+                <MultiSelectPicker
+                  options={envNames}
+                  values={Array.isArray(form.destinationEnvs) ? form.destinationEnvs : []}
+                  onChange={(next) => setForm((p) => ({ ...p, destinationEnvs: next }))}
+                  placeholder="Add env..."
+                  inputTestId="fw-rule-edit-destination-envs"
+                />
               </div>
               <div className="field">
                 <div className="muted">Protocol-Port References</div>
-                <select
-                  className="input"
-                  multiple
-                  value={Array.isArray(form.protocolPortRefs) ? form.protocolPortRefs : []}
-                  onChange={(e) => {
-                    const selected = Array.from(e.target.selectedOptions || []).map((o) => o.value);
-                    setForm((p) => ({ ...p, protocolPortRefs: selected }));
-                  }}
-                  style={{ minHeight: 120 }}
-                >
-                  {portProtocolNames.map((n) => (
-                    <option key={n} value={n}>
-                      {n}
-                    </option>
-                  ))}
-                </select>
+                <MultiSelectPicker
+                  options={portProtocolNames}
+                  values={Array.isArray(form.protocolPortRefs) ? form.protocolPortRefs : []}
+                  onChange={(next) => setForm((p) => ({ ...p, protocolPortRefs: next }))}
+                  placeholder="Add protocol-port ref..."
+                  inputTestId="fw-rule-edit-protocol-port-refs"
+                />
               </div>
               <div className="field">
                 <div className="muted">Business Purpose</div>
                 <select
-                  className="input"
+                  className="filterInput"
                   value={safeTrim(form.businessPurpose)}
                   onChange={(e) => setForm((p) => ({ ...p, businessPurpose: e.target.value }))}
                 >
@@ -338,22 +510,13 @@ function FwRulesTable({ setLoading, setError }) {
               </div>
               <div className="field">
                 <div className="muted">Envs</div>
-                <select
-                  className="input"
-                  multiple
-                  value={Array.isArray(form.envs) ? form.envs : []}
-                  onChange={(e) => {
-                    const selected = Array.from(e.target.selectedOptions || []).map((o) => o.value);
-                    setForm((p) => ({ ...p, envs: selected }));
-                  }}
-                  style={{ minHeight: 120 }}
-                >
-                  {envNames.map((n) => (
-                    <option key={n} value={n}>
-                      {n}
-                    </option>
-                  ))}
-                </select>
+                <MultiSelectPicker
+                  options={envNames}
+                  values={Array.isArray(form.envs) ? form.envs : []}
+                  onChange={(next) => setForm((p) => ({ ...p, envs: next }))}
+                  placeholder="Add env..."
+                  inputTestId="fw-rule-edit-envs"
+                />
               </div>
             </div>
             <div className="modalActions">

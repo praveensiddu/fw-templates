@@ -22,7 +22,7 @@ function FwRulesTableView({
             <th style={{ width: 140 }}>App Flow ID</th>
             <th style={{ width: 200 }}>Source</th>
             <th style={{ width: 200 }}>Destination</th>
-            <th style={{ width: 220 }}>Protocol-Port Ref</th>
+            <th style={{ width: 220 }}>Protocol-Port</th>
             <th style={{ width: 180 }}>Business Purpose</th>
             <th style={{ width: 200 }}>Keywords</th>
             <th style={{ width: 220 }}>Envs</th>
@@ -103,8 +103,8 @@ function FwRulesTableView({
               <td>{safeTrim(r?.data?.appflowid)}</td>
               <td>{safeTrim(r.sourceDisplay)}</td>
               <td>{safeTrim(r.destinationDisplay)}</td>
-              <td>{Array.isArray(r?.data?.["protocol-port-reference"]) ? r.data["protocol-port-reference"].join(", ") : ""}</td>
-              <td>{safeTrim(r?.data?.business_purpose)}</td>
+              <td>{safeTrim(r.protocolPortDisplay)}</td>
+              <td>{safeTrim(r.businessPurposeDisplay)}</td>
               <td>{safeTrim(r.keywordsDisplay)}</td>
               <td>{Array.isArray(r?.data?.envs) ? r.data.envs.join(", ") : ""}</td>
               <td>
