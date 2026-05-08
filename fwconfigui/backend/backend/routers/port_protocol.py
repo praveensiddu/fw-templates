@@ -37,7 +37,7 @@ def save_item(
     name = str(payload.name or "").strip().lower()
     data = dict(payload.data or {})
     data["name"] = str(data.get("name", "") or name).strip().lower()
-    service.save_item("port-protocol", filename=_FIXED_FILENAME, name=name, data=data)
+    service.save_port_protocol(filename=_FIXED_FILENAME, name=name, data=data, original_name=payload.original_name)
     return {"ok": True}
 
 

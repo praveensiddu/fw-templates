@@ -41,8 +41,7 @@ def save_item(
     data = dict(payload.data or {})
     data["appflowid"] = str(data.get("appflowid", "") or name).strip().upper()
     data["appflowid"] = re.sub(r"[^A-Z0-9_-]", "", data["appflowid"])
-    service.save_item(
-        "fw-rules",
+    service.save_fw_rules(
         filename=payload.filename,
         name=name,
         data=data,
@@ -140,7 +139,7 @@ def put_rule_yaml(
     # Ensure we don't persist a separate name field for flowtemplates.
     parsed.pop("name", None)
 
-    service.save_item("fw-rules", filename=file_name, name=next_appflowid, data=parsed)
+    service.save_fw_rules(filename=file_name, name=next_appflowid, data=parsed)
 
     # If appflowid changed, delete old entry.
     if key != next_appflowid:

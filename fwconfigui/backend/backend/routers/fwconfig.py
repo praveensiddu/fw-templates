@@ -45,13 +45,45 @@ def save_item(
     service: FwConfigService = Depends(get_service),
 ) -> Dict[str, Any]:
     yaml_type = require_yaml_type(type)
-    service.save_item(
-        yaml_type,
-        filename=payload.filename,
-        name=payload.name,
-        data=payload.data,
-        original_name=payload.original_name,
-    )
+
+    if yaml_type == "port-protocol":
+        service.save_port_protocol(
+            filename=payload.filename,
+            name=payload.name,
+            data=payload.data,
+            original_name=payload.original_name,
+        )
+    elif yaml_type == "business-purpose":
+        service.save_business_purpose(
+            filename=payload.filename,
+            name=payload.name,
+            data=payload.data,
+            original_name=payload.original_name,
+        )
+    elif yaml_type == "fw-rules":
+        service.save_fw_rules(
+            filename=payload.filename,
+            name=payload.name,
+            data=payload.data,
+            original_name=payload.original_name,
+        )
+    elif yaml_type == "env":
+        service.save_env(
+            filename=payload.filename,
+            name=payload.name,
+            data=payload.data,
+            original_name=payload.original_name,
+        )
+    elif yaml_type == "keywords":
+        service.save_keywords(
+            filename=payload.filename,
+            name=payload.name,
+            data=payload.data,
+            original_name=payload.original_name,
+        )
+    else:
+        raise ValueError(f"Unsupported yaml_type: {yaml_type}")
+
     return {"ok": True}
 
 

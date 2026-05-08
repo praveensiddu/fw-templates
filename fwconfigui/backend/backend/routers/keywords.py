@@ -37,7 +37,7 @@ def save_item(
     name = str(payload.name or "").strip().upper()
     data = dict(payload.data or {})
     data["name"] = str(data.get("name", "") or name).strip().upper()
-    service.save_item("keywords", filename=_FIXED_FILENAME, name=name, data=data)
+    service.save_keywords(filename=_FIXED_FILENAME, name=name, data=data, original_name=payload.original_name)
     return {"ok": True}
 
 

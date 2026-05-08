@@ -410,7 +410,19 @@ function FwRulesTable({ setLoading, setError }) {
       keywords: safeTrim(row.keywordsDisplay),
       envs: safeTrim(row.envsJoined),
     }),
-    sortBy: (a, b) => safeTrim(a?.appflowid).localeCompare(safeTrim(b?.appflowid)),
+    sortBy: (a, b) => {
+      const aSrc = safeTrim(a?.sourceDisplay).toLowerCase();
+      const bSrc = safeTrim(b?.sourceDisplay).toLowerCase();
+      const srcCmp = aSrc.localeCompare(bSrc);
+      if (srcCmp !== 0) return srcCmp;
+
+      const aDst = safeTrim(a?.destinationDisplay).toLowerCase();
+      const bDst = safeTrim(b?.destinationDisplay).toLowerCase();
+      const dstCmp = aDst.localeCompare(bDst);
+      if (dstCmp !== 0) return dstCmp;
+
+      return safeTrim(a?.appflowid).localeCompare(safeTrim(b?.appflowid));
+    },
   });
 
   const onAdd = React.useCallback(() => {

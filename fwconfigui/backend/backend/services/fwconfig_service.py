@@ -132,11 +132,6 @@ class FwConfigService:
         if not str(payload.get("appflowid", "") or "").strip():
             raise ValidationError("data.appflowid", "is required")
 
-        if "business_purpose" in payload:
-            raise ValidationError(
-                "data.business_purpose",
-                "is not supported; rename to 'business-purpose-reference'",
-            )
 
         item_key = str(payload.get("appflowid", "") or "").strip().upper()
         item_key = re.sub(r"[^A-Z0-9_-]", "", item_key)
@@ -200,61 +195,6 @@ class FwConfigService:
             original_name=original_name,
         )
         self.repo.upsert_item("keywords", filename=filename, name=next_name, entry=payload)
-
-    def save_item(
-        self,
-        yaml_type: str,
-        filename: str,
-        name: str,
-        data: Dict[str, Any],
-        original_name: str | None = None,
-    ) -> None:
-        if yaml_type == "port-protocol":
-            return self.save_port_protocol(
-                filename=filename,
-                name=name,
-                data=data,
-                original_name=original_name,
-            )
-        if yaml_type == "business-purpose":
-            return self.save_business_purpose(
-                filename=filename,
-                name=name,
-                data=data,
-                original_name=original_name,
-            )
-        if yaml_type == "fw-rules":
-            return self.save_fw_rules(
-                filename=filename,
-                name=name,
-                data=data,
-                original_name=original_name,
-            )
-        if yaml_type == "env":
-            return self.save_env(
-                filename=filename,
-                name=name,
-                data=data,
-                original_name=original_name,
-            )
-        if yaml_type == "keywords":
-            return self.save_keywords(
-                filename=filename,
-                name=name,
-                data=data,
-                original_name=original_name,
-            )
-
-        payload = dict(data or {})
-        item_key = str(name or "").strip()
-        payload["name"] = item_key
-        self._enforce_uniqueness(
-            yaml_type=yaml_type,
-            filename=filename,
-            item_key=item_key,
-            original_name=original_name,
-        )
-        self.repo.upsert_item(yaml_type, filename=filename, name=item_key, entry=payload)
 
     def delete_item(self, yaml_type: str, filename: str, name: str) -> None:
         if yaml_type in {"port-protocol", "business-purpose"}:
