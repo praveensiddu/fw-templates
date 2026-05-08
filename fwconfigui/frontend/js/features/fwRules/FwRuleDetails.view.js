@@ -26,7 +26,7 @@ function FwRuleDetailsView({
   function normalizeAppFlowId(v) {
     return String(v || "")
       .toUpperCase()
-      .replace(/[^A-Z]/g, "");
+      .replace(/[^A-Z0-9_-]/g, "");
   }
 
   const sourceItems = Array.isArray(form?.sourceItems) ? form.sourceItems : [];

@@ -1,8 +1,9 @@
 function EnvTable({ setLoading, setError }) {
+  const FIXED_FILENAME = "env.yaml";
   const [items, setItems] = React.useState([]);
   const [editingKey, setEditingKey] = React.useState("");
-  const [draft, setDraft] = React.useState({ filename: "env-1.yaml", name: "" });
-  const [originalRef, setOriginalRef] = React.useState({ filename: "", name: "" });
+  const [draft, setDraft] = React.useState({ name: "" });
+  const [originalRef, setOriginalRef] = React.useState({ name: "" });
   const [confirmDelete, setConfirmDelete] = React.useState({ show: false, row: null });
 
   const load = React.useCallback(async () => {
@@ -28,26 +29,24 @@ function EnvTable({ setLoading, setError }) {
 
   const { sortedRows, filters, setFilters } = useTableFilter({
     rows,
-    initialFilters: { filename: "", name: "" },
+    initialFilters: { name: "" },
     fieldMapping: (row) => ({
-      filename: safeTrim(row.filename),
       name: safeTrim(row.name),
     }),
     sortBy: (a, b) => safeTrim(a?.name).localeCompare(safeTrim(b?.name)),
   });
 
   const onAdd = React.useCallback(() => {
-    setDraft({ filename: "env-1.yaml", name: "" });
-    setOriginalRef({ filename: "", name: "" });
+    setDraft({ name: "" });
+    setOriginalRef({ name: "" });
     setEditingKey("__new__");
   }, []);
 
   const onEdit = React.useCallback((row) => {
-    const f = safeTrim(row.filename);
     const n = safeTrim(row.name);
-    setDraft({ filename: f, name: n });
-    setOriginalRef({ filename: f, name: n });
-    setEditingKey(`${f}:${n}`);
+    setDraft({ name: n });
+    setOriginalRef({ name: n });
+    setEditingKey(n);
   }, []);
 
   const onDelete = React.useCallback((row) => {
@@ -55,13 +54,13 @@ function EnvTable({ setLoading, setError }) {
   }, []);
 
   const canSubmit = React.useMemo(() => {
-    return isNonEmptyString(draft.filename) && isNonEmptyString(draft.name);
+    return isNonEmptyString(draft.name);
   }, [draft]);
 
   const onCancelEdit = React.useCallback(() => {
     setEditingKey("");
-    setDraft({ filename: "env-1.yaml", name: "" });
-    setOriginalRef({ filename: "", name: "" });
+    setDraft({ name: "" });
+    setOriginalRef({ name: "" });
   }, []);
 
   const onSave = React.useCallback(async () => {
@@ -69,25 +68,23 @@ function EnvTable({ setLoading, setError }) {
       setLoading(true);
       setError("");
 
-      const nextFilename = safeTrim(draft.filename);
       const nextName = safeTrim(draft.name)
         .toLowerCase()
-        .replace(/[^a-z]/g, "");
+        .replace(/[^a-z0-9]/g, "");
 
       await saveFwConfigItem("env", {
-        filename: nextFilename,
+        filename: FIXED_FILENAME,
         name: nextName,
+        original_name: safeTrim(originalRef.name) || undefined,
         data: { name: nextName },
       });
 
-      const oldFilename = safeTrim(originalRef.filename);
       const oldName = safeTrim(originalRef.name);
       const shouldDeleteOld =
-        isNonEmptyString(oldFilename) &&
         isNonEmptyString(oldName) &&
-        (oldFilename !== nextFilename || oldName !== nextName);
+        oldName !== nextName;
       if (shouldDeleteOld) {
-        await deleteFwConfigItem("env", { filename: oldFilename, name: oldName });
+        await deleteFwConfigItem("env", { filename: FIXED_FILENAME, name: oldName });
       }
 
       onCancelEdit();
@@ -104,7 +101,7 @@ function EnvTable({ setLoading, setError }) {
     try {
       setLoading(true);
       setError("");
-      await deleteFwConfigItem("env", { filename: row.filename, name: row.name });
+      await deleteFwConfigItem("env", { filename: FIXED_FILENAME, name: row.name });
       setConfirmDelete({ show: false, row: null });
       await load();
     } catch (e) {

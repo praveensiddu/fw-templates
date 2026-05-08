@@ -45,7 +45,13 @@ def save_item(
     service: FwConfigService = Depends(get_service),
 ) -> Dict[str, Any]:
     yaml_type = require_yaml_type(type)
-    service.save_item(yaml_type, filename=payload.filename, name=payload.name, data=payload.data)
+    service.save_item(
+        yaml_type,
+        filename=payload.filename,
+        name=payload.name,
+        data=payload.data,
+        original_name=payload.original_name,
+    )
     return {"ok": True}
 
 

@@ -9,6 +9,8 @@ from backend.services.fwconfig_service import FwConfigService
 
 router = APIRouter(prefix="/api/v1/fwconfig/port-protocol", tags=["fwconfig", "port-protocol"])
 
+_FIXED_FILENAME = "port-protocol.yaml"
+
 
 def get_service() -> FwConfigService:
     return FwConfigService()
@@ -16,13 +18,13 @@ def get_service() -> FwConfigService:
 
 @router.get("/files", response_model=ListYamlFilesResponse)
 def list_yaml_files(request: Request, service: FwConfigService = Depends(get_service)):
-    files = [{"filename": f} for f in service.list_files("port-protocol")]
+    files = [{"filename": _FIXED_FILENAME}]
     return {"type": "port-protocol", "files": files}
 
 
 @router.get("", response_model=ListItemsResponse)
 def list_items(request: Request, service: FwConfigService = Depends(get_service)):
-    items = service.list_items("port-protocol")
+    items = [x for x in service.list_items("port-protocol") if str(x.get("filename", "")) == _FIXED_FILENAME]
     return {"type": "port-protocol", "items": items}
 
 
@@ -35,7 +37,7 @@ def save_item(
     name = str(payload.name or "").strip().lower()
     data = dict(payload.data or {})
     data["name"] = str(data.get("name", "") or name).strip().lower()
-    service.save_item("port-protocol", filename=payload.filename, name=name, data=data)
+    service.save_item("port-protocol", filename=_FIXED_FILENAME, name=name, data=data)
     return {"ok": True}
 
 
@@ -45,5 +47,5 @@ def delete_item(
     payload: DeleteItemRequest,
     service: FwConfigService = Depends(get_service),
 ) -> Dict[str, Any]:
-    service.delete_item("port-protocol", filename=payload.filename, name=payload.name)
+    service.delete_item("port-protocol", filename=_FIXED_FILENAME, name=payload.name)
     return {"ok": True}

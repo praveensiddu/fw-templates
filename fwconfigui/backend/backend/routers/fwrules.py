@@ -2,6 +2,7 @@
 
 from typing import Any, Dict, Optional
 
+import re
 import yaml
 from fastapi import APIRouter, Body, Depends, Request
 
@@ -36,9 +37,17 @@ def save_item(
     service: FwConfigService = Depends(get_service),
 ) -> Dict[str, Any]:
     name = str(payload.name or "").strip().upper()
+    name = re.sub(r"[^A-Z0-9_-]", "", name)
     data = dict(payload.data or {})
     data["appflowid"] = str(data.get("appflowid", "") or name).strip().upper()
-    service.save_item("fw-rules", filename=payload.filename, name=name, data=data)
+    data["appflowid"] = re.sub(r"[^A-Z0-9_-]", "", data["appflowid"])
+    service.save_item(
+        "fw-rules",
+        filename=payload.filename,
+        name=name,
+        data=data,
+        original_name=payload.original_name,
+    )
     return {"ok": True}
 
 
@@ -63,6 +72,7 @@ def get_rule_yaml(
         raise ValidationError("filename", "is required")
 
     key = str(appflowid or "").strip().upper()
+    key = re.sub(r"[^A-Z0-9_-]", "", key)
     if not key:
         raise ValidationError("appflowid", "is required")
 
@@ -72,11 +82,7 @@ def get_rule_yaml(
             continue
         if not isinstance(entry, dict):
             continue
-        if "business_purpose" in entry:
-            raise ValidationError(
-                "data.business_purpose",
-                "is not supported; rename to 'business-purpose-reference'",
-            )
+
         entry_appflowid = str(entry.get("appflowid", "") or "").strip()
         if key == entry_appflowid:
             txt = yaml.safe_dump(entry, sort_keys=False)
@@ -98,8 +104,25 @@ def put_rule_yaml(
         raise ValidationError("filename", "is required")
 
     key = str(appflowid or "").strip().upper()
+    key = re.sub(r"[^A-Z0-9_-]", "", key)
     if not key:
         raise ValidationError("appflowid", "is required")
+
+    # Update-only: the referenced appflowid must already exist in the given file.
+    found_existing = False
+    for fn, entry in FwConfigRepository.read_items("fw-rules"):
+        if fn != file_name:
+            continue
+        if not isinstance(entry, dict):
+            continue
+        entry_appflowid = str(entry.get("appflowid", "") or "").strip().upper()
+        entry_appflowid = re.sub(r"[^A-Z0-9_-]", "", entry_appflowid)
+        if entry_appflowid == key:
+            found_existing = True
+            break
+
+    if not found_existing:
+        raise NotFoundError("Item", key)
 
     try:
         parsed = yaml.safe_load(yaml_text) or {}
@@ -110,6 +133,7 @@ def put_rule_yaml(
         raise ValidationError("yaml", "must be a YAML object")
 
     next_appflowid = str(parsed.get("appflowid", "") or "").strip().upper()
+    next_appflowid = re.sub(r"[^A-Z0-9_-]", "", next_appflowid)
     if not next_appflowid:
         raise ValidationError("data.appflowid", "is required")
 

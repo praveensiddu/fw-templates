@@ -39,12 +39,18 @@ function useTableFilter({
         const filterValue = safeTrim(filters[filterKey]);
         if (!filterValue) return true;
 
+        const isNegated = filterValue.startsWith("!");
+        const needle = safeTrim(isNegated ? filterValue.slice(1) : filterValue);
+        if (!needle) return true;
+
         const fieldValue = formatTableValue(fields[filterKey]);
 
         if (caseSensitive) {
-          return fieldValue.includes(filterValue);
+          const has = fieldValue.includes(needle);
+          return isNegated ? !has : has;
         }
-        return fieldValue.toLowerCase().includes(filterValue.toLowerCase());
+        const has = fieldValue.toLowerCase().includes(needle.toLowerCase());
+        return isNegated ? !has : has;
       });
     });
   }, [rows, filters, fieldMapping, caseSensitive]);

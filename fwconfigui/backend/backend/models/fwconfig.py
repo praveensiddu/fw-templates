@@ -28,6 +28,7 @@ class ListItemsResponse(BaseModel):
 class SaveItemRequest(BaseModel):
     filename: str
     name: str
+    original_name: Optional[str] = None
     data: Dict[str, Any] = {}
 
 

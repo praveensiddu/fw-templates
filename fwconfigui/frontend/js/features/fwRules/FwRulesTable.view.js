@@ -31,55 +31,47 @@ function FwRulesTableView({
       <table>
         <thead>
           <tr>
-            <th style={{ width: 220 }}>
-              <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 8 }}>
-                <span>File</span>
-                <HelpIconButton docPath="/static/help/fw-rules/file.html" title="File" />
-              </div>
-            </th>
-            <th style={{ width: 140 }}>
+            <th className="fwTableHeaderCell" style={{ width: 140 }}>
               <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 8 }}>
                 <span>App Flow ID</span>
                 <HelpIconButton docPath="/static/help/fw-rules/appflowid.html" title="App Flow ID" />
               </div>
             </th>
-            <th style={{ width: 200 }}>Source List</th>
-            <th style={{ width: 200 }}>Destination List</th>
-            <th style={{ width: 220 }}>
+            <th className="fwTableHeaderCell" style={{ width: 280 }}>Source List</th>
+            <th className="fwTableHeaderCell" style={{ width: 280 }}>Destination List</th>
+            <th className="fwTableHeaderCell" style={{ width: 220 }}>
               <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 8 }}>
                 <span>Protocol-Port</span>
                 <HelpIconButton docPath="/static/help/fw-rules/protocol-port.html" title="Protocol-Port" />
               </div>
             </th>
-            <th style={{ width: 180 }}>
+            <th className="fwTableHeaderCell" style={{ width: 180 }}>
               <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 8 }}>
                 <span>Business Purpose</span>
                 <HelpIconButton docPath="/static/help/fw-rules/business-purpose.html" title="Business Purpose" />
               </div>
             </th>
-            <th style={{ width: 200 }}>
+            <th className="fwTableHeaderCell" style={{ width: 35 }}>
               <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 8 }}>
-                <span>Keywords</span>
+                <span>KWS</span>
                 <HelpIconButton docPath="/static/help/fw-rules/keywords.html" title="Keywords" />
               </div>
             </th>
-            <th style={{ width: 220 }}>
+            <th className="fwTableHeaderCell" style={{ width: 35 }}>
               <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 8 }}>
                 <span>Envs</span>
                 <HelpIconButton docPath="/static/help/fw-rules/envs.html" title="Envs" />
               </div>
             </th>
-            <th style={{ width: 100 }}>Actions</th>
+            <th className="fwTableHeaderCell" style={{ width: 100 }}>Actions</th>
+            <th className="fwTableHeaderCell" style={{ width: 170 }}>
+              <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 8 }}>
+                <span>File</span>
+                <HelpIconButton docPath="/static/help/fw-rules/file.html" title="File" />
+              </div>
+            </th>
           </tr>
           <tr>
-            <th>
-              <input
-                className="filterInput"
-                placeholder="Filter file..."
-                value={filters.filename}
-                onChange={(e) => setFilters((p) => ({ ...p, filename: e.target.value }))}
-              />
-            </th>
             <th>
               <input
                 className="filterInput"
@@ -137,6 +129,14 @@ function FwRulesTableView({
               />
             </th>
             <th />
+            <th>
+              <input
+                className="filterInput"
+                placeholder="Filter file..."
+                value={filters.filename}
+                onChange={(e) => setFilters((p) => ({ ...p, filename: e.target.value }))}
+              />
+            </th>
           </tr>
         </thead>
         <tbody>
@@ -148,40 +148,22 @@ function FwRulesTableView({
                 return (
                   <>
                     <td>
-                      {isEditing ? (
-                        <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
-                          <input
-                            className="filterInput"
-                            value={safeTrim(inlineEdit?.filename)}
-                            onChange={(e) => setInlineEdit((p) => ({ ...p, filename: e.target.value }))}
-                          />
-                          <button className="iconBtn iconBtn-primary" title="Save" onClick={onSaveInlineEdit}>
-                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                              <polyline points="20 6 9 17 4 12" />
-                            </svg>
-                          </button>
-                          <button className="iconBtn" title="Cancel" onClick={onCancelInlineEdit}>
-                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                              <path d="M18 6L6 18" />
-                              <path d="M6 6l12 12" />
-                            </svg>
-                          </button>
-                        </div>
-                      ) : (
-                        <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
-                          <span>{r.filename}</span>
-                          <button className="iconBtn" title="Edit file" onClick={() => onStartInlineEdit(r)}>
-                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                              <path d="M12 20h9" />
-                              <path d="M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4 12.5-12.5z" />
-                            </svg>
-                          </button>
-                        </div>
-                      )}
+                      <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
+                        <button className="iconBtn" title="Edit file" onClick={() => onStartInlineEdit(r)}>
+                          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                            <path d="M12 20h9" />
+                            <path d="M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4 12.5-12.5z" />
+                          </svg>
+                        </button>
+                        <span>{safeTrim(r?.data?.appflowid)}</span>
+                      </div>
                     </td>
-                    <td>{safeTrim(r?.data?.appflowid)}</td>
-                    <td>{safeTrim(r.sourceDisplay)}</td>
-                    <td>{safeTrim(r.destinationDisplay)}</td>
+                    <td>
+                      <div style={{ whiteSpace: "pre-line" }}>{safeTrim(r.sourceDisplay)}</div>
+                    </td>
+                    <td>
+                      <div style={{ whiteSpace: "pre-line" }}>{safeTrim(r.destinationDisplay)}</div>
+                    </td>
                     <td>
                       {isEditing ? (
                         <MultiSelectPicker
@@ -192,7 +174,7 @@ function FwRulesTableView({
                           inputTestId={`fw-rule-inline-pprefs-${rowKey}`}
                         />
                       ) : (
-                        safeTrim(r.protocolPortDisplay)
+                        <div style={{ whiteSpace: "pre-line" }}>{safeTrim(r.protocolPortDisplay)}</div>
                       )}
                     </td>
                     <td>
@@ -223,7 +205,7 @@ function FwRulesTableView({
                           inputTestId={`fw-rule-inline-keywords-${rowKey}`}
                         />
                       ) : (
-                        safeTrim(r.keywordsDisplay)
+                        <div style={{ whiteSpace: "pre-line" }}>{safeTrim(r.keywordsDisplay)}</div>
                       )}
                     </td>
                     <td>
@@ -236,7 +218,7 @@ function FwRulesTableView({
                           inputTestId={`fw-rule-inline-envs-${rowKey}`}
                         />
                       ) : (
-                        Array.isArray(r?.data?.envs) ? r.data.envs.join(", ") : ""
+                        <div style={{ whiteSpace: "pre-line" }}>{safeTrim(r.envsJoined)}</div>
                       )}
                     </td>
                     <td>
@@ -270,6 +252,30 @@ function FwRulesTableView({
                           <path d="M9 6V4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2" />
                         </svg>
                       </button>
+                    </td>
+                    <td>
+                      {isEditing ? (
+                        <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
+                          <input
+                            className="filterInput"
+                            value={safeTrim(inlineEdit?.filename)}
+                            onChange={(e) => setInlineEdit((p) => ({ ...p, filename: e.target.value }))}
+                          />
+                          <button className="iconBtn iconBtn-primary" title="Save" onClick={onSaveInlineEdit}>
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                              <polyline points="20 6 9 17 4 12" />
+                            </svg>
+                          </button>
+                          <button className="iconBtn" title="Cancel" onClick={onCancelInlineEdit}>
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                              <path d="M18 6L6 18" />
+                              <path d="M6 6l12 12" />
+                            </svg>
+                          </button>
+                        </div>
+                      ) : (
+                        <span>{r.filename}</span>
+                      )}
                     </td>
                   </>
                 );

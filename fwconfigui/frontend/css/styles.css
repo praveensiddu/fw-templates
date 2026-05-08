@@ -195,6 +195,14 @@ tbody tr:hover td {
   color: var(--muted);
 }
 
+table th {
+  vertical-align: top;
+}
+
+table th > div {
+  align-items: flex-start;
+}
+
 .fwBlockHeader {
   display: flex;
   align-items: center;
@@ -203,6 +211,16 @@ tbody tr:hover td {
   padding: 10px 12px;
   background: rgba(13, 110, 253, 0.05);
   border-bottom: 1px solid rgba(0, 0, 0, 0.08);
+}
+
+.fwTableHeaderCell {
+  background: rgba(13, 110, 253, 0.05);
+  border-bottom: 1px solid rgba(0, 0, 0, 0.08);
+  vertical-align: top;
+}
+
+.fwTableHeaderCell > div {
+  align-items: flex-start;
 }
 
 .fwBlockHeaderLeft {

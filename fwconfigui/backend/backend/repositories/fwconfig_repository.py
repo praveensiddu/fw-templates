@@ -12,11 +12,11 @@ logger = logging.getLogger("uvicorn.error")
 
 
 _TYPE_TO_DIR = {
-    "port-protocol": "port-protocol",
-    "business-purpose": "business-purpose",
+    "port-protocol": "",
+    "business-purpose": "",
     "fw-rules": "fw-rules",
-    "env": "env",
-    "keywords": "keywords",
+    "env": "",
+    "keywords": "",
 }
 
 _TYPE_TO_LIST_KEY = {
@@ -33,7 +33,9 @@ class FwConfigRepository:
 
     @staticmethod
     def _type_root(yaml_type: str) -> Path:
-        root = get_fwconfigfiles_root() / _TYPE_TO_DIR[yaml_type]
+        base = get_fwconfigfiles_root()
+        subdir = _TYPE_TO_DIR[yaml_type]
+        root = base if not subdir else (base / subdir)
         root.mkdir(parents=True, exist_ok=True)
         return root
 
@@ -57,6 +59,32 @@ class FwConfigRepository:
                 items.append((path.name, entry))
 
         return items
+
+    @staticmethod
+    def item_exists(yaml_type: str, filename: str, name: str) -> bool:
+        file_name = str(filename or "").strip()
+        if not file_name:
+            raise ValidationError("filename", "is required")
+        if "/" in file_name or "\\" in file_name:
+            raise ValidationError("filename", "must be a base filename")
+
+        item_name = str(name or "").strip()
+        if not item_name:
+            raise ValidationError("name", "is required")
+
+        key = _TYPE_TO_LIST_KEY[yaml_type]
+        path = FwConfigRepository._type_root(yaml_type) / file_name
+
+        raw = read_yaml_dict(path)
+        lst = raw.get(key, [])
+        if not isinstance(lst, list):
+            return False
+
+        match_key = "appflowid" if yaml_type == "fw-rules" else "name"
+        for existing in lst:
+            if isinstance(existing, dict) and str(existing.get(match_key, "")).strip() == item_name:
+                return True
+        return False
 
     @staticmethod
     def upsert_item(yaml_type: str, filename: str, name: str, entry: Dict[str, Any]) -> None:
@@ -84,8 +112,10 @@ class FwConfigRepository:
         replaced = False
         for existing in lst:
             if isinstance(existing, dict) and str(existing.get(match_key, "")).strip() == item_name:
-                next_lst.append(entry)
-                replaced = True
+                if not replaced:
+                    next_lst.append(entry)
+                    replaced = True
+                # If duplicates already exist in the YAML, drop extras to enforce uniqueness.
             else:
                 if isinstance(existing, dict):
                     next_lst.append(existing)

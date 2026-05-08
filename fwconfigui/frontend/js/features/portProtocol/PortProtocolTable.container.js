@@ -1,8 +1,9 @@
 function PortProtocolTable({ setLoading, setError }) {
+  const FIXED_FILENAME = "port-protocol.yaml";
   const [items, setItems] = React.useState([]);
   const [editingKey, setEditingKey] = React.useState("");
-  const [draft, setDraft] = React.useState({ filename: "port-protocol-1.yaml", name: "", port: "", service: "" });
-  const [originalRef, setOriginalRef] = React.useState({ filename: "", name: "" });
+  const [draft, setDraft] = React.useState({ name: "", port: "", service: "" });
+  const [originalRef, setOriginalRef] = React.useState({ name: "" });
   const [confirmDelete, setConfirmDelete] = React.useState({ show: false, row: null });
 
   const load = React.useCallback(async () => {
@@ -35,9 +36,8 @@ function PortProtocolTable({ setLoading, setError }) {
 
   const { sortedRows, filters, setFilters } = useTableFilter({
     rows,
-    initialFilters: { filename: "", name: "", port: "", service: "" },
+    initialFilters: { name: "", port: "", service: "" },
     fieldMapping: (row) => ({
-      filename: safeTrim(row.filename),
       name: safeTrim(row.name),
       port: safeTrim(row.port),
       service: safeTrim(row.service),
@@ -46,22 +46,20 @@ function PortProtocolTable({ setLoading, setError }) {
   });
 
   const onAdd = React.useCallback(() => {
-    setDraft({ filename: "port-protocol-1.yaml", name: "", port: "", service: "" });
-    setOriginalRef({ filename: "", name: "" });
+    setDraft({ name: "", port: "", service: "" });
+    setOriginalRef({ name: "" });
     setEditingKey("__new__");
   }, []);
 
   const onEdit = React.useCallback((row) => {
-    const f = safeTrim(row.filename);
     const n = safeTrim(row.name);
     setDraft({
-      filename: f,
       name: n,
       port: safeTrim(row?.data?.["port-protocol"]?.port),
       service: safeTrim(row?.data?.["port-protocol"]?.service),
     });
-    setOriginalRef({ filename: f, name: n });
-    setEditingKey(`${f}:${n}`);
+    setOriginalRef({ name: n });
+    setEditingKey(n);
   }, []);
 
   const onDelete = React.useCallback((row) => {
@@ -70,7 +68,6 @@ function PortProtocolTable({ setLoading, setError }) {
 
   const canSubmit = React.useMemo(() => {
     return (
-      isNonEmptyString(draft.filename) &&
       isNonEmptyString(draft.name) &&
       isNonEmptyString(draft.port) &&
       isNonEmptyString(draft.service)
@@ -79,8 +76,8 @@ function PortProtocolTable({ setLoading, setError }) {
 
   const onCancelEdit = React.useCallback(() => {
     setEditingKey("");
-    setDraft({ filename: "port-protocol-1.yaml", name: "", port: "", service: "" });
-    setOriginalRef({ filename: "", name: "" });
+    setDraft({ name: "", port: "", service: "" });
+    setOriginalRef({ name: "" });
   }, []);
 
   const onSave = React.useCallback(async () => {
@@ -88,30 +85,28 @@ function PortProtocolTable({ setLoading, setError }) {
       setLoading(true);
       setError("");
 
-      const nextFilename = safeTrim(draft.filename);
       const nextName = safeTrim(draft.name)
         .toLowerCase()
-        .replace(/[^a-z]/g, "");
+        .replace(/[^a-z0-9_-]/g, "");
       const nextPort = safeTrim(draft.port);
       const nextService = safeTrim(draft.service);
 
       await saveFwConfigItem("port-protocol", {
-        filename: nextFilename,
+        filename: FIXED_FILENAME,
         name: nextName,
+        original_name: safeTrim(originalRef.name) || undefined,
         data: {
           name: nextName,
           "port-protocol": { port: nextPort, service: nextService },
         },
       });
 
-      const oldFilename = safeTrim(originalRef.filename);
       const oldName = safeTrim(originalRef.name);
       const shouldDeleteOld =
-        isNonEmptyString(oldFilename) &&
         isNonEmptyString(oldName) &&
-        (oldFilename !== nextFilename || oldName !== nextName);
+        oldName !== nextName;
       if (shouldDeleteOld) {
-        await deleteFwConfigItem("port-protocol", { filename: oldFilename, name: oldName });
+        await deleteFwConfigItem("port-protocol", { filename: FIXED_FILENAME, name: oldName });
       }
 
       onCancelEdit();
@@ -134,7 +129,7 @@ function PortProtocolTable({ setLoading, setError }) {
     } catch (e) {
       setError(formatError(e));
     } finally {
-      setLoading(false);
+      setLoading(false);FIXED_FILENAME
     }
   }, [confirmDelete, setLoading, setError, load]);
 

@@ -216,6 +216,7 @@ function FwRulesTable({ setLoading, setError }) {
   });
   const [confirmDelete, setConfirmDelete] = React.useState({ show: false, row: null });
   const [yamlEditor, setYamlEditor] = React.useState({ show: false, row: null, appflowid: "", yaml: "" });
+  const [originalAppflowid, setOriginalAppflowid] = React.useState("");
 
   function extractLockedAppflowIdFromYaml(yamlText, fallbackAppflowid) {
     const lines = String(yamlText || "").split(/\r?\n/);
@@ -345,12 +346,16 @@ function FwRulesTable({ setLoading, setError }) {
 
   const formatEndpoint = React.useCallback((arr) => {
     if (!Array.isArray(arr) || arr.length === 0) return "";
-    const first = arr[0];
-    const group = safeTrim(first?.group);
-    const envs = Array.isArray(first?.envs) ? first.envs.map((x) => safeTrim(x)).filter(Boolean) : [];
-    const envsPart = envs.length ? `[${envs.join(",")}]` : "[]";
-    if (!group) return envsPart;
-    return `${group} ${envsPart}`;
+    return arr
+      .map((it) => {
+        const group = safeTrim(it?.group);
+        const envs = Array.isArray(it?.envs) ? it.envs.map((x) => safeTrim(x)).filter(Boolean) : [];
+        const envsPart = envs.length ? `[${envs.join(",")}]` : "[]";
+        if (!group) return envsPart;
+        return `${group} ${envsPart}`;
+      })
+      .filter(Boolean)
+      .join("\n");
   }, []);
 
   const rows = React.useMemo(() => {
@@ -374,11 +379,11 @@ function FwRulesTable({ setLoading, setError }) {
             return portProtocolDisplayByName?.[key] || key;
           })
           .filter(Boolean)
-          .join(", "),
+          .join("\n"),
         businessPurposeDisplay:
           businessPurposeDisplayByName?.[bpRef] || bpRef,
-        keywordsDisplay: keywords.map((x) => safeTrim(x)).filter(Boolean).join(", "),
-        envsJoined: envs.join(", "),
+        keywordsDisplay: keywords.map((x) => safeTrim(x)).filter(Boolean).join("\n"),
+        envsJoined: envs.map((x) => safeTrim(x)).filter(Boolean).join("\n"),
       };
     });
   }, [items, formatEndpoint, portProtocolDisplayByName, businessPurposeDisplayByName]);
@@ -410,6 +415,7 @@ function FwRulesTable({ setLoading, setError }) {
 
   const onAdd = React.useCallback(() => {
     setDetailsMode("add");
+    setOriginalAppflowid("");
     setIsEditingSource(true);
     setIsEditingDestination(true);
     setForm({
@@ -453,13 +459,18 @@ function FwRulesTable({ setLoading, setError }) {
     const fallbackSrc = normalizedSrc.length ? normalizedSrc : [{ group: "", envs: [] }];
     const fallbackDst = normalizedDst.length ? normalizedDst : [{ group: "", envs: [] }];
 
+    const prevAppflowid = (safeTrim(row?.data?.appflowid) || safeTrim(row?.name))
+      .toUpperCase()
+      .replace(/[^A-Z0-9_-]/g, "");
+    setOriginalAppflowid(prevAppflowid);
+
     setSavedSourceItems(fallbackSrc);
     setSavedDestinationItems(fallbackDst);
     setIsEditingSource(false);
     setIsEditingDestination(false);
     setForm({
       filename: safeTrim(row.filename),
-      appflowid: (safeTrim(row?.data?.appflowid) || safeTrim(row?.name)).toUpperCase().replace(/[^A-Z]/g, ""),
+      appflowid: prevAppflowid,
       sourceItems: fallbackSrc,
       destinationItems: fallbackDst,
       protocolPortRefs: refs,
@@ -660,11 +671,12 @@ function FwRulesTable({ setLoading, setError }) {
 
       const nextAppflowid = safeTrim(form.appflowid)
         .toUpperCase()
-        .replace(/[^A-Z]/g, "");
+        .replace(/[^A-Z0-9_-]/g, "");
 
       await saveFwConfigItem("fw-rules", {
         filename: form.filename,
         name: nextAppflowid,
+        original_name: safeTrim(originalAppflowid) || undefined,
         data: {
           appflowid: nextAppflowid,
           "source-list": source,
@@ -686,7 +698,7 @@ function FwRulesTable({ setLoading, setError }) {
     } finally {
       setLoading(false);
     }
-  }, [form, setLoading, setError, load]);
+  }, [form, originalAppflowid, setLoading, setError, load]);
 
   const onConfirmDelete = React.useCallback(async () => {
     const row = confirmDelete.row;
@@ -753,15 +765,22 @@ function FwRulesTable({ setLoading, setError }) {
         keywords: Array.isArray(inlineEdit.keywords) ? inlineEdit.keywords : [],
         envs: Array.isArray(inlineEdit.envs) ? inlineEdit.envs : [],
       };
+
       delete nextData.business_purpose;
       delete nextData.name;
 
-      await saveFwConfigItem("fw-rules", { filename: newFilename, name: appflowid, data: nextData });
+      await saveFwConfigItem("fw-rules", {
+        filename: newFilename,
+        name: appflowid,
+        original_name: appflowid,
+        data: nextData,
+      });
+
       if (oldFilename && newFilename && oldFilename !== newFilename) {
         try {
           await deleteFwConfigItem("fw-rules", { filename: oldFilename, name: appflowid });
         } catch (e) {
-          // ignore
+          loggerWarn("Failed to cleanup old fw-rules file", e);
         }
       }
 
