@@ -189,10 +189,10 @@ function FwRulesTable({ setLoading, setError }) {
   const [businessPurposeDisplayByName, setBusinessPurposeDisplayByName] = React.useState({});
   const [envNames, setEnvNames] = React.useState([]);
   const [keywordNames, setKeywordNames] = React.useState([]);
-  const [inlineEdit, setInlineEdit] = React.useState({
+  const [cellEdit, setCellEdit] = React.useState({
     key: "",
     row: null,
-    filename: "",
+    field: "", // protocol-port-reference | business-purpose-reference | keywords | envs
     businessPurpose: "",
     protocolPortRefs: [],
     keywords: [],
@@ -733,17 +733,17 @@ function FwRulesTable({ setLoading, setError }) {
     return `${filename}::${appflowid}`;
   }, []);
 
-  const onStartInlineEdit = React.useCallback(
-    (row) => {
+  const onStartCellEdit = React.useCallback(
+    (row, field) => {
       const key = getRowKey(row);
       const bp = safeTrim(row?.data?.["business-purpose-reference"]);
       const pp = Array.isArray(row?.data?.["protocol-port-reference"]) ? row.data["protocol-port-reference"] : [];
       const kw = Array.isArray(row?.data?.keywords) ? row.data.keywords : [];
       const envs = Array.isArray(row?.data?.envs) ? row.data.envs : [];
-      setInlineEdit({
+      setCellEdit({
         key,
         row,
-        filename: safeTrim(row?.filename),
+        field: safeTrim(field),
         businessPurpose: bp,
         protocolPortRefs: pp,
         keywords: kw,
@@ -753,57 +753,43 @@ function FwRulesTable({ setLoading, setError }) {
     [getRowKey]
   );
 
-  const onCancelInlineEdit = React.useCallback(() => {
-    setInlineEdit({ key: "", row: null, filename: "", businessPurpose: "", protocolPortRefs: [], keywords: [], envs: [] });
+  const onCancelCellEdit = React.useCallback(() => {
+    setCellEdit({ key: "", row: null, field: "", businessPurpose: "", protocolPortRefs: [], keywords: [], envs: [] });
   }, []);
 
-  const onSaveInlineEdit = React.useCallback(async () => {
-    const row = inlineEdit.row;
+  const onSaveCellEdit = React.useCallback(async () => {
+    const row = cellEdit.row;
     if (!row) return;
+    const appflowid = safeTrim(row?.data?.appflowid) || safeTrim(row?.name);
+    if (!appflowid) return;
 
     try {
       setLoading(true);
       setError("");
 
-      const oldFilename = safeTrim(row?.filename);
-      const newFilename = safeTrim(inlineEdit.filename) || oldFilename;
-      const appflowid = safeTrim(row?.data?.appflowid) || safeTrim(row?.name);
-
-      const nextData = {
-        ...(row?.data || {}),
-        appflowid,
-        "business-purpose-reference": safeTrim(inlineEdit.businessPurpose),
-        "protocol-port-reference": Array.isArray(inlineEdit.protocolPortRefs) ? inlineEdit.protocolPortRefs : [],
-        keywords: Array.isArray(inlineEdit.keywords) ? inlineEdit.keywords : [],
-        envs: Array.isArray(inlineEdit.envs) ? inlineEdit.envs : [],
-      };
-
-      delete nextData.business_purpose;
-      delete nextData.name;
-
-      await saveFwConfigItem("fw-rules", {
-        filename: newFilename,
-        name: appflowid,
-        original_name: appflowid,
-        data: nextData,
-      });
-
-      if (oldFilename && newFilename && oldFilename !== newFilename) {
-        try {
-          await deleteFwConfigItem("fw-rules", { filename: oldFilename, name: appflowid });
-        } catch (e) {
-          loggerWarn("Failed to cleanup old fw-rules file", e);
-        }
+      const body = { appflowid };
+      const f = safeTrim(cellEdit.field);
+      if (f === "protocol-port-reference") {
+        body.protocol_port_reference = Array.isArray(cellEdit.protocolPortRefs) ? cellEdit.protocolPortRefs : [];
+      } else if (f === "business-purpose-reference") {
+        body.business_purpose_reference = safeTrim(cellEdit.businessPurpose);
+      } else if (f === "keywords") {
+        body.keywords = Array.isArray(cellEdit.keywords) ? cellEdit.keywords : [];
+      } else if (f === "envs") {
+        body.envs = Array.isArray(cellEdit.envs) ? cellEdit.envs : [];
+      } else {
+        throw new Error("Unknown field");
       }
 
-      onCancelInlineEdit();
+      await putJson(`/api/v1/fwconfig/fw-rules/fields`, body);
+      onCancelCellEdit();
       await load();
     } catch (e) {
       setError(formatError(e));
     } finally {
       setLoading(false);
     }
-  }, [inlineEdit, setLoading, setError, load, onCancelInlineEdit]);
+  }, [cellEdit, setLoading, setError, load, onCancelCellEdit]);
 
   return (
     <>
@@ -843,12 +829,12 @@ function FwRulesTable({ setLoading, setError }) {
           onEditYaml={onEditYaml}
           onCopy={onCopy}
           onDelete={onDelete}
-          inlineEdit={inlineEdit}
           getRowKey={getRowKey}
-          onStartInlineEdit={onStartInlineEdit}
-          onCancelInlineEdit={onCancelInlineEdit}
-          onSaveInlineEdit={onSaveInlineEdit}
-          setInlineEdit={setInlineEdit}
+          cellEdit={cellEdit}
+          onStartCellEdit={onStartCellEdit}
+          onCancelCellEdit={onCancelCellEdit}
+          onSaveCellEdit={onSaveCellEdit}
+          setCellEdit={setCellEdit}
           businessPurposeNames={businessPurposeNames}
           keywordNames={keywordNames}
           envNames={envNames}

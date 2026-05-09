@@ -7,7 +7,14 @@ import yaml
 from fastapi import APIRouter, Body, Depends, Request
 
 from backend.exceptions.custom import NotFoundError, ValidationError
-from backend.models import DeleteItemRequest, ListItemsResponse, ListYamlFilesResponse, SaveItemRequest
+from backend.models import (
+    DeleteItemRequest,
+    ListItemsResponse,
+    ListYamlFilesResponse,
+    MoveFwRuleRequest,
+    SaveItemRequest,
+    UpdateFwRuleFieldsRequest,
+)
 from backend.repositories.fwconfig_repository import FwConfigRepository
 from backend.services.fwconfig_service import FwConfigService
 
@@ -107,20 +114,18 @@ def put_rule_yaml(
     if not key:
         raise ValidationError("appflowid", "is required")
 
-    # Update-only: the referenced appflowid must already exist in the given file.
-    found_existing = False
+    # Update-only: the referenced appflowid must already exist in some fw-rules file.
+    found_filename = None
     for fn, entry in FwConfigRepository.read_items("fw-rules"):
-        if fn != file_name:
-            continue
         if not isinstance(entry, dict):
             continue
         entry_appflowid = str(entry.get("appflowid", "") or "").strip().upper()
         entry_appflowid = re.sub(r"[^A-Z0-9_-]", "", entry_appflowid)
         if entry_appflowid == key:
-            found_existing = True
+            found_filename = fn
             break
 
-    if not found_existing:
+    if not found_filename:
         raise NotFoundError("Item", key)
 
     try:
@@ -135,17 +140,37 @@ def put_rule_yaml(
     next_appflowid = re.sub(r"[^A-Z0-9_-]", "", next_appflowid)
     if not next_appflowid:
         raise ValidationError("data.appflowid", "is required")
+    if next_appflowid != key:
+        raise ValidationError("data.appflowid", "cannot change appflowid in update")
 
     # Ensure we don't persist a separate name field for flowtemplates.
     parsed.pop("name", None)
 
-    service.save_fw_rules(filename=file_name, name=next_appflowid, data=parsed)
+    service.save_fw_rules(filename=found_filename, name=next_appflowid, data=parsed, original_name=key)
+    return {"ok": True, "appflowid": next_appflowid, "filename": found_filename}
 
-    # If appflowid changed, delete old entry.
-    if key != next_appflowid:
-        try:
-            service.delete_item("fw-rules", filename=file_name, name=key)
-        except Exception:
-            pass
 
-    return {"ok": True, "appflowid": next_appflowid}
+@router.put("/fields")
+def put_rule_fields(
+    request: Request,
+    payload: UpdateFwRuleFieldsRequest,
+    service: FwConfigService = Depends(get_service),
+) -> Dict[str, Any]:
+    filename, _ = service.update_fw_rule_fields(
+        appflowid=payload.appflowid,
+        protocol_port_reference=payload.protocol_port_reference,
+        business_purpose_reference=payload.business_purpose_reference,
+        keywords=payload.keywords,
+        envs=payload.envs,
+    )
+    return {"ok": True, "filename": filename}
+
+
+@router.put("/move")
+def put_move_rule(
+    request: Request,
+    payload: MoveFwRuleRequest,
+    service: FwConfigService = Depends(get_service),
+) -> Dict[str, Any]:
+    service.move_fw_rule(appflowid=payload.appflowid, from_filename=payload.from_filename, to_filename=payload.to_filename)
+    return {"ok": True}

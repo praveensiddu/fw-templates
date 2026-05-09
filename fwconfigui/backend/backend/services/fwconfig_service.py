@@ -2,7 +2,7 @@
 
 import logging
 import re
-from typing import Any, Dict, List
+from typing import Any, Dict, List, Tuple
 
 from backend.exceptions.custom import AlreadyExistsError, ResourceInUseError, ValidationError
 from backend.repositories.fwconfig_repository import FwConfigRepository
@@ -132,11 +132,13 @@ class FwConfigService:
         if not str(payload.get("appflowid", "") or "").strip():
             raise ValidationError("data.appflowid", "is required")
 
-
         item_key = str(payload.get("appflowid", "") or "").strip().upper()
         item_key = re.sub(r"[^A-Z0-9_-]", "", item_key)
         payload["appflowid"] = item_key
         payload.pop("name", None)
+
+        payload = self._normalize_fw_rule_payload(payload)
+        self._validate_fw_rule_references(payload)
 
         self._enforce_uniqueness(
             yaml_type="fw-rules",
@@ -145,6 +147,160 @@ class FwConfigService:
             original_name=original_name,
         )
         self.repo.upsert_item("fw-rules", filename=filename, name=item_key, entry=payload)
+
+    def update_fw_rule_fields(
+        self,
+        *,
+        appflowid: str,
+        protocol_port_reference: List[str] | None = None,
+        business_purpose_reference: str | None = None,
+        keywords: List[str] | None = None,
+        envs: List[str] | None = None,
+    ) -> Tuple[str, Dict[str, Any]]:
+        key = str(appflowid or "").strip().upper()
+        key = re.sub(r"[^A-Z0-9_-]", "", key)
+        if not key:
+            raise ValidationError("appflowid", "is required")
+
+        found_filename: str | None = None
+        found_entry: Dict[str, Any] | None = None
+        for fn, entry in self.repo.read_items("fw-rules"):
+            if not isinstance(entry, dict):
+                continue
+            if str(entry.get("appflowid", "") or "").strip().upper() == key:
+                found_filename = fn
+                found_entry = dict(entry)
+                break
+
+        if not found_filename or found_entry is None:
+            from backend.exceptions.custom import NotFoundError
+
+            raise NotFoundError("Item", key)
+
+        if protocol_port_reference is not None:
+            found_entry["protocol-port-reference"] = list(protocol_port_reference)
+        if business_purpose_reference is not None:
+            found_entry["business-purpose-reference"] = str(business_purpose_reference or "").strip()
+        if keywords is not None:
+            found_entry["keywords"] = list(keywords)
+        if envs is not None:
+            found_entry["envs"] = list(envs)
+
+        found_entry["appflowid"] = key
+        found_entry.pop("name", None)
+        found_entry = self._normalize_fw_rule_payload(found_entry)
+        self._validate_fw_rule_references(found_entry)
+
+        self.repo.upsert_item("fw-rules", filename=found_filename, name=key, entry=found_entry)
+        return (found_filename, found_entry)
+
+    def move_fw_rule(self, *, appflowid: str, from_filename: str, to_filename: str) -> None:
+        key = str(appflowid or "").strip().upper()
+        key = re.sub(r"[^A-Z0-9_-]", "", key)
+        if not key:
+            raise ValidationError("appflowid", "is required")
+
+        src = str(from_filename or "").strip()
+        dst = str(to_filename or "").strip()
+        if not src:
+            raise ValidationError("from_filename", "is required")
+        if not dst:
+            raise ValidationError("to_filename", "is required")
+        if src == dst:
+            return
+
+        found_in_src = False
+        entry_to_move: Dict[str, Any] | None = None
+        for fn, entry in self.repo.read_items("fw-rules"):
+            if fn != src:
+                continue
+            if not isinstance(entry, dict):
+                continue
+            if str(entry.get("appflowid", "") or "").strip().upper() == key:
+                found_in_src = True
+                entry_to_move = dict(entry)
+                break
+
+        if not found_in_src or entry_to_move is None:
+            from backend.exceptions.custom import NotFoundError
+
+            raise NotFoundError("Item", key)
+
+        entry_to_move["appflowid"] = key
+        entry_to_move.pop("name", None)
+        entry_to_move = self._normalize_fw_rule_payload(entry_to_move)
+        self._validate_fw_rule_references(entry_to_move)
+
+        self.repo.upsert_item("fw-rules", filename=dst, name=key, entry=entry_to_move)
+        self.repo.delete_item("fw-rules", filename=src, name=key)
+
+    def _normalize_fw_rule_payload(self, payload: Dict[str, Any]) -> Dict[str, Any]:
+        next_payload = dict(payload or {})
+
+        def sort_name_list(v: Any) -> List[str]:
+            items = v if isinstance(v, list) else []
+            out = [str(x or "").strip() for x in items if str(x or "").strip()]
+            return sorted(out, key=lambda s: s.lower())
+
+        def normalize_endpoint_list(v: Any) -> List[Dict[str, Any]]:
+            lst = v if isinstance(v, list) else []
+            out: List[Dict[str, Any]] = []
+            for it in lst:
+                if not isinstance(it, dict):
+                    continue
+                group = str(it.get("group", "") or "").strip()
+                envs = sort_name_list(it.get("envs"))
+                out.append({"group": group, "envs": envs})
+            return sorted(out, key=lambda d: str(d.get("group", "") or "").lower())
+
+        if "protocol-port-reference" in next_payload:
+            next_payload["protocol-port-reference"] = sort_name_list(next_payload.get("protocol-port-reference"))
+
+        if "keywords" in next_payload:
+            next_payload["keywords"] = sort_name_list(next_payload.get("keywords"))
+
+        if "envs" in next_payload:
+            next_payload["envs"] = sort_name_list(next_payload.get("envs"))
+
+        if "source-list" in next_payload:
+            next_payload["source-list"] = normalize_endpoint_list(next_payload.get("source-list"))
+        if "destination-list" in next_payload:
+            next_payload["destination-list"] = normalize_endpoint_list(next_payload.get("destination-list"))
+
+        return next_payload
+
+    def _validate_fw_rule_references(self, payload: Dict[str, Any]) -> None:
+        next_payload = dict(payload or {})
+
+        pp_names = {str(x.get("name", "") or "").strip().lower() for x in self.list_items("port-protocol")}
+        bp_names = {str(x.get("name", "") or "").strip().lower() for x in self.list_items("business-purpose")}
+        env_names = {str(x.get("name", "") or "").strip().lower() for x in self.list_items("env")}
+        kw_names = {str(x.get("name", "") or "").strip().upper() for x in self.list_items("keywords")}
+
+        refs = next_payload.get("protocol-port-reference")
+        if isinstance(refs, list):
+            for r in refs:
+                n = str(r or "").strip().lower()
+                if n and n not in pp_names:
+                    raise ValidationError("protocol-port-reference", f"unknown port-protocol '{r}'")
+
+        bp = str(next_payload.get("business-purpose-reference", "") or "").strip().lower()
+        if bp and bp not in bp_names:
+            raise ValidationError("business-purpose-reference", f"unknown business-purpose '{bp}'")
+
+        kws = next_payload.get("keywords")
+        if isinstance(kws, list):
+            for k in kws:
+                n = str(k or "").strip().upper()
+                if n and n not in kw_names:
+                    raise ValidationError("keywords", f"unknown keyword '{k}'")
+
+        envs = next_payload.get("envs")
+        if isinstance(envs, list):
+            for e in envs:
+                n = str(e or "").strip().lower()
+                if n and n not in env_names:
+                    raise ValidationError("envs", f"unknown env '{e}'")
 
     def save_env(
         self,

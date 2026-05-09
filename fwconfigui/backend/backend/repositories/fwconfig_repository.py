@@ -32,6 +32,40 @@ class FwConfigRepository:
     """Data access for fwconfig YAML types."""
 
     @staticmethod
+    def find_item_file(yaml_type: str, name: str) -> str | None:
+        item_name = str(name or "").strip()
+        if not item_name:
+            return None
+
+        match_key = "appflowid" if yaml_type == "fw-rules" else "name"
+        for filename, entry in FwConfigRepository.read_items(yaml_type):
+            if not isinstance(entry, dict):
+                continue
+            if str(entry.get(match_key, "") or "").strip() == item_name:
+                return filename
+        return None
+
+    @staticmethod
+    def _fw_rule_sort_key(entry: Dict[str, Any]) -> tuple:
+        def endpoint_list_key(v: Any) -> str:
+            lst = v if isinstance(v, list) else []
+            parts: List[str] = []
+            for it in lst:
+                if not isinstance(it, dict):
+                    continue
+                group = str(it.get("group", "") or "").strip().lower()
+                envs = it.get("envs")
+                env_list = envs if isinstance(envs, list) else []
+                env_part = ",".join(sorted([str(x or "").strip().lower() for x in env_list if str(x or "").strip()]))
+                parts.append(f"{group}|{env_part}")
+            return "\n".join(sorted(parts))
+
+        src_key = endpoint_list_key(entry.get("source-list") or entry.get("source"))
+        dst_key = endpoint_list_key(entry.get("destination-list") or entry.get("destination"))
+        appflowid = str(entry.get("appflowid", "") or "").strip().upper()
+        return (src_key, dst_key, appflowid)
+
+    @staticmethod
     def _type_root(yaml_type: str) -> Path:
         base = get_fwconfigfiles_root()
         subdir = _TYPE_TO_DIR[yaml_type]
@@ -122,6 +156,9 @@ class FwConfigRepository:
 
         if not replaced:
             next_lst.append(entry)
+
+        if yaml_type == "fw-rules":
+            next_lst = sorted([x for x in next_lst if isinstance(x, dict)], key=FwConfigRepository._fw_rule_sort_key)
 
         raw[key] = next_lst
         write_yaml_dict(path, raw, sort_keys=False)

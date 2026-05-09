@@ -17,7 +17,6 @@ from backend.routers.env import router as env_router
 from backend.routers.fwrules import router as fwrules_router
 from backend.routers.keywords import router as keywords_router
 from backend.routers.port_protocol import router as port_protocol_router
-from backend.utils.yaml_utils import write_yaml_dict
 from backend.utils.workspace import ensure_fwconfigfiles_root
 
 logger = logging.getLogger("uvicorn.error")
@@ -34,40 +33,7 @@ async def lifespan(app: FastAPI):
 
     ws_root = ensure_fwconfigfiles_root()
 
-    env_dir = ws_root / "env"
-    env_dir.mkdir(parents=True, exist_ok=True)
-    env_file = env_dir / "env-1.yaml"
-    if not env_file.exists():
-        write_yaml_dict(
-            env_file,
-            {
-                "env-list": [
-                    {"name": "lab"},
-                    {"name": "dev"},
-                    {"name": "ent"},
-                    {"name": "pac"},
-                    {"name": "rtb"},
-                    {"name": "prd"},
-                ]
-            },
-            sort_keys=False,
-        )
 
-    keywords_dir = ws_root / "keywords"
-    keywords_dir.mkdir(parents=True, exist_ok=True)
-    keywords_file = keywords_dir / "keywords-1.yaml"
-    if not keywords_file.exists():
-        write_yaml_dict(
-            keywords_file,
-            {
-                "keywords-list": [
-                    {"name": "pii"},
-                    {"name": "pci"},
-                    {"name": "sox"},
-                ]
-            },
-            sort_keys=False,
-        )
     yield
 
     logger.info("=" * 80)

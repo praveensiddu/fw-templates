@@ -7,12 +7,12 @@ function FwRulesTableView({
   onEditYaml,
   onCopy,
   onDelete,
-  inlineEdit,
   getRowKey,
-  onStartInlineEdit,
-  onCancelInlineEdit,
-  onSaveInlineEdit,
-  setInlineEdit,
+  cellEdit,
+  onStartCellEdit,
+  onCancelCellEdit,
+  onSaveCellEdit,
+  setCellEdit,
   businessPurposeNames,
   keywordNames,
   envNames,
@@ -63,13 +63,13 @@ function FwRulesTableView({
                 <HelpIconButton docPath="/static/help/fw-rules/envs.html" title="Envs" />
               </div>
             </th>
-            <th className="fwTableHeaderCell" style={{ width: 100 }}>Actions</th>
             <th className="fwTableHeaderCell" style={{ width: 170 }}>
               <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 8 }}>
                 <span>File</span>
                 <HelpIconButton docPath="/static/help/fw-rules/file.html" title="File" />
               </div>
             </th>
+            <th className="fwTableHeaderCell" style={{ width: 100 }}>Actions</th>
           </tr>
           <tr>
             <th>
@@ -128,7 +128,6 @@ function FwRulesTableView({
                 onChange={(e) => setFilters((p) => ({ ...p, envs: e.target.value }))}
               />
             </th>
-            <th />
             <th>
               <input
                 className="filterInput"
@@ -137,6 +136,7 @@ function FwRulesTableView({
                 onChange={(e) => setFilters((p) => ({ ...p, filename: e.target.value }))}
               />
             </th>
+            <th />
           </tr>
         </thead>
         <tbody>
@@ -144,17 +144,11 @@ function FwRulesTableView({
             <tr key={`${r.filename}:${r.name || idx}`}>
               {(() => {
                 const rowKey = typeof getRowKey === "function" ? getRowKey(r) : "";
-                const isEditing = !!rowKey && safeTrim(inlineEdit?.key) === rowKey;
+                const isEditing = (field) => !!rowKey && safeTrim(cellEdit?.key) === rowKey && safeTrim(cellEdit?.field) === field;
                 return (
                   <>
                     <td>
                       <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
-                        <button className="iconBtn" title="Edit file" onClick={() => onStartInlineEdit(r)}>
-                          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                            <path d="M12 20h9" />
-                            <path d="M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4 12.5-12.5z" />
-                          </svg>
-                        </button>
                         <span>{safeTrim(r?.data?.appflowid)}</span>
                       </div>
                     </td>
@@ -165,61 +159,168 @@ function FwRulesTableView({
                       <div style={{ whiteSpace: "pre-line" }}>{safeTrim(r.destinationDisplay)}</div>
                     </td>
                     <td>
-                      {isEditing ? (
-                        <MultiSelectPicker
-                          options={Array.isArray(portProtocolNames) ? portProtocolNames : []}
-                          values={Array.isArray(inlineEdit?.protocolPortRefs) ? inlineEdit.protocolPortRefs : []}
-                          onChange={(next) => setInlineEdit((p) => ({ ...p, protocolPortRefs: next }))}
-                          placeholder="Add protocol-port ref..."
-                          inputTestId={`fw-rule-inline-pprefs-${rowKey}`}
-                        />
+                      {isEditing("protocol-port-reference") ? (
+                        <div style={{ display: "flex", gap: 8, alignItems: "flex-start" }}>
+                          <MultiSelectPicker
+                            options={Array.isArray(portProtocolNames) ? portProtocolNames : []}
+                            values={Array.isArray(cellEdit?.protocolPortRefs) ? cellEdit.protocolPortRefs : []}
+                            onChange={(next) => setCellEdit((p) => ({ ...p, protocolPortRefs: next }))}
+                            placeholder="Add protocol-port ref..."
+                            inputTestId={`fw-rule-cell-pprefs-${rowKey}`}
+                          />
+                          <button className="iconBtn iconBtn-primary" title="Save" onClick={onSaveCellEdit} style={{ alignSelf: "flex-start" }}>
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                              <polyline points="20 6 9 17 4 12" />
+                            </svg>
+                          </button>
+                          <button className="iconBtn" title="Cancel" onClick={onCancelCellEdit} style={{ alignSelf: "flex-start" }}>
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                              <path d="M18 6L6 18" />
+                              <path d="M6 6l12 12" />
+                            </svg>
+                          </button>
+                        </div>
                       ) : (
-                        <div style={{ whiteSpace: "pre-line" }}>{safeTrim(r.protocolPortDisplay)}</div>
+                        <div style={{ display: "flex", gap: 8, alignItems: "flex-start" }}>
+                          <div style={{ whiteSpace: "pre-line", flex: 1 }}>{safeTrim(r.protocolPortDisplay)}</div>
+                          <button
+                            className="iconBtn"
+                            title="Edit"
+                            onClick={() => onStartCellEdit(r, "protocol-port-reference")}
+                            style={{ alignSelf: "flex-start" }}
+                          >
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                              <path d="M12 20h9" />
+                              <path d="M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4 12.5-12.5z" />
+                            </svg>
+                          </button>
+                        </div>
                       )}
                     </td>
                     <td>
-                      {isEditing ? (
-                        <select
-                          className="filterInput"
-                          value={safeTrim(inlineEdit?.businessPurpose)}
-                          onChange={(e) => setInlineEdit((p) => ({ ...p, businessPurpose: e.target.value }))}
-                        >
-                          <option value="">Select...</option>
-                          {(Array.isArray(businessPurposeNames) ? businessPurposeNames : []).map((n) => (
-                            <option key={n} value={n}>
-                              {n}
-                            </option>
-                          ))}
-                        </select>
+                      {isEditing("business-purpose-reference") ? (
+                        <div style={{ display: "flex", gap: 8, alignItems: "flex-start" }}>
+                          <select
+                            className="filterInput"
+                            value={safeTrim(cellEdit?.businessPurpose)}
+                            onChange={(e) => setCellEdit((p) => ({ ...p, businessPurpose: e.target.value }))}
+                          >
+                            <option value="">Select...</option>
+                            {(Array.isArray(businessPurposeNames) ? businessPurposeNames : []).map((n) => (
+                              <option key={n} value={n}>
+                                {n}
+                              </option>
+                            ))}
+                          </select>
+                          <button className="iconBtn iconBtn-primary" title="Save" onClick={onSaveCellEdit} style={{ alignSelf: "flex-start" }}>
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                              <polyline points="20 6 9 17 4 12" />
+                            </svg>
+                          </button>
+                          <button className="iconBtn" title="Cancel" onClick={onCancelCellEdit} style={{ alignSelf: "flex-start" }}>
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                              <path d="M18 6L6 18" />
+                              <path d="M6 6l12 12" />
+                            </svg>
+                          </button>
+                        </div>
                       ) : (
-                        safeTrim(r.businessPurposeDisplay)
+                        <div style={{ display: "flex", gap: 8, alignItems: "flex-start" }}>
+                          <div style={{ flex: 1 }}>{safeTrim(r.businessPurposeDisplay)}</div>
+                          <button
+                            className="iconBtn"
+                            title="Edit"
+                            onClick={() => onStartCellEdit(r, "business-purpose-reference")}
+                            style={{ alignSelf: "flex-start" }}
+                          >
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                              <path d="M12 20h9" />
+                              <path d="M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4 12.5-12.5z" />
+                            </svg>
+                          </button>
+                        </div>
                       )}
                     </td>
                     <td>
-                      {isEditing ? (
-                        <MultiSelectPicker
-                          options={Array.isArray(keywordNames) ? keywordNames : []}
-                          values={Array.isArray(inlineEdit?.keywords) ? inlineEdit.keywords : []}
-                          onChange={(next) => setInlineEdit((p) => ({ ...p, keywords: next }))}
-                          placeholder="Add keyword..."
-                          inputTestId={`fw-rule-inline-keywords-${rowKey}`}
-                        />
+                      {isEditing("keywords") ? (
+                        <div style={{ display: "flex", gap: 8, alignItems: "flex-start" }}>
+                          <MultiSelectPicker
+                            options={Array.isArray(keywordNames) ? keywordNames : []}
+                            values={Array.isArray(cellEdit?.keywords) ? cellEdit.keywords : []}
+                            onChange={(next) => setCellEdit((p) => ({ ...p, keywords: next }))}
+                            placeholder="Add keyword..."
+                            inputTestId={`fw-rule-cell-keywords-${rowKey}`}
+                          />
+                          <button className="iconBtn iconBtn-primary" title="Save" onClick={onSaveCellEdit} style={{ alignSelf: "flex-start" }}>
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                              <polyline points="20 6 9 17 4 12" />
+                            </svg>
+                          </button>
+                          <button className="iconBtn" title="Cancel" onClick={onCancelCellEdit} style={{ alignSelf: "flex-start" }}>
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                              <path d="M18 6L6 18" />
+                              <path d="M6 6l12 12" />
+                            </svg>
+                          </button>
+                        </div>
                       ) : (
-                        <div style={{ whiteSpace: "pre-line" }}>{safeTrim(r.keywordsDisplay)}</div>
+                        <div style={{ display: "flex", gap: 8, alignItems: "flex-start" }}>
+                          <div style={{ whiteSpace: "pre-line", flex: 1 }}>{safeTrim(r.keywordsDisplay)}</div>
+                          <button
+                            className="iconBtn"
+                            title="Edit"
+                            onClick={() => onStartCellEdit(r, "keywords")}
+                            style={{ alignSelf: "flex-start" }}
+                          >
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                              <path d="M12 20h9" />
+                              <path d="M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4 12.5-12.5z" />
+                            </svg>
+                          </button>
+                        </div>
                       )}
                     </td>
                     <td>
-                      {isEditing ? (
-                        <MultiSelectPicker
-                          options={Array.isArray(envNames) ? envNames : []}
-                          values={Array.isArray(inlineEdit?.envs) ? inlineEdit.envs : []}
-                          onChange={(next) => setInlineEdit((p) => ({ ...p, envs: next }))}
-                          placeholder="Add env..."
-                          inputTestId={`fw-rule-inline-envs-${rowKey}`}
-                        />
+                      {isEditing("envs") ? (
+                        <div style={{ display: "flex", gap: 8, alignItems: "flex-start" }}>
+                          <MultiSelectPicker
+                            options={Array.isArray(envNames) ? envNames : []}
+                            values={Array.isArray(cellEdit?.envs) ? cellEdit.envs : []}
+                            onChange={(next) => setCellEdit((p) => ({ ...p, envs: next }))}
+                            placeholder="Add env..."
+                            inputTestId={`fw-rule-cell-envs-${rowKey}`}
+                          />
+                          <button className="iconBtn iconBtn-primary" title="Save" onClick={onSaveCellEdit} style={{ alignSelf: "flex-start" }}>
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                              <polyline points="20 6 9 17 4 12" />
+                            </svg>
+                          </button>
+                          <button className="iconBtn" title="Cancel" onClick={onCancelCellEdit} style={{ alignSelf: "flex-start" }}>
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                              <path d="M18 6L6 18" />
+                              <path d="M6 6l12 12" />
+                            </svg>
+                          </button>
+                        </div>
                       ) : (
-                        <div style={{ whiteSpace: "pre-line" }}>{safeTrim(r.envsJoined)}</div>
+                        <div style={{ display: "flex", gap: 8, alignItems: "flex-start" }}>
+                          <div style={{ whiteSpace: "pre-line", flex: 1 }}>{safeTrim(r.envsJoined)}</div>
+                          <button
+                            className="iconBtn"
+                            title="Edit"
+                            onClick={() => onStartCellEdit(r, "envs")}
+                            style={{ alignSelf: "flex-start" }}
+                          >
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                              <path d="M12 20h9" />
+                              <path d="M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4 12.5-12.5z" />
+                            </svg>
+                          </button>
+                        </div>
                       )}
+                    </td>
+                    <td>
+                      <span>{r.filename}</span>
                     </td>
                     <td>
                       <button className="iconBtn iconBtn-primary" title="Edit" onClick={() => onEdit(r)}>
@@ -253,30 +354,6 @@ function FwRulesTableView({
                         </svg>
                       </button>
                     </td>
-                    <td>
-                      {isEditing ? (
-                        <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
-                          <input
-                            className="filterInput"
-                            value={safeTrim(inlineEdit?.filename)}
-                            onChange={(e) => setInlineEdit((p) => ({ ...p, filename: e.target.value }))}
-                          />
-                          <button className="iconBtn iconBtn-primary" title="Save" onClick={onSaveInlineEdit}>
-                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                              <polyline points="20 6 9 17 4 12" />
-                            </svg>
-                          </button>
-                          <button className="iconBtn" title="Cancel" onClick={onCancelInlineEdit}>
-                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                              <path d="M18 6L6 18" />
-                              <path d="M6 6l12 12" />
-                            </svg>
-                          </button>
-                        </div>
-                      ) : (
-                        <span>{r.filename}</span>
-                      )}
-                    </td>
                   </>
                 );
               })()}
@@ -284,7 +361,7 @@ function FwRulesTableView({
           ))}
           {rows.length === 0 ? (
             <tr>
-              <td colSpan={10} className="muted">
+              <td colSpan={9} className="muted">
                 No items
               </td>
             </tr>

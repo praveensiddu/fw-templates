@@ -35,3 +35,17 @@ class SaveItemRequest(BaseModel):
 class DeleteItemRequest(BaseModel):
     filename: str
     name: str
+
+
+class UpdateFwRuleFieldsRequest(BaseModel):
+    appflowid: str
+    protocol_port_reference: Optional[List[str]] = None
+    business_purpose_reference: Optional[str] = None
+    keywords: Optional[List[str]] = None
+    envs: Optional[List[str]] = None
+
+
+class MoveFwRuleRequest(BaseModel):
+    appflowid: str
+    from_filename: str
+    to_filename: str
