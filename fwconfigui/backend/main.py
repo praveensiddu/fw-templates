@@ -5,6 +5,13 @@ import uvicorn
 from contextlib import asynccontextmanager
 from pathlib import Path
 
+try:
+    from dotenv import load_dotenv
+
+    load_dotenv()
+except Exception:
+    pass
+
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import FileResponse
@@ -16,8 +23,10 @@ from backend.routers.business_purpose import router as business_purpose_router
 from backend.routers.env import router as env_router
 from backend.routers.fwrules import router as fwrules_router
 from backend.routers.keywords import router as keywords_router
+from backend.routers.networkareas import router as networkareas_router
 from backend.routers.port_protocol import router as port_protocol_router
 from backend.routers.rule_files import router as rule_files_router
+from backend.routers.sites import router as sites_router
 from backend.utils.workspace import ensure_fwconfigfiles_root
 
 logger = logging.getLogger("uvicorn.error")
@@ -66,6 +75,8 @@ app.include_router(port_protocol_router)
 app.include_router(env_router)
 app.include_router(business_purpose_router)
 app.include_router(rule_files_router)
+app.include_router(networkareas_router)
+app.include_router(sites_router)
 
 app.mount(
     "/static",

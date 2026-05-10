@@ -4,9 +4,9 @@ function App() {
       "rule-templates": "/rule-templates",
       "port-protocol": "/port-protocol",
       "business-purpose": "/business-purpose",
-      env: "/env",
       keywords: "/keywords",
       "rule-files": "/rule-files",
+      infra: "/infra",
     }),
     []
   );
@@ -16,9 +16,10 @@ function App() {
       const p = String(pathname || "/").trim();
       if (p === "/port-protocol") return "port-protocol";
       if (p === "/business-purpose") return "business-purpose";
-      if (p === "/env") return "env";
+      if (p === "/env") return "infra";
       if (p === "/keywords") return "keywords";
       if (p === "/rule-files") return "rule-files";
+      if (p === "/infra" || p.startsWith("/infra/")) return "infra";
       if (p === "/fw-rules") return "rule-templates";
       if (p === "/rule-templates") return "rule-templates";
       if (p === "/") return "rule-templates";
@@ -28,6 +29,7 @@ function App() {
   );
 
   const [activeTab, setActiveTab] = React.useState("rule-templates");
+  const [infraSubTab, setInfraSubTab] = React.useState("env");
   const [loading, setLoading] = React.useState(false);
   const [error, setError] = React.useState("");
 
@@ -80,6 +82,17 @@ function App() {
 
     lastAllowedPathRef.current = `${window.location.pathname}${window.location.search}` || "/rule-templates";
 
+    const p = String(window.location.pathname || "/");
+    if (p === "/env") {
+      setInfraSubTab("env");
+    } else if (p.startsWith("/infra/")) {
+      const sub = String(p.split("/")[2] || "").trim() || "env";
+      setInfraSubTab(sub);
+    } else if (p === "/infra") {
+      setInfraSubTab("env");
+      window.history.replaceState({}, "", "/infra/env");
+    }
+
     const next = pathToTab(window.location.pathname);
     setActiveTab(next);
 
@@ -92,6 +105,17 @@ function App() {
       setError("");
       const full = `${window.location.pathname}${window.location.search}`;
       lastAllowedPathRef.current = full;
+
+      const p = String(window.location.pathname || "/");
+      if (p === "/env") {
+        setInfraSubTab("env");
+      } else if (p.startsWith("/infra/")) {
+        const sub = String(p.split("/")[2] || "").trim() || "env";
+        setInfraSubTab(sub);
+      } else if (p === "/infra") {
+        setInfraSubTab("env");
+        window.history.replaceState({}, "", "/infra/env");
+      }
       setActiveTab(pathToTab(window.location.pathname));
     };
     window.addEventListener("popstate", onPop);
@@ -105,17 +129,62 @@ function App() {
     if (activeTab === "business-purpose") {
       return <BusinessPurposeTable setLoading={setLoading} setError={setError} />;
     }
-    if (activeTab === "env") {
-      return <EnvTable setLoading={setLoading} setError={setError} />;
-    }
     if (activeTab === "keywords") {
       return <KeywordsTable setLoading={setLoading} setError={setError} />;
     }
     if (activeTab === "rule-files") {
       return <RuleFilesTable setLoading={setLoading} setError={setError} />;
     }
+    if (activeTab === "infra") {
+      return (
+        <>
+          <div className="card" style={{ padding: 12 }}>
+            <div className="actions" style={{ marginTop: 0, justifyContent: "flex-start" }}>
+              <div style={{ display: "flex", gap: 8 }}>
+                <button
+                  className={`tab ${infraSubTab === "env" ? "active" : ""}`}
+                  onClick={() => {
+                    setInfraSubTab("env");
+                    if (window.location.pathname !== "/infra/env") {
+                      window.history.pushState({}, "", "/infra/env");
+                    }
+                  }}
+                >
+                  env
+                </button>
+                <button
+                  className={`tab ${infraSubTab === "networkarea" ? "active" : ""}`}
+                  onClick={() => {
+                    setInfraSubTab("networkarea");
+                    if (window.location.pathname !== "/infra/networkarea") {
+                      window.history.pushState({}, "", "/infra/networkarea");
+                    }
+                  }}
+                >
+                  networkarea
+                </button>
+                <button
+                  className={`tab ${infraSubTab === "site" ? "active" : ""}`}
+                  onClick={() => {
+                    setInfraSubTab("site");
+                    if (window.location.pathname !== "/infra/site") {
+                      window.history.pushState({}, "", "/infra/site");
+                    }
+                  }}
+                >
+                  site
+                </button>
+              </div>
+            </div>
+          </div>
+          {infraSubTab === "env" ? <EnvTable setLoading={setLoading} setError={setError} /> : null}
+          {infraSubTab === "networkarea" ? <NetworkAreasTable setLoading={setLoading} setError={setError} /> : null}
+          {infraSubTab === "site" ? <SitesTable setLoading={setLoading} setError={setError} /> : null}
+        </>
+      );
+    }
     return <FwRulesTable setLoading={setLoading} setError={setError} />;
-  }, [activeTab]);
+  }, [activeTab, infraSubTab]);
 
   return (
     <>
@@ -128,7 +197,11 @@ function App() {
           setError("");
           setActiveTab(t);
 
-          const nextPath = tabToPath[t] || "/";
+          let nextPath = tabToPath[t] || "/";
+          if (t === "infra") {
+            setInfraSubTab("env");
+            nextPath = "/infra/env";
+          }
           if (window.location.pathname !== nextPath) {
             window.history.pushState({}, "", nextPath);
           }

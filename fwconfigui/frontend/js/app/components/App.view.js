@@ -25,14 +25,14 @@ function AppView({ activeTab, onSetTab, error, loading, children }) {
           >
             business-purpose
           </button>
-          <button className={`tab ${activeTab === "env" ? "active" : ""}`} onClick={() => onSetTab("env")}>
-            env
-          </button>
           <button className={`tab ${activeTab === "keywords" ? "active" : ""}`} onClick={() => onSetTab("keywords")}>
             keywords
           </button>
           <button className={`tab ${activeTab === "rule-files" ? "active" : ""}`} onClick={() => onSetTab("rule-files")}>
             rule-files
+          </button>
+          <button className={`tab ${activeTab === "infra" ? "active" : ""}`} onClick={() => onSetTab("infra")}>
+            infra
           </button>
         </div>
 

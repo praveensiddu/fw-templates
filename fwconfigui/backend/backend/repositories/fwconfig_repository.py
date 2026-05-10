@@ -28,6 +28,12 @@ _TYPE_TO_LIST_KEY = {
 }
 
 
+def _is_mapping_storage_type(yaml_type: str) -> bool:
+    # These types are now stored as a simple YAML mapping keyed by item name.
+    # No backward compatibility with the legacy *-list wrapper is required.
+    return yaml_type in {"env", "keywords", "port-protocol", "business-purpose"}
+
+
 class FwConfigRepository:
     """Data access for fwconfig YAML types."""
 
@@ -79,11 +85,36 @@ class FwConfigRepository:
 
     @staticmethod
     def read_items(yaml_type: str) -> List[Tuple[str, Dict[str, Any]]]:
-        key = _TYPE_TO_LIST_KEY[yaml_type]
         items: List[Tuple[str, Dict[str, Any]]] = []
 
         for path in FwConfigRepository.list_files(yaml_type):
             raw = read_yaml_dict(path)
+
+            if _is_mapping_storage_type(yaml_type):
+                if not isinstance(raw, dict):
+                    continue
+
+                for k, v in raw.items():
+                    name = str(k or "").strip()
+                    if not name:
+                        continue
+
+                    if yaml_type == "env":
+                        entry = {"name": name}
+                    elif yaml_type == "keywords":
+                        entry = {"name": name}
+                    elif yaml_type == "business-purpose":
+                        entry = {"name": name, "business-purpose": v}
+                    elif yaml_type == "port-protocol":
+                        pp = v if isinstance(v, dict) else {}
+                        entry = {"name": name, "port-protocol": dict(pp)}
+                    else:
+                        entry = {"name": name}
+
+                    items.append((path.name, entry))
+                continue
+
+            key = _TYPE_TO_LIST_KEY[yaml_type]
             lst = raw.get(key, [])
             if not isinstance(lst, list):
                 continue
@@ -106,10 +137,16 @@ class FwConfigRepository:
         if not item_name:
             raise ValidationError("name", "is required")
 
-        key = _TYPE_TO_LIST_KEY[yaml_type]
         path = FwConfigRepository._type_root(yaml_type) / file_name
 
         raw = read_yaml_dict(path)
+
+        if _is_mapping_storage_type(yaml_type):
+            if not isinstance(raw, dict):
+                return False
+            return str(item_name) in {str(k or "").strip() for k in raw.keys()}
+
+        key = _TYPE_TO_LIST_KEY[yaml_type]
         lst = raw.get(key, [])
         if not isinstance(lst, list):
             return False
@@ -132,10 +169,28 @@ class FwConfigRepository:
         if not item_name:
             raise ValidationError("name", "is required")
 
-        key = _TYPE_TO_LIST_KEY[yaml_type]
         path = FwConfigRepository._type_root(yaml_type) / file_name
 
         raw = read_yaml_dict(path)
+
+        if _is_mapping_storage_type(yaml_type):
+            if not isinstance(raw, dict):
+                raw = {}
+
+            if yaml_type in {"env", "keywords"}:
+                raw[item_name] = {}
+            elif yaml_type == "business-purpose":
+                raw[item_name] = str(entry.get("business-purpose", "") or "")
+            elif yaml_type == "port-protocol":
+                pp = entry.get("port-protocol")
+                raw[item_name] = dict(pp) if isinstance(pp, dict) else {}
+            else:
+                raw[item_name] = {}
+
+            write_yaml_dict(path, raw, sort_keys=True)
+            return
+
+        key = _TYPE_TO_LIST_KEY[yaml_type]
         lst = raw.get(key, [])
         if not isinstance(lst, list):
             lst = []
@@ -174,8 +229,6 @@ class FwConfigRepository:
         item_name = str(name or "").strip()
         if not item_name:
             raise ValidationError("name", "is required")
-
-        key = _TYPE_TO_LIST_KEY[yaml_type]
         path = FwConfigRepository._type_root(yaml_type) / file_name
 
         if not path.exists() or not path.is_file():
@@ -183,6 +236,18 @@ class FwConfigRepository:
             raise NotFoundError("YAML file", file_name)
 
         raw = read_yaml_dict(path)
+
+        if _is_mapping_storage_type(yaml_type):
+            if not isinstance(raw, dict):
+                raw = {}
+            if item_name not in {str(k or "").strip() for k in raw.keys()}:
+                logger.warning("Item not found for delete: %s in %s", item_name, file_name)
+                raise NotFoundError("Item", item_name)
+            raw.pop(item_name, None)
+            write_yaml_dict(path, raw, sort_keys=True)
+            return
+
+        key = _TYPE_TO_LIST_KEY[yaml_type]
         lst = raw.get(key, [])
         if not isinstance(lst, list):
             lst = []

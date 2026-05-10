@@ -8,6 +8,8 @@ function fwconfigTypeBasePath(type) {
   if (
     t === "keywords" ||
     t === "rule-files" ||
+    t === "networkareas" ||
+    t === "sites" ||
     t === "port-protocol" ||
     t === "env" ||
     t === "business-purpose" ||
