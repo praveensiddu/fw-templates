@@ -190,6 +190,7 @@ function FwRulesTable({ setLoading, setError }) {
   const [envNames, setEnvNames] = React.useState([]);
   const [keywordNames, setKeywordNames] = React.useState([]);
   const [ruleFileNames, setRuleFileNames] = React.useState([]);
+  const [componentItems, setComponentItems] = React.useState([]);
   const [cellEdit, setCellEdit] = React.useState({
     key: "",
     row: null,
@@ -199,6 +200,31 @@ function FwRulesTable({ setLoading, setError }) {
     keywords: [],
     envs: [],
   });
+
+  const groupOptions = React.useMemo(() => {
+    const seen = new Set();
+    const out = [];
+
+    for (const it of Array.isArray(componentItems) ? componentItems : []) {
+      const comp = safeTrim(it?.name);
+      const sites = it?.data?.sites && typeof it.data.sites === "object" ? it.data.sites : {};
+      if (!comp) continue;
+
+      for (const envKey of Object.keys(sites || {})) {
+        const lst = Array.isArray(sites?.[envKey]) ? sites[envKey] : [];
+        for (const s of lst) {
+          const site = safeTrim(s);
+          if (!site) continue;
+          const val = `${site}-${comp}-<env-letter>`;
+          if (seen.has(val)) continue;
+          seen.add(val);
+          out.push(val);
+        }
+      }
+    }
+
+    return out.sort((a, b) => String(a).localeCompare(String(b)));
+  }, [componentItems]);
   const [activePage, setActivePage] = React.useState("list");
   const [detailsMode, setDetailsMode] = React.useState("add");
   const [isEditingSource, setIsEditingSource] = React.useState(false);
@@ -316,13 +342,14 @@ function FwRulesTable({ setLoading, setError }) {
       setLoading(true);
       setError("");
 
-      const [fwResp, ppResp, bpResp, envResp, kwResp, rfResp] = await Promise.all([
+      const [fwResp, ppResp, bpResp, envResp, kwResp, rfResp, compResp] = await Promise.all([
         listFwConfigItems("fw-rules"),
         listFwConfigItems("port-protocol"),
         listFwConfigItems("business-purpose"),
         listFwConfigItems("env"),
         listFwConfigItems("keywords"),
         listFwConfigItems("rule-files"),
+        listFwConfigItems("components"),
       ]);
 
       setItems(fwResp?.items || []);
@@ -379,6 +406,8 @@ function FwRulesTable({ setLoading, setError }) {
         .filter(Boolean)
         .sort((a, b) => a.localeCompare(b));
       setRuleFileNames(ruleFiles);
+
+      setComponentItems(compResp?.items || []);
     } catch (e) {
       setError(formatError(e));
     } finally {
@@ -1002,6 +1031,7 @@ function FwRulesTable({ setLoading, setError }) {
           onAddDestinationItem={onAddDestinationItem}
           onRemoveDestinationItem={onRemoveDestinationItem}
           endpointEnvOptions={endpointEnvOptions}
+          groupOptions={groupOptions}
           envNames={envNames}
           keywordNames={keywordNames}
           portProtocolNames={portProtocolNames}

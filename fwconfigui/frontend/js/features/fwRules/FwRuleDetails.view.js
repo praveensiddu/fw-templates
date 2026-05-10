@@ -18,6 +18,7 @@ function FwRuleDetailsView({
   onAddDestinationItem,
   onRemoveDestinationItem,
   endpointEnvOptions,
+  groupOptions,
   envNames,
   keywordNames,
   portProtocolNames,
@@ -32,6 +33,8 @@ function FwRuleDetailsView({
 
   const sourceItems = Array.isArray(form?.sourceItems) ? form.sourceItems : [];
   const destinationItems = Array.isArray(form?.destinationItems) ? form.destinationItems : [];
+
+  const groupChoices = Array.isArray(groupOptions) ? groupOptions : [];
 
   return (
     <div>
@@ -168,6 +171,7 @@ function FwRuleDetailsView({
                       <div className="muted">Group</div>
                       <input
                         className="input"
+                        list={`fw-rule-source-group-options-${idx}`}
                         value={safeTrim(it?.group)}
                         onChange={(e) => {
                           const v = e.target.value;
@@ -178,6 +182,11 @@ function FwRuleDetailsView({
                           });
                         }}
                       />
+                      <datalist id={`fw-rule-source-group-options-${idx}`}>
+                        {groupChoices.map((opt) => (
+                          <option key={opt} value={opt} />
+                        ))}
+                      </datalist>
                     </div>
                     <div className="field">
                       <div className="muted">Envs where this source group is needed</div>
@@ -281,6 +290,7 @@ function FwRuleDetailsView({
                       <div className="muted">Group</div>
                       <input
                         className="input"
+                        list={`fw-rule-destination-group-options-${idx}`}
                         value={safeTrim(it?.group)}
                         onChange={(e) => {
                           const v = e.target.value;
@@ -291,6 +301,11 @@ function FwRuleDetailsView({
                           });
                         }}
                       />
+                      <datalist id={`fw-rule-destination-group-options-${idx}`}>
+                        {groupChoices.map((opt) => (
+                          <option key={opt} value={opt} />
+                        ))}
+                      </datalist>
                     </div>
                     <div className="field">
                       <div className="muted">Envs where this destination group is needed</div>
