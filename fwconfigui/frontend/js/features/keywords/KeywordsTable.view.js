@@ -21,7 +21,7 @@ function KeywordsTableView({
   return (
     <div className="card" style={{ padding: 12 }}>
       <div className="actions">
-        <div className="muted">keywords</div>
+        <div className="muted">keywords ({Array.isArray(rows) ? rows.length : 0})</div>
         <button className="btn btn-primary" onClick={onAdd}>
           Add
         </button>
@@ -41,7 +41,7 @@ function KeywordsTableView({
           <tr>
             <th>
               <input
-                className="filterInput"
+                className={`filterInput ${isNonEmptyString(filters.name) ? "filterInput-active" : ""}`}
                 placeholder="Filter name..."
                 value={filters.name}
                 onChange={(e) => setFilters((p) => ({ ...p, name: e.target.value }))}

@@ -1,11 +1,12 @@
 function App() {
   const tabToPath = React.useMemo(
     () => ({
-      "fw-rules": "/fw-rules",
+      "rule-templates": "/rule-templates",
       "port-protocol": "/port-protocol",
       "business-purpose": "/business-purpose",
       env: "/env",
       keywords: "/keywords",
+      "rule-files": "/rule-files",
     }),
     []
   );
@@ -17,20 +18,22 @@ function App() {
       if (p === "/business-purpose") return "business-purpose";
       if (p === "/env") return "env";
       if (p === "/keywords") return "keywords";
-      if (p === "/fw-rules") return "fw-rules";
-      if (p === "/") return "fw-rules";
-      return "fw-rules";
+      if (p === "/rule-files") return "rule-files";
+      if (p === "/fw-rules") return "rule-templates";
+      if (p === "/rule-templates") return "rule-templates";
+      if (p === "/") return "rule-templates";
+      return "rule-templates";
     },
     []
   );
 
-  const [activeTab, setActiveTab] = React.useState("fw-rules");
+  const [activeTab, setActiveTab] = React.useState("rule-templates");
   const [loading, setLoading] = React.useState(false);
   const [error, setError] = React.useState("");
 
   React.useEffect(() => {
     if (window.location.pathname === "/") {
-      window.history.replaceState({}, "", "/fw-rules");
+      window.history.replaceState({}, "", "/rule-templates");
     }
 
     const next = pathToTab(window.location.pathname);
@@ -56,6 +59,9 @@ function App() {
     }
     if (activeTab === "keywords") {
       return <KeywordsTable setLoading={setLoading} setError={setError} />;
+    }
+    if (activeTab === "rule-files") {
+      return <RuleFilesTable setLoading={setLoading} setError={setError} />;
     }
     return <FwRulesTable setLoading={setLoading} setError={setError} />;
   }, [activeTab]);

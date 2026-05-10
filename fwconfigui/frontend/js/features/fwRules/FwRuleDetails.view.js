@@ -22,6 +22,7 @@ function FwRuleDetailsView({
   keywordNames,
   portProtocolNames,
   businessPurposeNames,
+  ruleFileNames,
 }) {
   function normalizeAppFlowId(v) {
     return String(v || "")
@@ -61,12 +62,30 @@ function FwRuleDetailsView({
             </div>
             <div className="fieldGrid">
               <div className="field">
-                <div className="muted">File</div>
-                <input
-                  className="input"
-                  value={form.filename}
+                <div className="muted">Filename to store this template</div>
+                <select
+                  className="filterInput"
+                  value={safeTrim(form.filename)}
                   onChange={(e) => setForm((p) => ({ ...p, filename: e.target.value }))}
-                />
+                >
+                  {(() => {
+                    const current = safeTrim(form?.filename);
+                    const options = Array.isArray(ruleFileNames) ? ruleFileNames : [];
+                    const unique = [];
+                    const seen = new Set();
+                    for (const opt of [current, ...options]) {
+                      const v = safeTrim(opt);
+                      if (!v || seen.has(v)) continue;
+                      seen.add(v);
+                      unique.push(v);
+                    }
+                    return unique.map((fn) => (
+                      <option key={fn} value={fn}>
+                        {fn}
+                      </option>
+                    ));
+                  })()}
+                </select>
               </div>
               <div className="field">
                 <div className="muted">App Flow ID</div>
@@ -74,6 +93,16 @@ function FwRuleDetailsView({
                   className="input"
                   value={form.appflowid}
                   onChange={(e) => setForm((p) => ({ ...p, appflowid: normalizeAppFlowId(e.target.value) }))}
+                />
+              </div>
+              <div className="field" style={{ gridColumn: "1 / -1" }}>
+                <div className="muted">Envs where this flow is needed</div>
+                <MultiSelectPicker
+                  options={envNames}
+                  values={Array.isArray(form.envs) ? form.envs : []}
+                  onChange={(next) => setForm((p) => ({ ...p, envs: next }))}
+                  placeholder="Add env..."
+                  inputTestId="fw-rule-edit-envs"
                 />
               </div>
             </div>
@@ -151,7 +180,7 @@ function FwRuleDetailsView({
                       />
                     </div>
                     <div className="field">
-                      <div className="muted">Envs</div>
+                      <div className="muted">Envs where this source group is needed</div>
                       <MultiSelectPicker
                         options={endpointEnvOptions}
                         values={Array.isArray(it?.envs) ? it.envs : []}
@@ -264,7 +293,7 @@ function FwRuleDetailsView({
                       />
                     </div>
                     <div className="field">
-                      <div className="muted">Envs</div>
+                      <div className="muted">Envs where this destination group is needed</div>
                       <MultiSelectPicker
                         options={endpointEnvOptions}
                         values={Array.isArray(it?.envs) ? it.envs : []}
@@ -375,16 +404,6 @@ function FwRuleDetailsView({
                   inputTestId="fw-rule-edit-keywords"
                 />
               </div>
-              <div className="field">
-                <div className="muted">Envs</div>
-                <MultiSelectPicker
-                  options={envNames}
-                  values={Array.isArray(form.envs) ? form.envs : []}
-                  onChange={(next) => setForm((p) => ({ ...p, envs: next }))}
-                  placeholder="Add env..."
-                  inputTestId="fw-rule-edit-envs"
-                />
-              </div>
             </div>
           </div>
         </div>
@@ -411,24 +430,6 @@ function FwRuleDetailsView({
                 Cancel
               </button>
             </div>
-          </div>
-
-          <div style={{ height: 16 }} />
-
-          <div className="card" style={{ padding: 12 }}>
-            <div className="fwBlockHeader" style={{ margin: -12, marginBottom: 12, borderTopLeftRadius: 14, borderTopRightRadius: 14 }}>
-              <div className="fwBlockHeaderLeft">
-                <span className="fwBlockHeaderIcon">
-                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                    <path d="M12 20h9" />
-                    <path d="M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4 12.5-12.5z" />
-                  </svg>
-                </span>
-                <div className="fwBlockTitle">Notes</div>
-              </div>
-              <div className="fwBlockActions" />
-            </div>
-            <div className="muted">App Flow ID and File are required to save.</div>
           </div>
         </div>
       </div>

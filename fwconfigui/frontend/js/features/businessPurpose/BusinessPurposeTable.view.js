@@ -21,7 +21,7 @@ function BusinessPurposeTableView({
   return (
     <div className="card" style={{ padding: 12 }}>
       <div className="actions">
-        <div className="muted">business-purpose</div>
+        <div className="muted">business-purpose ({Array.isArray(rows) ? rows.length : 0})</div>
         <button className="btn btn-primary" onClick={onAdd}>
           Add
         </button>
@@ -47,7 +47,7 @@ function BusinessPurposeTableView({
           <tr>
             <th>
               <input
-                className="filterInput"
+                className={`filterInput ${isNonEmptyString(filters.name) ? "filterInput-active" : ""}`}
                 placeholder="Filter name..."
                 value={filters.name}
                 onChange={(e) => setFilters((p) => ({ ...p, name: e.target.value }))}
@@ -55,7 +55,7 @@ function BusinessPurposeTableView({
             </th>
             <th>
               <input
-                className="filterInput"
+                className={`filterInput ${isNonEmptyString(filters.bp) ? "filterInput-active" : ""}`}
                 placeholder="Filter business purpose..."
                 value={filters.bp}
                 onChange={(e) => setFilters((p) => ({ ...p, bp: e.target.value }))}

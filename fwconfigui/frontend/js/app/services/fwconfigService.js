@@ -7,6 +7,7 @@ function fwconfigTypeBasePath(type) {
   if (!t) return "";
   if (
     t === "keywords" ||
+    t === "rule-files" ||
     t === "port-protocol" ||
     t === "env" ||
     t === "business-purpose" ||

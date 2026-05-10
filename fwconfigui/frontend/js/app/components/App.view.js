@@ -7,8 +7,11 @@ function AppView({ activeTab, onSetTab, error, loading, children }) {
       </div>
       <div className="container">
         <div className="tabs">
-          <button className={`tab ${activeTab === "fw-rules" ? "active" : ""}`} onClick={() => onSetTab("fw-rules")}>
-            fw-rules
+          <button
+            className={`tab ${activeTab === "rule-templates" ? "active" : ""}`}
+            onClick={() => onSetTab("rule-templates")}
+          >
+            rule-templates
           </button>
           <button
             className={`tab ${activeTab === "port-protocol" ? "active" : ""}`}
@@ -27,6 +30,9 @@ function AppView({ activeTab, onSetTab, error, loading, children }) {
           </button>
           <button className={`tab ${activeTab === "keywords" ? "active" : ""}`} onClick={() => onSetTab("keywords")}>
             keywords
+          </button>
+          <button className={`tab ${activeTab === "rule-files" ? "active" : ""}`} onClick={() => onSetTab("rule-files")}>
+            rule-files
           </button>
         </div>
 

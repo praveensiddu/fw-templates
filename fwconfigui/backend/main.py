@@ -17,6 +17,7 @@ from backend.routers.env import router as env_router
 from backend.routers.fwrules import router as fwrules_router
 from backend.routers.keywords import router as keywords_router
 from backend.routers.port_protocol import router as port_protocol_router
+from backend.routers.rule_files import router as rule_files_router
 from backend.utils.workspace import ensure_fwconfigfiles_root
 
 logger = logging.getLogger("uvicorn.error")
@@ -64,6 +65,7 @@ app.include_router(keywords_router)
 app.include_router(port_protocol_router)
 app.include_router(env_router)
 app.include_router(business_purpose_router)
+app.include_router(rule_files_router)
 
 app.mount(
     "/static",

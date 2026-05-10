@@ -7,6 +7,7 @@ function FwRulesTableView({
   onEditYaml,
   onCopy,
   onDelete,
+  onMoveFile,
   getRowKey,
   cellEdit,
   onStartCellEdit,
@@ -17,12 +18,13 @@ function FwRulesTableView({
   keywordNames,
   envNames,
   portProtocolNames,
+  ruleFileNames,
   MultiSelectPicker,
 }) {
   return (
     <div className="card" style={{ padding: 12 }}>
       <div className="actions">
-        <div className="muted">fw-rule templates</div>
+        <div className="muted">fw-templates ({Array.isArray(rows) ? rows.length : 0})</div>
         <button className="btn btn-primary" onClick={onAdd}>
           Add
         </button>
@@ -74,7 +76,7 @@ function FwRulesTableView({
           <tr>
             <th>
               <input
-                className="filterInput"
+                className={`filterInput ${isNonEmptyString(filters.appflowid) ? "filterInput-active" : ""}`}
                 placeholder="Filter appflowid..."
                 value={filters.appflowid}
                 onChange={(e) => setFilters((p) => ({ ...p, appflowid: e.target.value }))}
@@ -82,7 +84,7 @@ function FwRulesTableView({
             </th>
             <th>
               <input
-                className="filterInput"
+                className={`filterInput ${isNonEmptyString(filters["source-list"]) ? "filterInput-active" : ""}`}
                 placeholder="Filter source..."
                 value={filters["source-list"]}
                 onChange={(e) => setFilters((p) => ({ ...p, "source-list": e.target.value }))}
@@ -90,7 +92,7 @@ function FwRulesTableView({
             </th>
             <th>
               <input
-                className="filterInput"
+                className={`filterInput ${isNonEmptyString(filters["destination-list"]) ? "filterInput-active" : ""}`}
                 placeholder="Filter destination..."
                 value={filters["destination-list"]}
                 onChange={(e) => setFilters((p) => ({ ...p, "destination-list": e.target.value }))}
@@ -98,7 +100,7 @@ function FwRulesTableView({
             </th>
             <th>
               <input
-                className="filterInput"
+                className={`filterInput ${isNonEmptyString(filters.ppref) ? "filterInput-active" : ""}`}
                 placeholder="Filter protocol refs..."
                 value={filters.ppref}
                 onChange={(e) => setFilters((p) => ({ ...p, ppref: e.target.value }))}
@@ -106,7 +108,7 @@ function FwRulesTableView({
             </th>
             <th>
               <input
-                className="filterInput"
+                className={`filterInput ${isNonEmptyString(filters.bp) ? "filterInput-active" : ""}`}
                 placeholder="Filter business purpose..."
                 value={filters.bp}
                 onChange={(e) => setFilters((p) => ({ ...p, bp: e.target.value }))}
@@ -114,7 +116,7 @@ function FwRulesTableView({
             </th>
             <th>
               <input
-                className="filterInput"
+                className={`filterInput ${isNonEmptyString(filters.keywords) ? "filterInput-active" : ""}`}
                 placeholder="Filter keywords..."
                 value={filters.keywords}
                 onChange={(e) => setFilters((p) => ({ ...p, keywords: e.target.value }))}
@@ -122,7 +124,7 @@ function FwRulesTableView({
             </th>
             <th>
               <input
-                className="filterInput"
+                className={`filterInput ${isNonEmptyString(filters.envs) ? "filterInput-active" : ""}`}
                 placeholder="Filter envs..."
                 value={filters.envs}
                 onChange={(e) => setFilters((p) => ({ ...p, envs: e.target.value }))}
@@ -130,7 +132,7 @@ function FwRulesTableView({
             </th>
             <th>
               <input
-                className="filterInput"
+                className={`filterInput ${isNonEmptyString(filters.filename) ? "filterInput-active" : ""}`}
                 placeholder="Filter file..."
                 value={filters.filename}
                 onChange={(e) => setFilters((p) => ({ ...p, filename: e.target.value }))}
@@ -320,7 +322,29 @@ function FwRulesTableView({
                       )}
                     </td>
                     <td>
-                      <span>{r.filename}</span>
+                      <select
+                        className="filterInput"
+                        value={safeTrim(r.filename)}
+                        onChange={(e) => onMoveFile && onMoveFile(r, e.target.value)}
+                      >
+                        {(() => {
+                          const current = safeTrim(r?.filename);
+                          const options = Array.isArray(ruleFileNames) ? ruleFileNames : [];
+                          const unique = [];
+                          const seen = new Set();
+                          for (const opt of [current, ...options]) {
+                            const v = safeTrim(opt);
+                            if (!v || seen.has(v)) continue;
+                            seen.add(v);
+                            unique.push(v);
+                          }
+                          return unique.map((fn) => (
+                            <option key={fn} value={fn}>
+                              {fn}
+                            </option>
+                          ));
+                        })()}
+                      </select>
                     </td>
                     <td>
                       <button className="iconBtn iconBtn-primary" title="Edit" onClick={() => onEdit(r)}>

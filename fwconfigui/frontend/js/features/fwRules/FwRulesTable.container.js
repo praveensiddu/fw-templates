@@ -189,6 +189,7 @@ function FwRulesTable({ setLoading, setError }) {
   const [businessPurposeDisplayByName, setBusinessPurposeDisplayByName] = React.useState({});
   const [envNames, setEnvNames] = React.useState([]);
   const [keywordNames, setKeywordNames] = React.useState([]);
+  const [ruleFileNames, setRuleFileNames] = React.useState([]);
   const [cellEdit, setCellEdit] = React.useState({
     key: "",
     row: null,
@@ -205,7 +206,7 @@ function FwRulesTable({ setLoading, setError }) {
   const [savedSourceItems, setSavedSourceItems] = React.useState([]);
   const [savedDestinationItems, setSavedDestinationItems] = React.useState([]);
   const [form, setForm] = React.useState({
-    filename: "fw-rules-1.yaml",
+    filename: "fw-rules.yaml",
     appflowid: "",
     sourceItems: [],
     destinationItems: [],
@@ -217,6 +218,19 @@ function FwRulesTable({ setLoading, setError }) {
   const [confirmDelete, setConfirmDelete] = React.useState({ show: false, row: null });
   const [yamlEditor, setYamlEditor] = React.useState({ show: false, row: null, appflowid: "", yaml: "" });
   const [originalAppflowid, setOriginalAppflowid] = React.useState("");
+
+  const createNewAppFlowId = React.useCallback(() => {
+    const now = new Date();
+    const pad2 = (n) => String(n).padStart(2, "0");
+    const mm = pad2(now.getMonth() + 1);
+    const dd = pad2(now.getDate());
+    const yy = pad2(now.getFullYear() % 100);
+    const hh = pad2(now.getHours());
+    const min = pad2(now.getMinutes());
+    const ss = pad2(now.getSeconds());
+    const rand = pad2(Math.floor(Math.random() * 100));
+    return `${mm}${dd}${yy}T${hh}${min}${ss}${rand}`;
+  }, []);
 
   function extractLockedAppflowIdFromYaml(yamlText, fallbackAppflowid) {
     const lines = String(yamlText || "").split(/\r?\n/);
@@ -277,12 +291,13 @@ function FwRulesTable({ setLoading, setError }) {
       setLoading(true);
       setError("");
 
-      const [fwResp, ppResp, bpResp, envResp, kwResp] = await Promise.all([
+      const [fwResp, ppResp, bpResp, envResp, kwResp, rfResp] = await Promise.all([
         listFwConfigItems("fw-rules"),
         listFwConfigItems("port-protocol"),
         listFwConfigItems("business-purpose"),
         listFwConfigItems("env"),
         listFwConfigItems("keywords"),
+        listFwConfigItems("rule-files"),
       ]);
 
       setItems(fwResp?.items || []);
@@ -333,6 +348,12 @@ function FwRulesTable({ setLoading, setError }) {
         .filter(Boolean)
         .sort((a, b) => a.localeCompare(b));
       setKeywordNames(kws);
+
+      const ruleFiles = (rfResp?.items || [])
+        .map((x) => safeTrim(x?.name))
+        .filter(Boolean)
+        .sort((a, b) => a.localeCompare(b));
+      setRuleFileNames(ruleFiles);
     } catch (e) {
       setError(formatError(e));
     } finally {
@@ -426,24 +447,30 @@ function FwRulesTable({ setLoading, setError }) {
   });
 
   const onAdd = React.useCallback(() => {
+    const nextAppflowid = createNewAppFlowId();
+    const defaultEnvs = ["pac", "prd"];
     setDetailsMode("add");
     setOriginalAppflowid("");
     setIsEditingSource(true);
     setIsEditingDestination(true);
     setForm({
-      filename: "fw-rules-1.yaml",
-      appflowid: "",
-      sourceItems: [{ group: "", envs: [] }],
-      destinationItems: [{ group: "", envs: [] }],
+      filename: "fw-rules.yaml",
+      appflowid: nextAppflowid,
+      sourceItems: [{ group: "", envs: defaultEnvs }],
+      destinationItems: [{ group: "", envs: defaultEnvs }],
       businessPurpose: "",
       protocolPortRefs: [],
       keywords: [],
-      envs: [],
+      envs: defaultEnvs,
     });
-    setSavedSourceItems([{ group: "", envs: [] }]);
-    setSavedDestinationItems([{ group: "", envs: [] }]);
+    setSavedSourceItems([{ group: "", envs: defaultEnvs }]);
+    setSavedDestinationItems([{ group: "", envs: defaultEnvs }]);
     setActivePage("details");
-  }, []);
+
+    if (window.location.pathname !== "/rule-templates/add") {
+      window.history.pushState({}, "", "/rule-templates/add");
+    }
+  }, [createNewAppFlowId]);
 
   const onEdit = React.useCallback((row) => {
     setDetailsMode("edit");
@@ -491,7 +518,30 @@ function FwRulesTable({ setLoading, setError }) {
       envs: Array.isArray(row?.data?.envs) ? row.data.envs : [],
     });
     setActivePage("details");
+
+    const qp = new URLSearchParams();
+    qp.set("appflowid", prevAppflowid);
+    const nextPath = `/rule-templates/edit?${qp.toString()}`;
+    if (`${window.location.pathname}${window.location.search}` !== nextPath) {
+      window.history.pushState({}, "", nextPath);
+    }
   }, []);
+
+  React.useEffect(() => {
+    if (activePage !== "list") return;
+
+    const path = String(window.location.pathname || "");
+    if (path !== "/rule-templates/edit") return;
+
+    const qp = new URLSearchParams(window.location.search || "");
+    const appflowid = safeTrim(qp.get("appflowid"));
+    if (!appflowid) return;
+
+    const match = (items || []).find((it) => safeTrim(it?.data?.appflowid).toUpperCase() === appflowid.toUpperCase());
+    if (match) {
+      onEdit(match);
+    }
+  }, [activePage, items, onEdit]);
 
   const onDiscardSourceEdits = React.useCallback(() => {
     setForm((p) => ({ ...p, sourceItems: Array.isArray(savedSourceItems) ? savedSourceItems : [] }));
@@ -618,7 +668,7 @@ function FwRulesTable({ setLoading, setError }) {
         const currentId = safeTrim(row?.data?.appflowid);
         const newId = generateUniqueAppflowId(allIds, currentId);
 
-        const filename = safeTrim(row?.filename) || "fw-rules-1.yaml";
+        const filename = safeTrim(row?.filename) || "fw-rules.yaml";
         const src = row?.data?.["source-list"] || row?.data?.source;
         const dst = row?.data?.["destination-list"] || row?.data?.destination;
         const refs = Array.isArray(row?.data?.["protocol-port-reference"]) ? row.data["protocol-port-reference"] : [];
@@ -685,7 +735,7 @@ function FwRulesTable({ setLoading, setError }) {
         .toUpperCase()
         .replace(/[^A-Z0-9_-]/g, "");
 
-      await saveFwConfigItem("fw-rules", {
+      const payload = {
         filename: form.filename,
         name: nextAppflowid,
         original_name: safeTrim(originalAppflowid) || undefined,
@@ -698,19 +748,57 @@ function FwRulesTable({ setLoading, setError }) {
           keywords,
           envs,
         },
-      });
+      };
+
+      if (detailsMode === "edit") {
+        await putJson("/api/v1/fwconfig/fw-rules", payload);
+      } else {
+        await saveFwConfigItem("fw-rules", payload);
+      }
       setActivePage("list");
       setSavedSourceItems(source);
       setSavedDestinationItems(destination);
       setIsEditingSource(false);
       setIsEditingDestination(false);
+
+      if (window.location.pathname !== "/rule-templates") {
+        window.history.pushState({}, "", "/rule-templates");
+      }
+
       await load();
     } catch (e) {
       setError(formatError(e));
     } finally {
       setLoading(false);
     }
-  }, [form, originalAppflowid, setLoading, setError, load]);
+  }, [form, detailsMode, setLoading, setError, load, originalAppflowid]);
+
+  const onMoveFile = React.useCallback(
+    async (row, nextFilename) => {
+      try {
+        const fromFilename = safeTrim(row?.filename);
+        const toFilename = safeTrim(nextFilename);
+        if (!fromFilename || !toFilename || fromFilename === toFilename) return;
+
+        setLoading(true);
+        setError("");
+
+        const appflowid = safeTrim(row?.data?.appflowid) || safeTrim(row?.name);
+        await putJson("/api/v1/fwconfig/fw-rules/move", {
+          appflowid,
+          from_filename: fromFilename,
+          to_filename: toFilename,
+        });
+
+        await load();
+      } catch (e) {
+        setError(formatError(e));
+      } finally {
+        setLoading(false);
+      }
+    },
+    [setLoading, setError, load]
+  );
 
   const onConfirmDelete = React.useCallback(async () => {
     const row = confirmDelete.row;
@@ -799,7 +887,12 @@ function FwRulesTable({ setLoading, setError }) {
           form={form}
           setForm={setForm}
           canSubmit={canSubmit}
-          onBack={() => setActivePage("list")}
+          onBack={() => {
+            setActivePage("list");
+            if (window.location.pathname !== "/rule-templates") {
+              window.history.pushState({}, "", "/rule-templates");
+            }
+          }}
           onSave={onSave}
           isEditingSource={isEditingSource}
           setIsEditingSource={setIsEditingSource}
@@ -818,6 +911,7 @@ function FwRulesTable({ setLoading, setError }) {
           keywordNames={keywordNames}
           portProtocolNames={portProtocolNames}
           businessPurposeNames={businessPurposeNames}
+          ruleFileNames={ruleFileNames}
         />
       ) : (
         <FwRulesTableView
@@ -840,6 +934,8 @@ function FwRulesTable({ setLoading, setError }) {
           envNames={envNames}
           portProtocolNames={portProtocolNames}
           MultiSelectPicker={MultiSelectPicker}
+          ruleFileNames={ruleFileNames}
+          onMoveFile={onMoveFile}
         />
       )}
 

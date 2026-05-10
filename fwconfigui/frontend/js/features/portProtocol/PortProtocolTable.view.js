@@ -21,7 +21,7 @@ function PortProtocolTableView({
   return (
     <div className="card" style={{ padding: 12 }}>
       <div className="actions">
-        <div className="muted">port-protocol</div>
+        <div className="muted">port-protocol ({Array.isArray(rows) ? rows.length : 0})</div>
         <button className="btn btn-primary" onClick={onAdd}>
           Add
         </button>
@@ -53,7 +53,7 @@ function PortProtocolTableView({
           <tr>
             <th>
               <input
-                className="filterInput"
+                className={`filterInput ${isNonEmptyString(filters.name) ? "filterInput-active" : ""}`}
                 placeholder="Filter name..."
                 value={filters.name}
                 onChange={(e) => setFilters((p) => ({ ...p, name: e.target.value }))}
@@ -61,7 +61,7 @@ function PortProtocolTableView({
             </th>
             <th>
               <input
-                className="filterInput"
+                className={`filterInput ${isNonEmptyString(filters.port) ? "filterInput-active" : ""}`}
                 placeholder="Filter port..."
                 value={filters.port}
                 onChange={(e) => setFilters((p) => ({ ...p, port: e.target.value }))}
@@ -69,7 +69,7 @@ function PortProtocolTableView({
             </th>
             <th>
               <input
-                className="filterInput"
+                className={`filterInput ${isNonEmptyString(filters.service) ? "filterInput-active" : ""}`}
                 placeholder="Filter service..."
                 value={filters.service}
                 onChange={(e) => setFilters((p) => ({ ...p, service: e.target.value }))}

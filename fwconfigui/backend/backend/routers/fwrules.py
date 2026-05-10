@@ -57,6 +57,53 @@ def save_item(
     return {"ok": True}
 
 
+@router.put("")
+def update_item(
+    request: Request,
+    payload: SaveItemRequest,
+    service: FwConfigService = Depends(get_service),
+) -> Dict[str, Any]:
+    """Update an existing fw-rule.
+
+    PUT is used for edit/update semantics (record must already exist).
+    It also supports rename and moving between files by deleting the original
+    record (as identified by original_name) after saving the new payload.
+    """
+
+    original = str(payload.original_name or "").strip().upper()
+    original = re.sub(r"[^A-Z0-9_-]", "", original)
+    if not original:
+        raise ValidationError("original_name", "is required for update")
+
+    found_filename = FwConfigRepository.find_item_file("fw-rules", original)
+    if not found_filename:
+        raise NotFoundError("Item", original)
+
+    name = str(payload.name or "").strip().upper()
+    name = re.sub(r"[^A-Z0-9_-]", "", name)
+    data = dict(payload.data or {})
+    data["appflowid"] = str(data.get("appflowid", "") or name).strip().upper()
+    data["appflowid"] = re.sub(r"[^A-Z0-9_-]", "", data["appflowid"])
+
+    # Save (upsert) into the requested file.
+    service.save_fw_rules(
+        filename=payload.filename,
+        name=name,
+        data=data,
+        original_name=original,
+    )
+
+    # Delete the original record if it was renamed and/or moved.
+    if payload.filename != found_filename or name != original:
+        try:
+            service.repo.delete_item("fw-rules", filename=found_filename, name=original)
+        except Exception:
+            # Best-effort cleanup; save already succeeded.
+            pass
+
+    return {"ok": True}
+
+
 @router.delete("")
 def delete_item(
     request: Request,
