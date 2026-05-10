@@ -25,6 +25,9 @@ function AppView({ activeTab, onSetTab, error, loading, children }) {
           >
             business-purpose
           </button>
+          <button className={`tab ${activeTab === "components" ? "active" : ""}`} onClick={() => onSetTab("components")}>
+            components
+          </button>
           <button className={`tab ${activeTab === "keywords" ? "active" : ""}`} onClick={() => onSetTab("keywords")}>
             keywords
           </button>

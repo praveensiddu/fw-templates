@@ -4,6 +4,7 @@ function App() {
       "rule-templates": "/rule-templates",
       "port-protocol": "/port-protocol",
       "business-purpose": "/business-purpose",
+      components: "/components",
       keywords: "/keywords",
       "rule-files": "/rule-files",
       infra: "/infra",
@@ -16,6 +17,7 @@ function App() {
       const p = String(pathname || "/").trim();
       if (p === "/port-protocol") return "port-protocol";
       if (p === "/business-purpose") return "business-purpose";
+      if (p === "/components" || p.startsWith("/components/")) return "components";
       if (p === "/env") return "infra";
       if (p === "/keywords") return "keywords";
       if (p === "/rule-files") return "rule-files";
@@ -129,6 +131,9 @@ function App() {
     if (activeTab === "business-purpose") {
       return <BusinessPurposeTable setLoading={setLoading} setError={setError} />;
     }
+    if (activeTab === "components") {
+      return <ComponentsTable setLoading={setLoading} setError={setError} />;
+    }
     if (activeTab === "keywords") {
       return <KeywordsTable setLoading={setLoading} setError={setError} />;
     }
@@ -201,6 +206,9 @@ function App() {
           if (t === "infra") {
             setInfraSubTab("env");
             nextPath = "/infra/env";
+          }
+          if (t === "components") {
+            nextPath = "/components";
           }
           if (window.location.pathname !== nextPath) {
             window.history.pushState({}, "", nextPath);

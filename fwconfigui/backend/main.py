@@ -20,6 +20,7 @@ from fastapi.staticfiles import StaticFiles
 from backend.config.settings import settings
 from backend.exceptions.handlers import register_exception_handlers
 from backend.routers.business_purpose import router as business_purpose_router
+from backend.routers.components import router as components_router
 from backend.routers.env import router as env_router
 from backend.routers.fwrules import router as fwrules_router
 from backend.routers.keywords import router as keywords_router
@@ -74,6 +75,7 @@ app.include_router(keywords_router)
 app.include_router(port_protocol_router)
 app.include_router(env_router)
 app.include_router(business_purpose_router)
+app.include_router(components_router)
 app.include_router(rule_files_router)
 app.include_router(networkareas_router)
 app.include_router(sites_router)
