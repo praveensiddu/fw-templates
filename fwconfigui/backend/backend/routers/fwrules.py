@@ -221,3 +221,12 @@ def put_move_rule(
 ) -> Dict[str, Any]:
     service.move_fw_rule(appflowid=payload.appflowid, from_filename=payload.from_filename, to_filename=payload.to_filename)
     return {"ok": True}
+
+
+@router.post("/commit")
+def commit_validate_rules(
+    request: Request,
+    service: FwConfigService = Depends(get_service),
+) -> Dict[str, Any]:
+    errors = service.validate_fw_rules_commit()
+    return {"ok": len(errors) == 0, "errors": errors}

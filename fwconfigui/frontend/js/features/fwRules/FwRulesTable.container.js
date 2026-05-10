@@ -217,7 +217,25 @@ function FwRulesTable({ setLoading, setError }) {
   });
   const [confirmDelete, setConfirmDelete] = React.useState({ show: false, row: null });
   const [yamlEditor, setYamlEditor] = React.useState({ show: false, row: null, appflowid: "", yaml: "" });
+  const [commitResult, setCommitResult] = React.useState({ show: false, ok: false, errors: [] });
   const [originalAppflowid, setOriginalAppflowid] = React.useState("");
+
+  function stableStringify(v) {
+    const seen = new WeakSet();
+    const walk = (x) => {
+      if (x === null || typeof x !== "object") return x;
+      if (seen.has(x)) return null;
+      seen.add(x);
+      if (Array.isArray(x)) return x.map(walk);
+      const keys = Object.keys(x).sort();
+      const out = {};
+      for (const k of keys) out[k] = walk(x[k]);
+      return out;
+    };
+    return JSON.stringify(walk(v));
+  }
+
+  const initialDetailsSnapshotRef = React.useRef("");
 
   const createNewAppFlowId = React.useCallback(() => {
     const now = new Date();
@@ -229,7 +247,7 @@ function FwRulesTable({ setLoading, setError }) {
     const min = pad2(now.getMinutes());
     const ss = pad2(now.getSeconds());
     const rand = pad2(Math.floor(Math.random() * 100));
-    return `${mm}${dd}${yy}T${hh}${min}${ss}${rand}`;
+    return `${mm}${dd}${yy}T${hh}${min}${ss}_${rand}`;
   }, []);
 
   function extractLockedAppflowIdFromYaml(yamlText, fallbackAppflowid) {
@@ -264,6 +282,13 @@ function FwRulesTable({ setLoading, setError }) {
     const list = Array.isArray(form?.envs) ? form.envs : [];
     return list.map((x) => safeTrim(x)).filter(Boolean);
   }, [form?.envs]);
+
+  const hasUnsavedDetailsChanges = React.useCallback(() => {
+    if (activePage !== "details") return false;
+    const snap = initialDetailsSnapshotRef.current;
+    if (!snap) return false;
+    return stableStringify(form) !== snap;
+  }, [activePage, form]);
 
   React.useEffect(() => {
     setForm((p) => {
@@ -463,6 +488,16 @@ function FwRulesTable({ setLoading, setError }) {
       keywords: [],
       envs: defaultEnvs,
     });
+    initialDetailsSnapshotRef.current = stableStringify({
+      filename: "fw-rules.yaml",
+      appflowid: nextAppflowid,
+      sourceItems: [{ group: "", envs: defaultEnvs }],
+      destinationItems: [{ group: "", envs: defaultEnvs }],
+      businessPurpose: "",
+      protocolPortRefs: [],
+      keywords: [],
+      envs: defaultEnvs,
+    });
     setSavedSourceItems([{ group: "", envs: defaultEnvs }]);
     setSavedDestinationItems([{ group: "", envs: defaultEnvs }]);
     setActivePage("details");
@@ -508,6 +543,16 @@ function FwRulesTable({ setLoading, setError }) {
     setIsEditingSource(false);
     setIsEditingDestination(false);
     setForm({
+      filename: safeTrim(row.filename),
+      appflowid: prevAppflowid,
+      sourceItems: fallbackSrc,
+      destinationItems: fallbackDst,
+      protocolPortRefs: refs,
+      businessPurpose: safeTrim(row?.data?.["business-purpose-reference"]),
+      keywords: Array.isArray(row?.data?.keywords) ? row.data.keywords : [],
+      envs: Array.isArray(row?.data?.envs) ? row.data.envs : [],
+    });
+    initialDetailsSnapshotRef.current = stableStringify({
       filename: safeTrim(row.filename),
       appflowid: prevAppflowid,
       sourceItems: fallbackSrc,
@@ -646,16 +691,13 @@ function FwRulesTable({ setLoading, setError }) {
     }
   }, [yamlEditor, setLoading, setError, load]);
 
-  function generateUniqueAppflowId(existingIds, baseId) {
+  function generateUniqueAppflowId(existingIds) {
     const existing = new Set((existingIds || []).map((x) => String(x).trim().toLowerCase()));
-    const base = safeTrim(baseId) || "COPY";
-    let candidate = `${base}-copy`;
-    if (!existing.has(candidate.toLowerCase())) return candidate;
-    for (let i = 2; i < 10000; i++) {
-      candidate = `${base}-copy-${i}`;
+    for (let i = 0; i < 500; i++) {
+      const candidate = createNewAppFlowId();
       if (!existing.has(candidate.toLowerCase())) return candidate;
     }
-    return `${base}-copy-${Date.now()}`;
+    return createNewAppFlowId();
   }
 
   const onCopy = React.useCallback(
@@ -665,8 +707,7 @@ function FwRulesTable({ setLoading, setError }) {
         setError("");
 
         const allIds = (items || []).map((it) => safeTrim(it?.data?.appflowid)).filter(Boolean);
-        const currentId = safeTrim(row?.data?.appflowid);
-        const newId = generateUniqueAppflowId(allIds, currentId);
+        const newId = generateUniqueAppflowId(allIds);
 
         const filename = safeTrim(row?.filename) || "fw-rules.yaml";
         const src = row?.data?.["source-list"] || row?.data?.source;
@@ -695,8 +736,27 @@ function FwRulesTable({ setLoading, setError }) {
         setLoading(false);
       }
     },
-    [items, setLoading, setError, load]
+    [items, setLoading, setError, load, createNewAppFlowId]
   );
+
+  const onCommit = React.useCallback(async () => {
+    try {
+      setLoading(true);
+      setError("");
+      const res = await postJson("/api/v1/fwconfig/fw-rules/commit", {});
+      const ok = !!res?.ok;
+      const errors = Array.isArray(res?.errors) ? res.errors : [];
+      setCommitResult({ show: true, ok, errors });
+      if (!ok && errors.length) {
+        setError(String(errors[0] || "Validation failed"));
+      }
+    } catch (e) {
+      setError(formatError(e));
+      setCommitResult({ show: true, ok: false, errors: [formatError(e)] });
+    } finally {
+      setLoading(false);
+    }
+  }, [setLoading, setError]);
 
   const canSubmit = React.useMemo(() => {
     return isNonEmptyString(form.filename) && isNonEmptyString(form.appflowid);
@@ -755,6 +815,8 @@ function FwRulesTable({ setLoading, setError }) {
       } else {
         await saveFwConfigItem("fw-rules", payload);
       }
+
+      initialDetailsSnapshotRef.current = stableStringify(form);
       setActivePage("list");
       setSavedSourceItems(source);
       setSavedDestinationItems(destination);
@@ -772,6 +834,36 @@ function FwRulesTable({ setLoading, setError }) {
       setLoading(false);
     }
   }, [form, detailsMode, setLoading, setError, load, originalAppflowid]);
+
+  const confirmNavigateAwayFromDetails = React.useCallback(async () => {
+    if (!hasUnsavedDetailsChanges()) return true;
+    if (typeof window.__fwRulesRequestNavConfirm === "function") {
+      return await window.__fwRulesRequestNavConfirm();
+    }
+    return false;
+  }, [hasUnsavedDetailsChanges]);
+
+  React.useEffect(() => {
+    window.__fwRulesNavGuard = {
+      hasUnsavedChanges: () => hasUnsavedDetailsChanges(),
+      save: async () => {
+        await onSave();
+        return true;
+      },
+      discard: () => {
+        initialDetailsSnapshotRef.current = "";
+        setActivePage("list");
+        setIsEditingSource(false);
+        setIsEditingDestination(false);
+        if (window.location.pathname !== "/rule-templates") {
+          window.history.pushState({}, "", "/rule-templates");
+        }
+      },
+    };
+    return () => {
+      if (window.__fwRulesNavGuard) delete window.__fwRulesNavGuard;
+    };
+  }, [hasUnsavedDetailsChanges, onSave]);
 
   const onMoveFile = React.useCallback(
     async (row, nextFilename) => {
@@ -887,7 +979,10 @@ function FwRulesTable({ setLoading, setError }) {
           form={form}
           setForm={setForm}
           canSubmit={canSubmit}
-          onBack={() => {
+          onBack={async () => {
+            const ok = await confirmNavigateAwayFromDetails();
+            if (!ok) return;
+
             setActivePage("list");
             if (window.location.pathname !== "/rule-templates") {
               window.history.pushState({}, "", "/rule-templates");
@@ -918,6 +1013,7 @@ function FwRulesTable({ setLoading, setError }) {
           rows={sortedRows}
           filters={filters}
           setFilters={setFilters}
+          onCommit={onCommit}
           onAdd={onAdd}
           onEdit={onEdit}
           onEditYaml={onEditYaml}
@@ -970,6 +1066,51 @@ function FwRulesTable({ setLoading, setError }) {
                 Save
               </button>
             </div>
+          </div>
+        </div>
+      ) : null}
+
+      {commitResult.show ? (
+        <div
+          className="modalOverlay"
+          onClick={(e) =>
+            e.target === e.currentTarget && setCommitResult({ show: false, ok: false, errors: [] })
+          }
+        >
+          <div className="modalCard">
+            <div className="modalHeader">
+              <h3 style={{ margin: 0 }}>Commit validation</h3>
+              <button className="btn" onClick={() => setCommitResult({ show: false, ok: false, errors: [] })}>
+                Close
+              </button>
+            </div>
+
+            <div style={{ marginTop: 12 }}>
+              {commitResult.ok ? (
+                <div style={{ color: "#1f7a35" }}>Validation passed.</div>
+              ) : (
+                <div style={{ color: "#dc3545" }}>Validation failed.</div>
+              )}
+            </div>
+
+            {!commitResult.ok ? (
+              <div style={{ marginTop: 12 }}>
+                <div className="muted" style={{ marginBottom: 6 }}>
+                  Errors ({Array.isArray(commitResult.errors) ? commitResult.errors.length : 0})
+                </div>
+                <div style={{ maxHeight: 360, overflow: "auto" }}>
+                  {(commitResult.errors || []).map((msg, idx) => (
+                    <div
+                      key={idx}
+                      className="card"
+                      style={{ padding: 10, marginBottom: 8, borderColor: "rgba(220,53,69,0.35)" }}
+                    >
+                      {String(msg || "")}
+                    </div>
+                  ))}
+                </div>
+              </div>
+            ) : null}
           </div>
         </div>
       ) : null}

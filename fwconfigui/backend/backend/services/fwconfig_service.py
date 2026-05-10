@@ -302,6 +302,149 @@ class FwConfigService:
                 if n and n not in env_names:
                     raise ValidationError("envs", f"unknown env '{e}'")
 
+    def validate_fw_rules_commit(self) -> List[str]:
+        """Validate fw-rules across all files.
+
+        This is used by the UI "Commit" action to validate the full rule-templates set.
+        Returns a list of human-readable error messages.
+        """
+
+        errors: List[str] = []
+
+        env_names = {str(x.get("name", "") or "").strip().lower() for x in self.list_items("env")}
+        kw_names = {str(x.get("name", "") or "").strip().upper() for x in self.list_items("keywords")}
+        bp_names = {str(x.get("name", "") or "").strip().lower() for x in self.list_items("business-purpose")}
+        pp_names = {str(x.get("name", "") or "").strip().lower() for x in self.list_items("port-protocol")}
+
+        all_entries: List[Dict[str, Any]] = []
+        for filename, entry in self.repo.read_items("fw-rules"):
+            if not isinstance(entry, dict):
+                continue
+            all_entries.append({"filename": filename, "entry": dict(entry)})
+
+        seen: Dict[str, int] = {}
+        for it in all_entries:
+            appflowid = str(it["entry"].get("appflowid", "") or "").strip().upper()
+            if not appflowid:
+                continue
+            seen[appflowid] = seen.get(appflowid, 0) + 1
+
+        for appflowid, count in seen.items():
+            if count > 1:
+                errors.append(f"Duplicate appflowid '{appflowid}'")
+
+        def _fmt_context(fn: str, app: str) -> str:
+            a = str(app or "").strip().upper() or "(missing appflowid)"
+            return f"[{fn}] {a}"
+
+        for it in all_entries:
+            fn = str(it.get("filename", "") or "").strip()
+            payload = dict(it.get("entry") or {})
+            app = str(payload.get("appflowid", "") or "").strip().upper()
+            ctx = _fmt_context(fn, app)
+
+            if not app:
+                errors.append(f"{ctx}: appflowid is required")
+                continue
+
+            envs = payload.get("envs")
+            if not isinstance(envs, list) or len([x for x in envs if str(x or "").strip()]) == 0:
+                errors.append(f"{ctx}: envs must not be empty")
+                continue
+
+            rule_envs = {str(x or "").strip().lower() for x in envs if str(x or "").strip()}
+
+            src = payload.get("source-list")
+            if not isinstance(src, list) or len(src) == 0:
+                errors.append(f"{ctx}: source-list must not be empty")
+            for idx, ep in enumerate(src):
+                if not isinstance(ep, dict):
+                    continue
+                group = str(ep.get("group", "") or "").strip()
+                if not group:
+                    errors.append(f"{ctx}: source-list[{idx}].group must not be empty")
+                ep_envs = ep.get("envs")
+                if isinstance(ep_envs, list):
+                    ep_env_set = {str(e or "").strip().lower() for e in ep_envs if str(e or "").strip()}
+                    if not ep_env_set.issubset(rule_envs):
+                        extra = ep_env_set - rule_envs
+                        errors.append(f"{ctx}: source-list[{idx}].envs contains {extra} not in rule envs")
+
+            dst = payload.get("destination-list")
+            if not isinstance(dst, list) or len(dst) == 0:
+                errors.append(f"{ctx}: destination-list must not be empty")
+            for idx, ep in enumerate(dst if isinstance(dst, list) else []):
+                if not isinstance(ep, dict):
+                    continue
+                group = str(ep.get("group", "") or "").strip()
+                if not group:
+                    errors.append(f"{ctx}: destination-list[{idx}].group must not be empty")
+                ep_envs = ep.get("envs")
+                if isinstance(ep_envs, list):
+                    ep_env_set = {str(e or "").strip().lower() for e in ep_envs if str(e or "").strip()}
+                    if not ep_env_set.issubset(rule_envs):
+                        extra = ep_env_set - rule_envs
+                        errors.append(f"{ctx}: destination-list[{idx}].envs contains {extra} not in rule envs")
+
+            refs = payload.get("protocol-port-reference")
+            if not isinstance(refs, list) or len([x for x in refs if str(x or "").strip()]) == 0:
+                errors.append(f"{ctx}: protocol-port-reference must not be empty")
+
+            bp = str(payload.get("business-purpose-reference", "") or "").strip().lower()
+            if not bp:
+                errors.append(f"{ctx}: business-purpose-reference must not be empty")
+
+            def _validate_endpoint_envs(lst: Any, field: str) -> None:
+                if not isinstance(lst, list):
+                    return
+                for idx, ep in enumerate(lst):
+                    if not isinstance(ep, dict):
+                        continue
+                    ep_envs = ep.get("envs")
+                    if not isinstance(ep_envs, list):
+                        continue
+                    for e in ep_envs:
+                        ev = str(e or "").strip().lower()
+                        if not ev:
+                            continue
+                        if ev not in rule_envs:
+                            errors.append(
+                                f"{ctx}: {field}[{idx}].envs contains '{e}' not in rule envs"
+                            )
+
+            _validate_endpoint_envs(src, "source-list")
+            _validate_endpoint_envs(dst, "destination-list")
+
+            # Validate against reference tables.
+            # (Reuse existing logic for env/keyword/bp/pp existence.)
+            try:
+                self._validate_fw_rule_references(payload)
+            except ValidationError as ve:
+                errors.append(f"{ctx}: {ve.field} {ve.message}")
+
+            # Additional explicit membership checks (required fields).
+            if bp and bp not in bp_names:
+                errors.append(f"{ctx}: business-purpose-reference unknown '{bp}'")
+
+            if isinstance(refs, list):
+                for r in refs:
+                    n = str(r or "").strip().lower()
+                    if n and n not in pp_names:
+                        errors.append(f"{ctx}: protocol-port-reference unknown '{r}'")
+
+            kws = payload.get("keywords")
+            if isinstance(kws, list):
+                for k in kws:
+                    n = str(k or "").strip().upper()
+                    if n and n not in kw_names:
+                        errors.append(f"{ctx}: keyword unknown '{k}'")
+
+            for e in rule_envs:
+                if e and e not in env_names:
+                    errors.append(f"{ctx}: env unknown '{e}'")
+
+        return errors
+
     def save_env(
         self,
         *,

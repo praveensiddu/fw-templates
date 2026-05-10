@@ -22,8 +22,11 @@ function BusinessPurposeTableView({
     <div className="card" style={{ padding: 12 }}>
       <div className="actions">
         <div className="muted">business-purpose ({Array.isArray(rows) ? rows.length : 0})</div>
-        <button className="btn btn-primary" onClick={onAdd}>
-          Add
+        <button className="iconBtn iconBtn-primary" title="Add" onClick={onAdd}>
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+            <path d="M12 5v14" />
+            <path d="M5 12h14" />
+          </svg>
         </button>
       </div>
 
