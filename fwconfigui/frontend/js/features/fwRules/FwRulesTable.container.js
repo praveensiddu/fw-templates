@@ -215,7 +215,7 @@ function FwRulesTable({ setLoading, setError }) {
         for (const s of lst) {
           const site = safeTrim(s);
           if (!site) continue;
-          const val = `${site}-${comp}-<env-letter>`;
+          const val = `${site}-${comp}-<env-suffix>`;
           if (seen.has(val)) continue;
           seen.add(val);
           out.push(val);
