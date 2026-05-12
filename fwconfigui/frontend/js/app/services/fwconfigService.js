@@ -10,6 +10,7 @@ function fwconfigTypeBasePath(type) {
     t === "rule-files" ||
     t === "networkareas" ||
     t === "sites" ||
+    t === "products" ||
     t === "components" ||
     t === "port-protocol" ||
     t === "env" ||

@@ -7,7 +7,15 @@ function ComponentsDetailsView({
   onSave,
   networkareaNames,
   siteNames,
+  productNames,
+  applyAllRule,
 }) {
+  const defaultEnvOptions = ["prd", "rtb", "pac", "ent", "dev"];
+  const existingEnvOptions = (Array.isArray(form?.sitesItems) ? form.sitesItems : [])
+    .map((x) => safeTrim(x?.env))
+    .filter((x) => x && !defaultEnvOptions.includes(x));
+  const envOptions = [...defaultEnvOptions, ...existingEnvOptions];
+
   function renderTitle() {
     return mode === "edit" ? "Edit component" : "Add component";
   }
@@ -58,68 +66,114 @@ function ComponentsDetailsView({
           </div>
 
           <div className="field" style={{ gridColumn: "1 / -1" }}>
-            <div className="muted">Exposedto (comma separated)</div>
-            <input
-              className="input"
-              value={safeTrim(form?.exposedtoText)}
-              onChange={(e) => setForm((p) => ({ ...p, exposedtoText: e.target.value }))}
-              placeholder="app1, app2"
+            <div className="muted">Exposedto</div>
+            <MultiSelectPicker
+              options={Array.isArray(productNames) ? productNames : []}
+              values={Array.isArray(form?.exposedto) ? form.exposedto : []}
+              onChange={(next) => setForm((p) => ({ ...p, exposedto: applyAllRule(next) }))}
+              placeholder="Pick products"
+              inputTestId="components-exposedto"
             />
           </div>
 
           <div className="field" style={{ gridColumn: "1 / -1" }}>
-            <div className="muted">Sites PRD</div>
-            <MultiSelectPicker
-              options={Array.isArray(siteNames) ? siteNames : []}
-              values={Array.isArray(form?.sites_prd) ? form.sites_prd : []}
-              onChange={(next) => setForm((p) => ({ ...p, sites_prd: next }))}
-              placeholder="Pick sites"
-              inputTestId="components-sites-prd"
-            />
-          </div>
+            <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 8 }}>
+              <div className="muted">Sites</div>
+              <button
+                className="iconBtn iconBtn-primary"
+                title="Add"
+                onClick={() =>
+                  setForm((p) => ({
+                    ...p,
+                    sitesItems: [...(Array.isArray(p?.sitesItems) ? p.sitesItems : []), { env: "prd", sites: [] }],
+                  }))
+                }
+              >
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                  <path d="M12 5v14" />
+                  <path d="M5 12h14" />
+                </svg>
+              </button>
+            </div>
 
-          <div className="field" style={{ gridColumn: "1 / -1" }}>
-            <div className="muted">Sites PAC</div>
-            <MultiSelectPicker
-              options={Array.isArray(siteNames) ? siteNames : []}
-              values={Array.isArray(form?.sites_pac) ? form.sites_pac : []}
-              onChange={(next) => setForm((p) => ({ ...p, sites_pac: next }))}
-              placeholder="Pick sites"
-              inputTestId="components-sites-pac"
-            />
-          </div>
+            <div style={{ display: "flex", flexDirection: "column", gap: 12, marginTop: 8 }}>
+              {(Array.isArray(form?.sitesItems) ? form.sitesItems : []).length === 0 ? (
+                <div className="muted">No sites</div>
+              ) : null}
 
-          <div className="field" style={{ gridColumn: "1 / -1" }}>
-            <div className="muted">Sites RTB</div>
-            <MultiSelectPicker
-              options={Array.isArray(siteNames) ? siteNames : []}
-              values={Array.isArray(form?.sites_rtb) ? form.sites_rtb : []}
-              onChange={(next) => setForm((p) => ({ ...p, sites_rtb: next }))}
-              placeholder="Pick sites"
-              inputTestId="components-sites-rtb"
-            />
-          </div>
+              {(Array.isArray(form?.sitesItems) ? form.sitesItems : []).map((it, idx) => (
+                <div
+                  key={`${safeTrim(it?.env) || "env"}-${idx}`}
+                  style={{
+                    display: "grid",
+                    gridTemplateColumns: "1fr 3fr auto",
+                    gap: 12,
+                    alignItems: "end",
+                  }}
+                >
+                  <div className="field">
+                    <div className="muted">Env</div>
+                    <select
+                      className="filterInput"
+                      value={safeTrim(it?.env)}
+                      onChange={(e) => {
+                        const v = e.target.value;
+                        setForm((p) => {
+                          const next = Array.isArray(p?.sitesItems) ? [...p.sitesItems] : [];
+                          next[idx] = { ...(next[idx] || {}), env: v };
+                          return { ...p, sitesItems: next };
+                        });
+                      }}
+                    >
+                      {envOptions.map((e) => (
+                        <option key={e} value={e}>
+                          {e}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
 
-          <div className="field" style={{ gridColumn: "1 / -1" }}>
-            <div className="muted">Sites ENT</div>
-            <MultiSelectPicker
-              options={Array.isArray(siteNames) ? siteNames : []}
-              values={Array.isArray(form?.sites_ent) ? form.sites_ent : []}
-              onChange={(next) => setForm((p) => ({ ...p, sites_ent: next }))}
-              placeholder="Pick sites"
-              inputTestId="components-sites-ent"
-            />
-          </div>
+                  <div className="field">
+                    <div className="muted">Sites</div>
+                    <MultiSelectPicker
+                      options={Array.isArray(siteNames) ? siteNames : []}
+                      values={Array.isArray(it?.sites) ? it.sites : []}
+                      onChange={(nextSites) => {
+                        setForm((p) => {
+                          const next = Array.isArray(p?.sitesItems) ? [...p.sitesItems] : [];
+                          next[idx] = { ...(next[idx] || {}), sites: nextSites };
+                          return { ...p, sitesItems: next };
+                        });
+                      }}
+                      placeholder="Pick sites"
+                      inputTestId={`components-sites-${idx}`}
+                    />
+                  </div>
 
-          <div className="field" style={{ gridColumn: "1 / -1" }}>
-            <div className="muted">Sites DEV</div>
-            <MultiSelectPicker
-              options={Array.isArray(siteNames) ? siteNames : []}
-              values={Array.isArray(form?.sites_dev) ? form.sites_dev : []}
-              onChange={(next) => setForm((p) => ({ ...p, sites_dev: next }))}
-              placeholder="Pick sites"
-              inputTestId="components-sites-dev"
-            />
+                  <div className="field" style={{ display: "flex", alignItems: "flex-end" }}>
+                    <button
+                      className="iconBtn iconBtn-danger"
+                      title="Remove"
+                      onClick={() =>
+                        setForm((p) => {
+                          const next = Array.isArray(p?.sitesItems) ? [...p.sitesItems] : [];
+                          next.splice(idx, 1);
+                          return { ...p, sitesItems: next };
+                        })
+                      }
+                    >
+                      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                        <polyline points="3 6 5 6 21 6" />
+                        <path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6" />
+                        <path d="M10 11v6" />
+                        <path d="M14 11v6" />
+                        <path d="M9 6V4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2" />
+                      </svg>
+                    </button>
+                  </div>
+                </div>
+              ))}
+            </div>
           </div>
         </div>
       </div>

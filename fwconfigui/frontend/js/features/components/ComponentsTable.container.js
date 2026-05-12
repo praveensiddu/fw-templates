@@ -4,6 +4,7 @@ function ComponentsTable({ setLoading, setError }) {
   const [items, setItems] = React.useState([]);
   const [networkareaNames, setNetworkareaNames] = React.useState([]);
   const [siteNames, setSiteNames] = React.useState([]);
+  const [productNames, setProductNames] = React.useState([]);
 
   const [activePage, setActivePage] = React.useState("list");
   const [detailsMode, setDetailsMode] = React.useState("add");
@@ -12,12 +13,8 @@ function ComponentsTable({ setLoading, setError }) {
     name: "",
     networkarea: "",
     description: "",
-    exposedtoText: "",
-    sites_prd: [],
-    sites_pac: [],
-    sites_rtb: [],
-    sites_ent: [],
-    sites_dev: [],
+    exposedto: [],
+    sitesItems: [],
   });
 
   const [cellEdit, setCellEdit] = React.useState(null);
@@ -29,10 +26,11 @@ function ComponentsTable({ setLoading, setError }) {
       setLoading(true);
       setError("");
 
-      const [componentsResp, networkareasResp, sitesResp] = await Promise.all([
+      const [componentsResp, networkareasResp, sitesResp, productsResp] = await Promise.all([
         listFwConfigItems("components"),
         listFwConfigItems("networkareas"),
         listFwConfigItems("sites"),
+        listFwConfigItems("products"),
       ]);
 
       setItems(componentsResp?.items || []);
@@ -48,12 +46,32 @@ function ComponentsTable({ setLoading, setError }) {
           .filter((x) => x)
           .sort((a, b) => a.localeCompare(b))
       );
+
+      setProductNames(
+        (productsResp?.items || [])
+          .map((x) => safeTrim(x?.name))
+          .filter((x) => x)
+          .sort((a, b) => a.localeCompare(b))
+      );
     } catch (e) {
       setError(formatError(e));
     } finally {
       setLoading(false);
     }
   }, [setLoading, setError]);
+
+  const exposedtoOptions = React.useMemo(() => {
+    const out = ["ALL", ...(Array.isArray(productNames) ? productNames : [])];
+    return Array.from(new Set(out.map((x) => safeTrim(x)).filter(Boolean)));
+  }, [productNames]);
+
+  const applyAllRule = React.useCallback((vals) => {
+    const xs = (Array.isArray(vals) ? vals : []).map((x) => safeTrim(x)).filter(Boolean);
+    const uniq = Array.from(new Set(xs));
+    const hasAll = uniq.includes("ALL");
+    if (!hasAll) return uniq;
+    return ["ALL"];
+  }, []);
 
   React.useEffect(() => {
     load();
@@ -63,7 +81,16 @@ function ComponentsTable({ setLoading, setError }) {
     return (items || []).map((it) => {
       const data = it?.data || {};
       const sites = data?.sites && typeof data.sites === "object" ? data.sites : {};
-      const getSites = (k) => (Array.isArray(sites?.[k]) ? sites[k] : []);
+
+      const envOrder = ["prd", "pac", "rtb", "ent", "dev"];
+      const envKeys = [...envOrder.filter((k) => Object.prototype.hasOwnProperty.call(sites || {}, k)), ...Object.keys(sites || {}).filter((k) => !envOrder.includes(k))];
+      const sitesLines = envKeys
+        .map((k) => {
+          const lst = Array.isArray(sites?.[k]) ? sites[k] : [];
+          const line = `${k}: ${(lst || []).join(", ")}`;
+          return safeTrim(line);
+        })
+        .filter((x) => x && !x.endsWith(": "));
 
       return {
         ...it,
@@ -71,11 +98,8 @@ function ComponentsTable({ setLoading, setError }) {
         networkarea: safeTrim(data?.networkarea),
         description: safeTrim(data?.description),
         exposedto: Array.isArray(data?.exposedto) ? data.exposedto : [],
-        sites_prd: getSites("prd"),
-        sites_pac: getSites("pac"),
-        sites_rtb: getSites("rtb"),
-        sites_ent: getSites("ent"),
-        sites_dev: getSites("dev"),
+        sites,
+        sitesLines,
       };
     });
   }, [items]);
@@ -87,22 +111,14 @@ function ComponentsTable({ setLoading, setError }) {
       networkarea: "",
       description: "",
       exposedto: "",
-      sites_prd: "",
-      sites_pac: "",
-      sites_rtb: "",
-      sites_ent: "",
-      sites_dev: "",
+      sites: "",
     },
     fieldMapping: (row) => ({
       componentname: safeTrim(row?.componentname),
       networkarea: safeTrim(row?.networkarea),
       description: safeTrim(row?.description),
       exposedto: (Array.isArray(row?.exposedto) ? row.exposedto : []).join(", "),
-      sites_prd: (Array.isArray(row?.sites_prd) ? row.sites_prd : []).join(", "),
-      sites_pac: (Array.isArray(row?.sites_pac) ? row.sites_pac : []).join(", "),
-      sites_rtb: (Array.isArray(row?.sites_rtb) ? row.sites_rtb : []).join(", "),
-      sites_ent: (Array.isArray(row?.sites_ent) ? row.sites_ent : []).join(", "),
-      sites_dev: (Array.isArray(row?.sites_dev) ? row.sites_dev : []).join(", "),
+      sites: (Array.isArray(row?.sitesLines) ? row.sitesLines : []).join("\n"),
     }),
     sortBy: (a, b) => safeTrim(a?.componentname).localeCompare(safeTrim(b?.componentname)),
   });
@@ -114,12 +130,8 @@ function ComponentsTable({ setLoading, setError }) {
       name: "",
       networkarea: "",
       description: "",
-      exposedtoText: "",
-      sites_prd: [],
-      sites_pac: [],
-      sites_rtb: [],
-      sites_ent: [],
-      sites_dev: [],
+      exposedto: [],
+      sitesItems: [],
     });
     setActivePage("details");
     setCellEdit(null);
@@ -134,18 +146,20 @@ function ComponentsTable({ setLoading, setError }) {
     const data = row?.data || {};
     const sites = data?.sites && typeof data.sites === "object" ? data.sites : {};
 
+    const envOrder = ["prd", "pac", "rtb", "ent", "dev"];
+    const envKeys = [...envOrder.filter((k) => Object.prototype.hasOwnProperty.call(sites || {}, k)), ...Object.keys(sites || {}).filter((k) => !envOrder.includes(k))];
+    const sitesItems = envKeys
+      .map((env) => ({ env, sites: Array.isArray(sites?.[env]) ? sites[env] : [] }))
+      .filter((x) => isNonEmptyString(x?.env));
+
     setDetailsMode("edit");
     setOriginalName(n);
     setForm({
       name: n,
       networkarea: safeTrim(data?.networkarea),
       description: safeTrim(data?.description),
-      exposedtoText: (Array.isArray(data?.exposedto) ? data.exposedto : []).join(", "),
-      sites_prd: Array.isArray(sites?.prd) ? sites.prd : [],
-      sites_pac: Array.isArray(sites?.pac) ? sites.pac : [],
-      sites_rtb: Array.isArray(sites?.rtb) ? sites.rtb : [],
-      sites_ent: Array.isArray(sites?.ent) ? sites.ent : [],
-      sites_dev: Array.isArray(sites?.dev) ? sites.dev : [],
+      exposedto: applyAllRule(Array.isArray(data?.exposedto) ? data.exposedto : []),
+      sitesItems,
     });
     setActivePage("details");
     setCellEdit(null);
@@ -176,13 +190,17 @@ function ComponentsTable({ setLoading, setError }) {
       setError("");
 
       const name = safeTrim(form?.name);
-      const nextSites = {
-        prd: Array.isArray(form?.sites_prd) ? form.sites_prd : [],
-        pac: Array.isArray(form?.sites_pac) ? form.sites_pac : [],
-        rtb: Array.isArray(form?.sites_rtb) ? form.sites_rtb : [],
-        ent: Array.isArray(form?.sites_ent) ? form.sites_ent : [],
-        dev: Array.isArray(form?.sites_dev) ? form.sites_dev : [],
-      };
+
+      const nextSites = {};
+      for (const it of Array.isArray(form?.sitesItems) ? form.sitesItems : []) {
+        const env = safeTrim(it?.env);
+        if (!env) continue;
+        const vals = (Array.isArray(it?.sites) ? it.sites : []).map((x) => safeTrim(x)).filter((x) => x);
+        if (!Object.prototype.hasOwnProperty.call(nextSites, env)) nextSites[env] = [];
+        for (const v of vals) {
+          if (!nextSites[env].includes(v)) nextSites[env].push(v);
+        }
+      }
 
       await saveFwConfigItem("components", {
         filename: FIXED_FILENAME,
@@ -192,10 +210,7 @@ function ComponentsTable({ setLoading, setError }) {
           name,
           networkarea: safeTrim(form?.networkarea),
           description: safeTrim(form?.description),
-          exposedto: String(form?.exposedtoText || "")
-            .split(",")
-            .map((x) => safeTrim(x))
-            .filter((x) => x),
+          exposedto: applyAllRule(form?.exposedto),
           sites: nextSites,
         },
       });
@@ -211,7 +226,7 @@ function ComponentsTable({ setLoading, setError }) {
     } finally {
       setLoading(false);
     }
-  }, [form, detailsMode, originalName, setLoading, setError, load]);
+  }, [form, detailsMode, originalName, setLoading, setError, load, applyAllRule]);
 
   React.useEffect(() => {
     if (activePage !== "list") return;
@@ -304,7 +319,6 @@ function ComponentsTable({ setLoading, setError }) {
 
   const onStartCellEdit = React.useCallback((row, field) => {
     const data = row?.data || {};
-    const sites = data?.sites && typeof data.sites === "object" ? data.sites : {};
 
     const next = {
       key: safeTrim(row?.name),
@@ -312,16 +326,11 @@ function ComponentsTable({ setLoading, setError }) {
       field,
       networkarea: safeTrim(data?.networkarea),
       description: safeTrim(data?.description),
-      exposedtoText: (Array.isArray(data?.exposedto) ? data.exposedto : []).join(", "),
-      sites_prd: Array.isArray(sites?.prd) ? sites.prd : [],
-      sites_pac: Array.isArray(sites?.pac) ? sites.pac : [],
-      sites_rtb: Array.isArray(sites?.rtb) ? sites.rtb : [],
-      sites_ent: Array.isArray(sites?.ent) ? sites.ent : [],
-      sites_dev: Array.isArray(sites?.dev) ? sites.dev : [],
+      exposedto: applyAllRule(Array.isArray(data?.exposedto) ? data.exposedto : []),
     };
 
     setCellEdit(next);
-  }, []);
+  }, [applyAllRule]);
 
   const onCancelCellEdit = React.useCallback(() => {
     setCellEdit(null);
@@ -338,15 +347,6 @@ function ComponentsTable({ setLoading, setError }) {
       setError("");
 
       const data = row?.data || {};
-      const sites = data?.sites && typeof data.sites === "object" ? data.sites : {};
-
-      const nextSites = {
-        prd: isEditingCell(row, "sites_prd") ? (Array.isArray(cellEdit?.sites_prd) ? cellEdit.sites_prd : []) : (Array.isArray(sites?.prd) ? sites.prd : []),
-        pac: isEditingCell(row, "sites_pac") ? (Array.isArray(cellEdit?.sites_pac) ? cellEdit.sites_pac : []) : (Array.isArray(sites?.pac) ? sites.pac : []),
-        rtb: isEditingCell(row, "sites_rtb") ? (Array.isArray(cellEdit?.sites_rtb) ? cellEdit.sites_rtb : []) : (Array.isArray(sites?.rtb) ? sites.rtb : []),
-        ent: isEditingCell(row, "sites_ent") ? (Array.isArray(cellEdit?.sites_ent) ? cellEdit.sites_ent : []) : (Array.isArray(sites?.ent) ? sites.ent : []),
-        dev: isEditingCell(row, "sites_dev") ? (Array.isArray(cellEdit?.sites_dev) ? cellEdit.sites_dev : []) : (Array.isArray(sites?.dev) ? sites.dev : []),
-      };
 
       await saveFwConfigItem("components", {
         filename: FIXED_FILENAME,
@@ -356,12 +356,9 @@ function ComponentsTable({ setLoading, setError }) {
           networkarea: isEditingCell(row, "networkarea") ? safeTrim(cellEdit?.networkarea) : safeTrim(data?.networkarea),
           description: isEditingCell(row, "description") ? safeTrim(cellEdit?.description) : safeTrim(data?.description),
           exposedto: isEditingCell(row, "exposedto")
-            ? String(cellEdit?.exposedtoText || "")
-                .split(",")
-                .map((x) => safeTrim(x))
-                .filter((x) => x)
+            ? applyAllRule(cellEdit?.exposedto)
             : (Array.isArray(data?.exposedto) ? data.exposedto : []),
-          sites: nextSites,
+          sites: data?.sites && typeof data.sites === "object" ? data.sites : {},
         },
       });
 
@@ -372,7 +369,7 @@ function ComponentsTable({ setLoading, setError }) {
     } finally {
       setLoading(false);
     }
-  }, [cellEdit, isEditingCell, setLoading, setError, load]);
+  }, [cellEdit, isEditingCell, setLoading, setError, load, applyAllRule]);
 
   return (
     <>
@@ -386,6 +383,8 @@ function ComponentsTable({ setLoading, setError }) {
           onSave={onSave}
           networkareaNames={networkareaNames}
           siteNames={siteNames}
+          productNames={exposedtoOptions}
+          applyAllRule={applyAllRule}
         />
       ) : (
         <ComponentsTableView
@@ -403,7 +402,8 @@ function ComponentsTable({ setLoading, setError }) {
           onCancelCellEdit={onCancelCellEdit}
           onSaveCellEdit={onSaveCellEdit}
           networkareaNames={networkareaNames}
-          siteNames={siteNames}
+          productNames={exposedtoOptions}
+          applyAllRule={applyAllRule}
         />
       )}
 

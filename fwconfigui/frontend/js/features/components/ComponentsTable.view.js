@@ -13,7 +13,8 @@ function ComponentsTableView({
   onCancelCellEdit,
   onSaveCellEdit,
   networkareaNames,
-  siteNames,
+  productNames,
+  applyAllRule,
 }) {
   function renderList(v) {
     return (Array.isArray(v) ? v : []).join(", ");
@@ -72,34 +73,9 @@ function ComponentsTableView({
             </th>
             <th className="fwTableHeaderCell">Description</th>
             <th className="fwTableHeaderCell" style={{ width: 220 }}>Exposedto</th>
-            <th className="fwTableHeaderCell" style={{ width: 160 }}>
+            <th className="fwTableHeaderCell" style={{ width: 260 }}>
               <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 8 }}>
-                <span>Sites PRD</span>
-                <HelpIconButton docPath="/static/help/components/sites_prd.html" title="Sites PRD" />
-              </div>
-            </th>
-            <th className="fwTableHeaderCell" style={{ width: 160 }}>
-              <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 8 }}>
-                <span>Sites PAC</span>
-                <HelpIconButton docPath="/static/help/components/sites_pac.html" title="Sites PAC" />
-              </div>
-            </th>
-            <th className="fwTableHeaderCell" style={{ width: 160 }}>
-              <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 8 }}>
-                <span>Sites RTB</span>
-                <HelpIconButton docPath="/static/help/components/sites_rtb.html" title="Sites RTB" />
-              </div>
-            </th>
-            <th className="fwTableHeaderCell" style={{ width: 160 }}>
-              <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 8 }}>
-                <span>Sites ENT</span>
-                <HelpIconButton docPath="/static/help/components/sites_ent.html" title="Sites ENT" />
-              </div>
-            </th>
-            <th className="fwTableHeaderCell" style={{ width: 160 }}>
-              <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 8 }}>
-                <span>Sites DEV</span>
-                <HelpIconButton docPath="/static/help/components/sites_dev.html" title="Sites DEV" />
+                <span>Sites</span>
               </div>
             </th>
             <th className="fwTableHeaderCell" style={{ width: 100 }}>Actions</th>
@@ -139,42 +115,10 @@ function ComponentsTableView({
             </th>
             <th>
               <input
-                className={`filterInput ${isNonEmptyString(filters.sites_prd) ? "filterInput-active" : ""}`}
+                className={`filterInput ${isNonEmptyString(filters.sites) ? "filterInput-active" : ""}`}
                 placeholder="Filter sites..."
-                value={filters.sites_prd}
-                onChange={(e) => setFilters((p) => ({ ...p, sites_prd: e.target.value }))}
-              />
-            </th>
-            <th>
-              <input
-                className={`filterInput ${isNonEmptyString(filters.sites_pac) ? "filterInput-active" : ""}`}
-                placeholder="Filter sites..."
-                value={filters.sites_pac}
-                onChange={(e) => setFilters((p) => ({ ...p, sites_pac: e.target.value }))}
-              />
-            </th>
-            <th>
-              <input
-                className={`filterInput ${isNonEmptyString(filters.sites_rtb) ? "filterInput-active" : ""}`}
-                placeholder="Filter sites..."
-                value={filters.sites_rtb}
-                onChange={(e) => setFilters((p) => ({ ...p, sites_rtb: e.target.value }))}
-              />
-            </th>
-            <th>
-              <input
-                className={`filterInput ${isNonEmptyString(filters.sites_ent) ? "filterInput-active" : ""}`}
-                placeholder="Filter sites..."
-                value={filters.sites_ent}
-                onChange={(e) => setFilters((p) => ({ ...p, sites_ent: e.target.value }))}
-              />
-            </th>
-            <th>
-              <input
-                className={`filterInput ${isNonEmptyString(filters.sites_dev) ? "filterInput-active" : ""}`}
-                placeholder="Filter sites..."
-                value={filters.sites_dev}
-                onChange={(e) => setFilters((p) => ({ ...p, sites_dev: e.target.value }))}
+                value={filters.sites}
+                onChange={(e) => setFilters((p) => ({ ...p, sites: e.target.value }))}
               />
             </th>
             <th />
@@ -237,13 +181,15 @@ function ComponentsTableView({
                 <td>
                   {isEditingCell(r, "exposedto") ? (
                     <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
-                      <input
-                        className="filterInput"
-                        value={safeTrim(cellEdit?.exposedtoText)}
-                        onChange={(e) => setCellEdit((p) => ({ ...(p || {}), exposedtoText: e.target.value }))}
-                        style={{ flex: 1 }}
-                        placeholder="app1, app2"
-                      />
+                      <div style={{ flex: 1 }}>
+                        <MultiSelectPicker
+                          options={Array.isArray(productNames) ? productNames : []}
+                          values={Array.isArray(cellEdit?.exposedto) ? cellEdit.exposedto : []}
+                          onChange={(next) => setCellEdit((p) => ({ ...(p || {}), exposedto: applyAllRule(next) }))}
+                          placeholder="Pick products"
+                          inputTestId={`components-cell-exposedto-${rowKey}`}
+                        />
+                      </div>
                       <CellActions row={r} field="exposedto" />
                     </div>
                   ) : (
@@ -254,34 +200,16 @@ function ComponentsTableView({
                   )}
                 </td>
 
-                {[
-                  { key: "sites_prd", label: "sites_prd" },
-                  { key: "sites_pac", label: "sites_pac" },
-                  { key: "sites_rtb", label: "sites_rtb" },
-                  { key: "sites_ent", label: "sites_ent" },
-                  { key: "sites_dev", label: "sites_dev" },
-                ].map((c) => (
-                  <td key={c.key}>
-                    {isEditingCell(r, c.key) ? (
-                      <div style={{ display: "flex", gap: 8, alignItems: "flex-start" }}>
-                        <div style={{ flex: 1 }}>
-                          <MultiSelectPicker
-                            options={siteNames || []}
-                            values={Array.isArray(cellEdit?.[c.key]) ? cellEdit[c.key] : []}
-                            onChange={(vals) => setCellEdit((p) => ({ ...(p || {}), [c.key]: vals }))}
-                            placeholder="Pick sites"
-                          />
-                        </div>
-                        <CellActions row={r} field={c.key} />
+                <td>
+                  <div style={{ display: "flex", flexDirection: "column", gap: 4 }}>
+                    {(Array.isArray(r?.sitesLines) ? r.sitesLines : []).length === 0 ? <div className="muted">(none)</div> : null}
+                    {(Array.isArray(r?.sitesLines) ? r.sitesLines : []).map((ln, i) => (
+                      <div key={i} className="muted" style={{ whiteSpace: "pre-wrap" }}>
+                        {ln}
                       </div>
-                    ) : (
-                      <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 8 }}>
-                        <span>{renderList(r?.[c.key])}</span>
-                        <CellActions row={r} field={c.key} />
-                      </div>
-                    )}
-                  </td>
-                ))}
+                    ))}
+                  </div>
+                </td>
 
                 <td>
                   <div style={{ display: "flex", gap: 6 }}>
@@ -314,7 +242,7 @@ function ComponentsTableView({
 
           {rows.length === 0 ? (
             <tr>
-              <td colSpan={10} className="muted">
+              <td colSpan={6} className="muted">
                 No items
               </td>
             </tr>

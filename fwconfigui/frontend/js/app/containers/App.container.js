@@ -179,12 +179,24 @@ function App() {
                 >
                   site
                 </button>
+                <button
+                  className={`tab ${infraSubTab === "products" ? "active" : ""}`}
+                  onClick={() => {
+                    setInfraSubTab("products");
+                    if (window.location.pathname !== "/infra/products") {
+                      window.history.pushState({}, "", "/infra/products");
+                    }
+                  }}
+                >
+                  products
+                </button>
               </div>
             </div>
           </div>
           {infraSubTab === "env" ? <EnvTable setLoading={setLoading} setError={setError} /> : null}
           {infraSubTab === "networkarea" ? <NetworkAreasTable setLoading={setLoading} setError={setError} /> : null}
           {infraSubTab === "site" ? <SitesTable setLoading={setLoading} setError={setError} /> : null}
+          {infraSubTab === "products" ? <ProductsTable setLoading={setLoading} setError={setError} /> : null}
         </>
       );
     }
