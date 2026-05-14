@@ -11,8 +11,9 @@ try:
     load_dotenv()
 except Exception:
     pass
+from backend.swaggerui import attach_local_swagger
 
-from fastapi import FastAPI
+from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import FileResponse
 from fastapi.staticfiles import StaticFiles
@@ -90,6 +91,8 @@ app.mount(
     name="static",
 )
 
+attach_local_swagger(app, route="/docs")
+
 INDEX_HTML = FRONTEND_DIR / "index.html"
 
 
@@ -101,8 +104,12 @@ def frontend_index():
 @app.get("/{full_path:path}", include_in_schema=False)
 def frontend_spa_fallback(full_path: str):
     # Let API and static routes behave normally; everything else is a SPA route.
-    if full_path.startswith("api") or full_path.startswith("static"):
-        return FileResponse(INDEX_HTML)
+    if (
+        full_path.startswith("api")
+        or full_path.startswith("static")
+        or full_path.startswith("docs")
+    ):
+        raise HTTPException(status_code=404)
     return FileResponse(INDEX_HTML)
 
 
