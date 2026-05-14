@@ -5,12 +5,14 @@ function ProductsTableView({
   onAdd,
   onEdit,
   onDelete,
+  onImport,
   editingKey,
   draft,
   setDraft,
   canSubmit,
   onCancelEdit,
   onSave,
+  envNames,
 }) {
   return (
     <div className="card" style={{ padding: 12 }}>
@@ -30,7 +32,12 @@ function ProductsTableView({
             <th className="fwTableHeaderCell" style={{ width: 260 }}>
               Product
             </th>
+            <th className="fwTableHeaderCell" style={{ width: 260 }}>
+              Envs
+            </th>
             <th className="fwTableHeaderCell">Description</th>
+            <th className="fwTableHeaderCell" style={{ width: 300 }}>Components Prefix List</th>
+            <th className="fwTableHeaderCell" style={{ width: 300 }}>Components Exclude List</th>
             <th className="fwTableHeaderCell" style={{ width: 120 }}>Actions</th>
           </tr>
           <tr>
@@ -44,10 +51,34 @@ function ProductsTableView({
             </th>
             <th>
               <input
+                className={`filterInput ${isNonEmptyString(filters.envs) ? "filterInput-active" : ""}`}
+                placeholder="Filter envs..."
+                value={filters.envs}
+                onChange={(e) => setFilters((p) => ({ ...p, envs: e.target.value }))}
+              />
+            </th>
+            <th>
+              <input
                 className={`filterInput ${isNonEmptyString(filters.description) ? "filterInput-active" : ""}`}
                 placeholder="Filter description..."
                 value={filters.description}
                 onChange={(e) => setFilters((p) => ({ ...p, description: e.target.value }))}
+              />
+            </th>
+            <th>
+              <input
+                className={`filterInput ${isNonEmptyString(filters.componentsPrefixList) ? "filterInput-active" : ""}`}
+                placeholder="Filter prefix list..."
+                value={filters.componentsPrefixList}
+                onChange={(e) => setFilters((p) => ({ ...p, componentsPrefixList: e.target.value }))}
+              />
+            </th>
+            <th>
+              <input
+                className={`filterInput ${isNonEmptyString(filters.componentsExcludeList) ? "filterInput-active" : ""}`}
+                placeholder="Filter exclude list..."
+                value={filters.componentsExcludeList}
+                onChange={(e) => setFilters((p) => ({ ...p, componentsExcludeList: e.target.value }))}
               />
             </th>
             <th />
@@ -65,11 +96,36 @@ function ProductsTableView({
                 />
               </td>
               <td>
+                <MultiSelectPicker
+                  options={Array.isArray(envNames) ? envNames : []}
+                  values={Array.isArray(draft.envs) ? draft.envs : []}
+                  onChange={(next) => setDraft((p) => ({ ...p, envs: next }))}
+                  placeholder="Add env..."
+                  inputTestId="products-draft-envs"
+                />
+              </td>
+              <td>
                 <input
                   className="filterInput"
                   value={draft.description}
                   onChange={(e) => setDraft((p) => ({ ...p, description: e.target.value }))}
                   placeholder="description"
+                />
+              </td>
+              <td>
+                <input
+                  className="filterInput"
+                  value={draft.componentsPrefixListText}
+                  onChange={(e) => setDraft((p) => ({ ...p, componentsPrefixListText: e.target.value }))}
+                  placeholder="Reserved list the prefixs separated by comma. "
+                />
+              </td>
+              <td>
+                <input
+                  className="filterInput"
+                  value={draft.componentsExcludeListText}
+                  onChange={(e) => setDraft((p) => ({ ...p, componentsExcludeListText: e.target.value }))}
+                  placeholder="Reserved list the prefixs separated by comma. "
                 />
               </td>
               <td>
@@ -103,10 +159,35 @@ function ProductsTableView({
                     />
                   </td>
                   <td>
+                    <MultiSelectPicker
+                      options={Array.isArray(envNames) ? envNames : []}
+                      values={Array.isArray(draft.envs) ? draft.envs : []}
+                      onChange={(next) => setDraft((p) => ({ ...p, envs: next }))}
+                      placeholder="Add env..."
+                      inputTestId={`products-edit-envs-${rowKey}`}
+                    />
+                  </td>
+                  <td>
                     <input
                       className="filterInput"
                       value={draft.description}
                       onChange={(e) => setDraft((p) => ({ ...p, description: e.target.value }))}
+                    />
+                  </td>
+                  <td>
+                    <input
+                      className="filterInput"
+                      value={draft.componentsPrefixListText}
+                      onChange={(e) => setDraft((p) => ({ ...p, componentsPrefixListText: e.target.value }))}
+                      placeholder="Reserved list the prefixs separated by comma. "
+                    />
+                  </td>
+                  <td>
+                    <input
+                      className="filterInput"
+                      value={draft.componentsExcludeListText}
+                      onChange={(e) => setDraft((p) => ({ ...p, componentsExcludeListText: e.target.value }))}
+                      placeholder="Reserved list the prefixs separated by comma. "
                     />
                   </td>
                   <td>
@@ -129,9 +210,19 @@ function ProductsTableView({
             return (
               <tr key={rowKey}>
                 <td style={{ fontWeight: 650 }}>{safeTrim(r?.name)}</td>
+                <td style={{ whiteSpace: "pre-line" }}>{(Array.isArray(r?.envs) ? r.envs : []).join(", ")}</td>
                 <td>{safeTrim(r?.description)}</td>
+                <td style={{ whiteSpace: "pre-line" }}>{(Array.isArray(r?.componentsPrefixList) ? r.componentsPrefixList : []).join(", ")}</td>
+                <td style={{ whiteSpace: "pre-line" }}>{(Array.isArray(r?.componentsExcludeList) ? r.componentsExcludeList : []).join(", ")}</td>
                 <td>
                   <div style={{ display: "flex", gap: 6 }}>
+                    <button className="iconBtn" title="Import" onClick={() => onImport(r)}>
+                      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                        <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
+                        <polyline points="7 10 12 15 17 10" />
+                        <line x1="12" y1="15" x2="12" y2="3" />
+                      </svg>
+                    </button>
                     <button className="iconBtn" title="Edit" onClick={() => onEdit(r)}>
                       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                         <path d="M12 20h9" />
@@ -155,7 +246,7 @@ function ProductsTableView({
 
           {(rows || []).length === 0 ? (
             <tr>
-              <td colSpan={3} className="muted">
+              <td colSpan={6} className="muted">
                 No items
               </td>
             </tr>
