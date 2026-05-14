@@ -21,11 +21,11 @@ import re
 from fastapi import APIRouter, Depends, Request
 
 from backend.exceptions.custom import ValidationError
-from backend.models import DeleteItemRequest, ListItemsResponse, ListYamlFilesResponse, SaveItemRequest
+from backend.models import DeleteItemRequest, ListItemsResponse, SaveItemRequest
 from backend.utils.workspace import get_fwconfigfiles_root
 from backend.utils.yaml_utils import read_yaml_dict, write_yaml_dict
 
-router = APIRouter(prefix="/api/v1/fwconfig/components", tags=["fwconfig", "components"])
+router = APIRouter(prefix="/api/v1/fwconfig/components", tags=["components"])
 
 _FIXED_FILENAME = "components.yaml"
 _ALLOWED_SITE_ENVS = {"prd", "pac", "rtb", "ent", "dev"}
@@ -87,11 +87,6 @@ def _normalize_sites(v: Any) -> dict[str, list[str]]:
 
 def get_service():
     return True
-
-
-@router.get("/files", response_model=ListYamlFilesResponse)
-def list_yaml_files(request: Request):
-    return {"type": "components", "files": [{"filename": _FIXED_FILENAME}]}
 
 
 @router.get("", response_model=ListItemsResponse)

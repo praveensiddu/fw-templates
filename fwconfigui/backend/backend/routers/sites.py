@@ -15,11 +15,11 @@ import re
 from fastapi import APIRouter, Depends, Request
 
 from backend.exceptions.custom import ValidationError
-from backend.models import DeleteItemRequest, ListItemsResponse, ListYamlFilesResponse, SaveItemRequest
+from backend.models import DeleteItemRequest, ListItemsResponse, SaveItemRequest
 from backend.utils.workspace import get_fwconfigfiles_root
 from backend.utils.yaml_utils import read_yaml_dict, write_yaml_dict
 
-router = APIRouter(prefix="/api/v1/fwconfig/sites", tags=["fwconfig", "sites"])
+router = APIRouter(prefix="/api/v1/fwconfig/sites", tags=["sites"])
 
 _FIXED_FILENAME = "sites.yaml"
 
@@ -44,11 +44,6 @@ def _normalize_envs(v: Any) -> list[str]:
 
 def get_service():
     return True
-
-
-@router.get("/files", response_model=ListYamlFilesResponse)
-def list_yaml_files(request: Request):
-    return {"type": "sites", "files": [{"filename": _FIXED_FILENAME}]}
 
 
 @router.get("", response_model=ListItemsResponse)

@@ -14,11 +14,11 @@ from typing import Any, Dict
 from fastapi import APIRouter, Depends, Request
 
 from backend.exceptions.custom import ValidationError
-from backend.models import DeleteItemRequest, ListItemsResponse, ListYamlFilesResponse, SaveItemRequest
+from backend.models import DeleteItemRequest, ListItemsResponse, SaveItemRequest
 from backend.utils.workspace import get_fwconfigfiles_root
 from backend.utils.yaml_utils import read_yaml_dict, write_yaml_dict
 
-router = APIRouter(prefix="/api/v1/fwconfig/rule-files", tags=["fwconfig", "rule-files"])
+router = APIRouter(prefix="/api/v1/fwconfig/rule-files", tags=["rule-files"])
 
 _FIXED_FILENAME = "rule-files.yaml"
 
@@ -38,12 +38,6 @@ def _normalize_rule_filename(name: str) -> str:
 
 def get_service():
     return True
-
-
-@router.get("/files", response_model=ListYamlFilesResponse)
-def list_yaml_files(request: Request):
-    files = [{"filename": _FIXED_FILENAME}]
-    return {"type": "rule-files", "files": files}
 
 
 @router.get("", response_model=ListItemsResponse)

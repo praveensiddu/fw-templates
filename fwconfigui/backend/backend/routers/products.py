@@ -16,11 +16,11 @@ from fastapi import APIRouter, Depends, Request
 from pydantic import BaseModel
 
 from backend.exceptions.custom import ValidationError
-from backend.models import DeleteItemRequest, ListItemsResponse, ListYamlFilesResponse, SaveItemRequest
+from backend.models import DeleteItemRequest, ListItemsResponse, SaveItemRequest
 from backend.utils.workspace import get_fwconfigfiles_root
 from backend.utils.yaml_utils import read_yaml_dict, write_yaml_dict
 
-router = APIRouter(prefix="/api/v1/fwconfig/products", tags=["fwconfig", "products"])
+router = APIRouter(prefix="/api/v1/fwconfig/products", tags=["products"])
 
 _FIXED_FILENAME = "products.yaml"
 
@@ -65,11 +65,6 @@ class ImportProductRequest(BaseModel):
 
 def get_service():
     return True
-
-
-@router.get("/files", response_model=ListYamlFilesResponse)
-def list_yaml_files(request: Request):
-    return {"type": "products", "files": [{"filename": _FIXED_FILENAME}]}
 
 
 @router.get("", response_model=ListItemsResponse)

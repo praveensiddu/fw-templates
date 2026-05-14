@@ -4,22 +4,16 @@ from typing import Any, Dict
 
 from fastapi import APIRouter, Depends, Request
 
-from backend.models import DeleteItemRequest, ListItemsResponse, ListYamlFilesResponse, SaveItemRequest
+from backend.models import DeleteItemRequest, ListItemsResponse, SaveItemRequest
 from backend.services.fwconfig_service import FwConfigService
 
-router = APIRouter(prefix="/api/v1/fwconfig/business-purpose", tags=["fwconfig", "business-purpose"])
+router = APIRouter(prefix="/api/v1/fwconfig/business-purpose", tags=["business-purpose"])
 
 _FIXED_FILENAME = "business-purpose.yaml"
 
 
 def get_service() -> FwConfigService:
     return FwConfigService()
-
-
-@router.get("/files", response_model=ListYamlFilesResponse)
-def list_yaml_files(request: Request, service: FwConfigService = Depends(get_service)):
-    files = [{"filename": _FIXED_FILENAME}]
-    return {"type": "business-purpose", "files": files}
 
 
 @router.get("", response_model=ListItemsResponse)

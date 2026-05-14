@@ -30,14 +30,6 @@ async function listFwConfigItems(type) {
   return await fetchJson(`/api/v1/fwconfig/items?type=${encodeURIComponent(t)}`);
 }
 
-async function listFwConfigFiles(type) {
-  const t = safeTrim(type);
-  if (!t) throw new Error("type is required");
-  const base = fwconfigTypeBasePath(t);
-  if (base) return await fetchJson(`${base}/files`);
-  return await fetchJson(`/api/v1/fwconfig/files?type=${encodeURIComponent(t)}`);
-}
-
 async function saveFwConfigItem(type, payload) {
   const t = safeTrim(type);
   if (!t) throw new Error("type is required");

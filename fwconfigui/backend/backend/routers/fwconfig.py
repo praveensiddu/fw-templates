@@ -6,7 +6,7 @@ from fastapi import APIRouter, Depends, Request
 
 from backend.dependencies import require_yaml_type
 from backend.exceptions.custom import ValidationError
-from backend.models import DeleteItemRequest, ListItemsResponse, ListYamlFilesResponse, SaveItemRequest
+from backend.models import DeleteItemRequest, ListItemsResponse, SaveItemRequest
 from backend.services.fwconfig_service import FwConfigService
 
 router = APIRouter(prefix="/api/v1/fwconfig", tags=["fwconfig"])
@@ -14,17 +14,6 @@ router = APIRouter(prefix="/api/v1/fwconfig", tags=["fwconfig"])
 
 def get_service() -> FwConfigService:
     return FwConfigService()
-
-
-@router.get("/files", response_model=ListYamlFilesResponse)
-def list_yaml_files(
-    request: Request,
-    type: Optional[str] = None,
-    service: FwConfigService = Depends(get_service),
-):
-    yaml_type = require_yaml_type(type)
-    files = [{"filename": f} for f in service.list_files(yaml_type)]
-    return {"type": yaml_type, "files": files}
 
 
 @router.get("/items", response_model=ListItemsResponse)
