@@ -42,28 +42,31 @@ async function saveFwConfigItem(type, payload) {
   const t = safeTrim(type);
   if (!t) throw new Error("type is required");
   const name = safeTrim(payload?.name);
-  const filename = safeTrim(payload?.filename);
   const originalName = safeTrim(payload?.original_name);
-  if (!filename) throw new Error("filename is required");
   if (!name) throw new Error("name is required");
   const base = fwconfigTypeBasePath(t);
   const url = base ? base : `/api/v1/fwconfig/items?type=${encodeURIComponent(t)}`;
-  return await postJson(url, {
-    filename,
+
+  const nextData = { ...(payload?.data || {}) };
+  if (safeTrim(nextData?.name) && safeTrim(nextData?.name) === name) {
+    delete nextData.name;
+  }
+
+  const body = {
     name,
     original_name: originalName || undefined,
-    data: payload?.data || {},
-  });
+    ...(Object.keys(nextData).length ? { data: nextData } : {}),
+  };
+
+  return await postJson(url, body);
 }
 
 async function deleteFwConfigItem(type, payload) {
   const t = safeTrim(type);
   if (!t) throw new Error("type is required");
   const name = safeTrim(payload?.name);
-  const filename = safeTrim(payload?.filename);
-  if (!filename) throw new Error("filename is required");
   if (!name) throw new Error("name is required");
   const base = fwconfigTypeBasePath(t);
   const url = base ? base : `/api/v1/fwconfig/items?type=${encodeURIComponent(t)}`;
-  return await deleteJson(url, { filename, name });
+  return await deleteJson(url, { name });
 }

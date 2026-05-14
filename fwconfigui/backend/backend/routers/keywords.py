@@ -35,9 +35,7 @@ def save_item(
     service: FwConfigService = Depends(get_service),
 ) -> Dict[str, Any]:
     name = str(payload.name or "").strip().upper()
-    data = dict(payload.data or {})
-    data["name"] = str(data.get("name", "") or name).strip().upper()
-    service.save_keywords(filename=_FIXED_FILENAME, name=name, data=data, original_name=payload.original_name)
+    service.save_keywords(filename=_FIXED_FILENAME, name=name, data={}, original_name=payload.original_name)
     return {"ok": True}
 
 

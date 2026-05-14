@@ -5,6 +5,7 @@ from typing import Any, Dict, Optional
 from fastapi import APIRouter, Depends, Request
 
 from backend.dependencies import require_yaml_type
+from backend.exceptions.custom import ValidationError
 from backend.models import DeleteItemRequest, ListItemsResponse, ListYamlFilesResponse, SaveItemRequest
 from backend.services.fwconfig_service import FwConfigService
 
@@ -46,39 +47,44 @@ def save_item(
 ) -> Dict[str, Any]:
     yaml_type = require_yaml_type(type)
 
+    files = service.list_files(yaml_type)
+    if len(files) != 1:
+        raise ValidationError("filename", f"ambiguous for type '{yaml_type}'")
+    filename = files[0]
+
     if yaml_type == "port-protocol":
         service.save_port_protocol(
-            filename=payload.filename,
+            filename=filename,
             name=payload.name,
-            data=payload.data,
+            data=dict(payload.data or {}),
             original_name=payload.original_name,
         )
     elif yaml_type == "business-purpose":
         service.save_business_purpose(
-            filename=payload.filename,
+            filename=filename,
             name=payload.name,
-            data=payload.data,
+            data=dict(payload.data or {}),
             original_name=payload.original_name,
         )
     elif yaml_type == "fw-rules":
         service.save_fw_rules(
-            filename=payload.filename,
+            filename=filename,
             name=payload.name,
-            data=payload.data,
+            data=dict(payload.data or {}),
             original_name=payload.original_name,
         )
     elif yaml_type == "env":
         service.save_env(
-            filename=payload.filename,
+            filename=filename,
             name=payload.name,
-            data=payload.data,
+            data=dict(payload.data or {}),
             original_name=payload.original_name,
         )
     elif yaml_type == "keywords":
         service.save_keywords(
-            filename=payload.filename,
+            filename=filename,
             name=payload.name,
-            data=payload.data,
+            data=dict(payload.data or {}),
             original_name=payload.original_name,
         )
     else:
@@ -95,5 +101,9 @@ def delete_item(
     service: FwConfigService = Depends(get_service),
 ) -> Dict[str, Any]:
     yaml_type = require_yaml_type(type)
-    service.delete_item(yaml_type, filename=payload.filename, name=payload.name)
+    files = service.list_files(yaml_type)
+    if len(files) != 1:
+        raise ValidationError("filename", f"ambiguous for type '{yaml_type}'")
+    filename = files[0]
+    service.delete_item(yaml_type, filename=filename, name=payload.name)
     return {"ok": True}

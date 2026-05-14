@@ -2,7 +2,7 @@
 
 import logging
 from pathlib import Path
-from typing import Any, Dict, List, Tuple
+from typing import Any, Dict, Iterable, List, Optional, Tuple
 
 from backend.exceptions.custom import NotFoundError, ValidationError
 from backend.utils.yaml_utils import list_yaml_files, read_yaml_dict, write_yaml_dict
@@ -38,7 +38,7 @@ class FwConfigRepository:
     """Data access for fwconfig YAML types."""
 
     @staticmethod
-    def find_item_file(yaml_type: str, name: str) -> str | None:
+    def find_item_file(yaml_type: str, name: str) -> Optional[str]:
         item_name = str(name or "").strip()
         if not item_name:
             return None

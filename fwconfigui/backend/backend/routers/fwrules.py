@@ -40,16 +40,21 @@ def list_items(request: Request, service: FwConfigService = Depends(get_service)
 @router.post("")
 def save_item(
     request: Request,
+    filename: str,
     payload: SaveItemRequest,
     service: FwConfigService = Depends(get_service),
 ) -> Dict[str, Any]:
+    file_name = str(filename or "").strip()
+    if not file_name:
+        raise ValidationError("filename", "is required")
+
     name = str(payload.name or "").strip().upper()
     name = re.sub(r"[^A-Z0-9_-]", "", name)
     data = dict(payload.data or {})
     data["appflowid"] = str(data.get("appflowid", "") or name).strip().upper()
     data["appflowid"] = re.sub(r"[^A-Z0-9_-]", "", data["appflowid"])
     service.save_fw_rules(
-        filename=payload.filename,
+        filename=file_name,
         name=name,
         data=data,
         original_name=payload.original_name,
@@ -60,6 +65,7 @@ def save_item(
 @router.put("")
 def update_item(
     request: Request,
+    filename: str,
     payload: SaveItemRequest,
     service: FwConfigService = Depends(get_service),
 ) -> Dict[str, Any]:
@@ -69,6 +75,10 @@ def update_item(
     It also supports rename and moving between files by deleting the original
     record (as identified by original_name) after saving the new payload.
     """
+
+    file_name = str(filename or "").strip()
+    if not file_name:
+        raise ValidationError("filename", "is required")
 
     original = str(payload.original_name or "").strip().upper()
     original = re.sub(r"[^A-Z0-9_-]", "", original)
@@ -87,14 +97,14 @@ def update_item(
 
     # Save (upsert) into the requested file.
     service.save_fw_rules(
-        filename=payload.filename,
+        filename=file_name,
         name=name,
         data=data,
         original_name=original,
     )
 
     # Delete the original record if it was renamed and/or moved.
-    if payload.filename != found_filename or name != original:
+    if file_name != found_filename or name != original:
         try:
             service.repo.delete_item("fw-rules", filename=found_filename, name=original)
         except Exception:
@@ -107,10 +117,14 @@ def update_item(
 @router.delete("")
 def delete_item(
     request: Request,
+    filename: str,
     payload: DeleteItemRequest,
     service: FwConfigService = Depends(get_service),
 ) -> Dict[str, Any]:
-    service.delete_item("fw-rules", filename=payload.filename, name=payload.name)
+    file_name = str(filename or "").strip()
+    if not file_name:
+        raise ValidationError("filename", "is required")
+    service.delete_item("fw-rules", filename=file_name, name=payload.name)
     return {"ok": True}
 
 

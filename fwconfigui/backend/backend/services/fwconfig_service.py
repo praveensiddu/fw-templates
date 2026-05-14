@@ -2,7 +2,7 @@
 
 import logging
 import re
-from typing import Any, Dict, List, Tuple
+from typing import Any, Dict, List, Optional, Tuple
 
 from backend.exceptions.custom import AlreadyExistsError, ResourceInUseError, ValidationError
 from backend.repositories.fwconfig_repository import FwConfigRepository
@@ -29,7 +29,7 @@ class FwConfigService:
             rows.append({"filename": filename, "name": name, "data": entry})
         return rows
 
-    def _normalize_prev_key(self, yaml_type: str, original_name: str | None) -> str:
+    def _normalize_prev_key(self, yaml_type: str, original_name: Optional[str]) -> str:
         prev_key = str(original_name or "").strip()
         if not prev_key:
             return ""
@@ -43,7 +43,7 @@ class FwConfigService:
         yaml_type: str,
         filename: str,
         item_key: str,
-        original_name: str | None,
+        original_name: Optional[str],
     ) -> None:
         if (original_name is None or not str(original_name or "").strip()) and self.repo.item_exists(
             yaml_type,
@@ -64,7 +64,7 @@ class FwConfigService:
         filename: str,
         name: str,
         data: Dict[str, Any],
-        original_name: str | None = None,
+        original_name: Optional[str] = None,
     ) -> None:
         payload = dict(data or {})
         payload["name"] = str(name or "").strip()
@@ -97,7 +97,7 @@ class FwConfigService:
         filename: str,
         name: str,
         data: Dict[str, Any],
-        original_name: str | None = None,
+        original_name: Optional[str] = None,
     ) -> None:
         payload = dict(data or {})
         payload["name"] = str(name or "").strip()
@@ -126,7 +126,7 @@ class FwConfigService:
         filename: str,
         name: str,
         data: Dict[str, Any],
-        original_name: str | None = None,
+        original_name: Optional[str] = None,
     ) -> None:
         payload = dict(data or {})
         if not str(payload.get("appflowid", "") or "").strip():
@@ -152,18 +152,18 @@ class FwConfigService:
         self,
         *,
         appflowid: str,
-        protocol_port_reference: List[str] | None = None,
-        business_purpose_reference: str | None = None,
-        keywords: List[str] | None = None,
-        envs: List[str] | None = None,
+        protocol_port_reference: Optional[List[str]] = None,
+        business_purpose_reference: Optional[str] = None,
+        keywords: Optional[List[str]] = None,
+        envs: Optional[List[str]] = None,
     ) -> Tuple[str, Dict[str, Any]]:
         key = str(appflowid or "").strip().upper()
         key = re.sub(r"[^A-Z0-9_-]", "", key)
         if not key:
             raise ValidationError("appflowid", "is required")
 
-        found_filename: str | None = None
-        found_entry: Dict[str, Any] | None = None
+        found_filename: Optional[str] = None
+        found_entry: Optional[Dict[str, Any]] = None
         for fn, entry in self.repo.read_items("fw-rules"):
             if not isinstance(entry, dict):
                 continue
@@ -210,7 +210,7 @@ class FwConfigService:
             return
 
         found_in_src = False
-        entry_to_move: Dict[str, Any] | None = None
+        entry_to_move: Optional[Dict[str, Any]] = None
         for fn, entry in self.repo.read_items("fw-rules"):
             if fn != src:
                 continue
@@ -451,7 +451,7 @@ class FwConfigService:
         filename: str,
         name: str,
         data: Dict[str, Any],
-        original_name: str | None = None,
+        original_name: Optional[str] = None,
     ) -> None:
         payload = dict(data or {})
         payload["name"] = str(name or "").strip()
@@ -476,7 +476,7 @@ class FwConfigService:
         filename: str,
         name: str,
         data: Dict[str, Any],
-        original_name: str | None = None,
+        original_name: Optional[str] = None,
     ) -> None:
         payload = dict(data or {})
         payload["name"] = str(name or "").strip()

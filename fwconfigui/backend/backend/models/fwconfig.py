@@ -26,14 +26,12 @@ class ListItemsResponse(BaseModel):
 
 
 class SaveItemRequest(BaseModel):
-    filename: str
     name: str
     original_name: Optional[str] = None
-    data: Dict[str, Any] = {}
+    data: Optional[Dict[str, Any]] = None
 
 
 class DeleteItemRequest(BaseModel):
-    filename: str
     name: str
 
 

@@ -66,9 +66,6 @@ def save_item(
     payload: SaveItemRequest,
     _ok: bool = Depends(get_service),
 ) -> Dict[str, Any]:
-    if str(payload.filename or "").strip() and str(payload.filename or "").strip() != _FIXED_FILENAME:
-        raise ValidationError("filename", f"must be '{_FIXED_FILENAME}'")
-
     name = _normalize_rule_filename(payload.name)
     original = str(payload.original_name or "").strip()
 
