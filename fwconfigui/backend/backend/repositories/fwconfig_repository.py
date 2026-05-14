@@ -20,11 +20,7 @@ _TYPE_TO_DIR = {
 }
 
 _TYPE_TO_LIST_KEY = {
-    "port-protocol": "port-protocol-list",
-    "business-purpose": "business-purpose-list",
     "fw-rules": "flowtemplates",
-    "env": "env-list",
-    "keywords": "keywords-list",
 }
 
 
