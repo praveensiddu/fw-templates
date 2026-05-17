@@ -59,6 +59,7 @@ function EnvTableView({
               <td>
                 <input
                   className="filterInput"
+                  autoFocus
                   value={draft.name}
                   onChange={(e) => setDraft((p) => ({ ...p, name: normalizeEnvName(e.target.value) }))}
                   placeholder="name"

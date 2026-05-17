@@ -66,7 +66,7 @@ function ComponentsDetailsView({
           </div>
 
           <div className="field" style={{ gridColumn: "1 / -1" }}>
-            <div className="muted">Exposedto</div>
+            <div className="muted">Pick the products which are allowed to communicate with this component. Choose ALL if it is okay to expose it to all products.</div>
             <MultiSelectPicker
               options={Array.isArray(productNames) ? productNames : []}
               values={Array.isArray(form?.exposedto) ? form.exposedto : []}
@@ -78,7 +78,7 @@ function ComponentsDetailsView({
 
           <div className="field" style={{ gridColumn: "1 / -1" }}>
             <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 8 }}>
-              <div className="muted">Sites</div>
+              <div className="muted">Sites in each env where this component runs</div>
               <button
                 className="iconBtn iconBtn-primary"
                 title="Add"

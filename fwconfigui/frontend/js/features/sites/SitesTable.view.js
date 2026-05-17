@@ -76,6 +76,7 @@ function SitesTableView({
               <td>
                 <input
                   className="filterInput"
+                  autoFocus
                   value={draft.name}
                   onChange={(e) => setDraft((p) => ({ ...p, name: String(e.target.value || "").toUpperCase() }))}
                   placeholder="name"
@@ -154,6 +155,7 @@ function SitesTableView({
                           onChange={(next) => setCellEdit((p) => ({ ...(p || {}), envs: next }))}
                           placeholder="Add env..."
                           inputTestId={`site-cell-envs-${rowKey}`}
+                          onEnter={onSaveCellEdit}
                         />
                         <button className="iconBtn iconBtn-primary" title="Save" onClick={onSaveCellEdit} style={{ alignSelf: "flex-start" }}>
                           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">

@@ -50,7 +50,8 @@ async function saveFwConfigItem(type, payload) {
     ...(Object.keys(nextData).length ? { data: nextData } : {}),
   };
 
-  return await postJson(url, body);
+  const isUpdate = isNonEmptyString(originalName);
+  return isUpdate ? await putJson(url, body) : await postJson(url, body);
 }
 
 async function deleteFwConfigItem(type, payload) {

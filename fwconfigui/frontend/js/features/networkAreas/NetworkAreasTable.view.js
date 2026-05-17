@@ -92,6 +92,7 @@ function NetworkAreasTableView({
               <td>
                 <input
                   className="filterInput"
+                  autoFocus
                   value={draft.name}
                   onChange={(e) => setDraft((p) => ({ ...p, name: String(e.target.value || "").toUpperCase() }))}
                   placeholder="name"
@@ -183,6 +184,12 @@ function NetworkAreasTableView({
                           className="filterInput"
                           value={safeTrim(cellEdit?.shortname)}
                           onChange={(e) => setCellEdit((p) => ({ ...(p || {}), shortname: String(e.target.value || "").toUpperCase() }))}
+                          onKeyDown={(e) => {
+                            if (e.key === "Enter") {
+                              e.preventDefault();
+                              onSaveCellEdit();
+                            }
+                          }}
                           placeholder="shortname"
                           style={{ flex: 1 }}
                         />
@@ -224,6 +231,7 @@ function NetworkAreasTableView({
                           onChange={(next) => setCellEdit((p) => ({ ...(p || {}), envs: next }))}
                           placeholder="Add env..."
                           inputTestId={`networkarea-cell-envs-${rowKey}`}
+                          onEnter={onSaveCellEdit}
                         />
                         <button className="iconBtn iconBtn-primary" title="Save" onClick={onSaveCellEdit} style={{ alignSelf: "flex-start" }}>
                           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">

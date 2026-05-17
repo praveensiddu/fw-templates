@@ -59,6 +59,7 @@ function KeywordsTableView({
               <td>
                 <input
                   className="filterInput"
+                  autoFocus
                   value={draft.name}
                   onChange={(e) => setDraft((p) => ({ ...p, name: normalizeKeywordName(e.target.value) }))}
                   placeholder="name"

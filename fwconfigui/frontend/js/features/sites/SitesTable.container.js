@@ -56,7 +56,7 @@ function SitesTable({ setLoading, setError }) {
   }, [load]);
 
   const onAdd = React.useCallback(() => {
-    setDraft({ name: "", envs: "" });
+    setDraft({ name: "", envs: "pac, prd" });
     setEditingKey("__new__");
   }, []);
 
@@ -104,6 +104,7 @@ function SitesTable({ setLoading, setError }) {
       await saveFwConfigItem("sites", {
         filename: FIXED_FILENAME,
         name,
+        original_name: name,
         data: {
           name,
           envs: Array.isArray(cellEdit.envs) ? cellEdit.envs : [],

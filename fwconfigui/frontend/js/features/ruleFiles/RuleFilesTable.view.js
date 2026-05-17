@@ -49,6 +49,7 @@ function RuleFilesTableView({ rows, filters, setFilters, onAdd, onDelete, editin
               <td>
                 <input
                   className="input"
+                  autoFocus
                   value={draft.name}
                   onChange={(e) => setDraft((p) => ({ ...p, name: normalizeFilename(e.target.value) }))}
                   placeholder="e.g. fw-rules.yaml"

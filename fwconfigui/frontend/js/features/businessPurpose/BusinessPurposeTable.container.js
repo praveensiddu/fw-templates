@@ -60,6 +60,52 @@ function BusinessPurposeTable({ setLoading, setError }) {
     setConfirmDelete({ show: true, row });
   }, []);
 
+  function generateUniqueCopyName(existingNames, baseName) {
+    const existing = new Set((existingNames || []).map((x) => String(x || "").trim()));
+    const base = safeTrim(baseName);
+    if (!base) return "";
+
+    const candidate1 = `${base}_copy`;
+    if (!existing.has(candidate1)) return candidate1;
+
+    for (let i = 2; i <= 500; i++) {
+      const c = `${base}_copy${i}`;
+      if (!existing.has(c)) return c;
+    }
+    return `${base}_copy${Date.now()}`;
+  }
+
+  const onCopy = React.useCallback(
+    async (row) => {
+      try {
+        setLoading(true);
+        setError("");
+
+        const allNames = (items || []).map((it) => safeTrim(it?.name)).filter(Boolean);
+        const srcName = safeTrim(row?.name);
+        const nextName = generateUniqueCopyName(allNames, srcName);
+        if (!nextName) throw new Error("Unable to generate copy name");
+
+        const data = row?.data || {};
+        await saveFwConfigItem("business-purpose", {
+          filename: FIXED_FILENAME,
+          name: nextName,
+          data: {
+            name: nextName,
+            "business-purpose": safeTrim(data?.["business-purpose"]),
+          },
+        });
+
+        await load();
+      } catch (e) {
+        setError(formatError(e));
+      } finally {
+        setLoading(false);
+      }
+    },
+    [items, setLoading, setError, load]
+  );
+
   const canSubmit = React.useMemo(() => {
     return isNonEmptyString(draft.name) && isNonEmptyString(draft.bp);
   }, [draft]);
@@ -130,6 +176,7 @@ function BusinessPurposeTable({ setLoading, setError }) {
         setFilters={setFilters}
         onAdd={onAdd}
         onEdit={onEdit}
+        onCopy={onCopy}
         onDelete={onDelete}
         editingKey={editingKey}
         draft={draft}

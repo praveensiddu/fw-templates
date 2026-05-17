@@ -20,7 +20,7 @@ from typing import Any, Dict
 import re
 from fastapi import APIRouter, Depends, Request
 
-from backend.exceptions.custom import ValidationError
+from backend.exceptions.custom import AlreadyExistsError, ValidationError
 from backend.models import DeleteItemRequest, ListItemsResponse, SaveItemRequest
 from backend.utils.workspace import get_fwconfigfiles_root
 from backend.utils.yaml_utils import read_yaml_dict, write_yaml_dict
@@ -127,6 +127,9 @@ def save_item(
     original = re.sub(r"[^A-Z0-9_-]", "", original)
     original = original if original else ""
 
+    if original:
+        raise ValidationError("original_name", "use PUT for update")
+
     data = dict(payload.data or {})
     networkarea = _normalize_networkarea(data.get("networkarea"))
     description = _normalize_description(data.get("description"))
@@ -138,7 +141,46 @@ def save_item(
     if not isinstance(raw, dict):
         raw = {}
 
-    if original and original != name:
+    if name in raw:
+        raise AlreadyExistsError("Item", name)
+
+    raw[name] = {
+        "networkarea": networkarea,
+        "description": description,
+        "exposedto": exposedto,
+        "sites": sites,
+    }
+    write_yaml_dict(path, raw, sort_keys=True)
+    return {"ok": True}
+
+
+@router.put("")
+def update_item(
+    request: Request,
+    payload: SaveItemRequest,
+    _ok: bool = Depends(get_service),
+) -> Dict[str, Any]:
+    original = str(payload.original_name or "").strip().upper()
+    original = re.sub(r"[^A-Z0-9_-]", "", original)
+    if not original:
+        raise ValidationError("original_name", "is required for update")
+
+    name = _normalize_component_name(payload.name)
+
+    data = dict(payload.data or {})
+    networkarea = _normalize_networkarea(data.get("networkarea"))
+    description = _normalize_description(data.get("description"))
+    exposedto = _normalize_exposedto(data.get("exposedto"))
+    sites = _normalize_sites(data.get("sites"))
+
+    path = _path()
+    raw = read_yaml_dict(path)
+    if not isinstance(raw, dict):
+        raw = {}
+    if original not in raw:
+        raise ValidationError("original_name", "not found")
+
+    if original != name:
         raw.pop(original, None)
 
     raw[name] = {

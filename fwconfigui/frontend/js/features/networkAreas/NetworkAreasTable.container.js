@@ -59,7 +59,7 @@ function NetworkAreasTable({ setLoading, setError }) {
   }, [load]);
 
   const onAdd = React.useCallback(() => {
-    setDraft({ name: "", shortname: "", envs: "" });
+    setDraft({ name: "", shortname: "", envs: "pac, prd" });
     setOriginalRef({ name: "" });
     setEditingKey("__new__");
   }, []);
@@ -111,6 +111,7 @@ function NetworkAreasTable({ setLoading, setError }) {
       await saveFwConfigItem("networkareas", {
         filename: FIXED_FILENAME,
         name,
+        original_name: name,
         data: {
           name,
           shortname,

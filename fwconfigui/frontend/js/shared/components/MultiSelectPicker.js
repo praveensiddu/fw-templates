@@ -4,6 +4,7 @@ function MultiSelectPicker({
   onChange,
   placeholder,
   inputTestId,
+  onEnter,
 }) {
   const [query, setQuery] = React.useState("");
   const [open, setOpen] = React.useState(false);
@@ -100,6 +101,12 @@ function MultiSelectPicker({
           onKeyDown={(e) => {
             if (e.key === "Enter") {
               e.preventDefault();
+              const q = String(query || "").trim();
+              if (!q && typeof onEnter === "function") {
+                onEnter();
+                return;
+              }
+
               const first = filteredOptions[0];
               if (first) addValue(first);
               return;
