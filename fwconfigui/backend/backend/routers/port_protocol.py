@@ -4,22 +4,19 @@ from typing import Any, Dict
 
 from fastapi import APIRouter, Depends, Request
 
-from backend.exceptions.custom import AlreadyExistsError, ValidationError
-from backend.models import ListItemsResponse, SaveItemRequest
-from backend.services.fwconfig_service import FwConfigService
+from backend.models import SaveItemRequest
+from backend.services.port_protocol_service import PortProtocolService
 
-router = APIRouter(prefix="/api/v1/products/{product}/fwconfig/port-protocol", tags=["port-protocol"])
-
-_FIXED_FILENAME = "port-protocol.yaml"
+router = APIRouter(prefix="/api/v1/products/{product}/port-protocol", tags=["port-protocol"])
 
 
-def get_service(product: str) -> FwConfigService:
-    return FwConfigService(product)
+def get_service(product: str) -> PortProtocolService:
+    return PortProtocolService(product)
 
 
-@router.get("", response_model=ListItemsResponse)
-def list_items(request: Request, product: str, service: FwConfigService = Depends(get_service)):
-    items = [x for x in service.list_items("port-protocol") if str(x.get("filename", "")) == _FIXED_FILENAME]
+@router.get("")
+def list_items(request: Request, product: str, service: PortProtocolService = Depends(get_service)):
+    items = service.list_items()
     return {"type": "port-protocol", "items": items}
 
 
@@ -28,21 +25,14 @@ def save_item(
     request: Request,
     product: str,
     payload: SaveItemRequest,
-    service: FwConfigService = Depends(get_service),
+    service: PortProtocolService = Depends(get_service),
 ) -> Dict[str, Any]:
-    original = str(payload.original_name or "").strip().lower()
-    if original:
-        raise ValidationError("original_name", "use PUT for update")
-
-    name = str(payload.name or "").strip().lower()
-
-    items = [x for x in service.list_items("port-protocol") if str(x.get("filename", "")) == _FIXED_FILENAME]
-    existing = {str(x.get("name", "") or "").strip().lower() for x in items}
-    if name in existing:
-        raise AlreadyExistsError("Item", name)
-
     data = dict(payload.data or {})
-    service.save_port_protocol(filename=_FIXED_FILENAME, name=name, data=data, original_name=payload.original_name)
+    service.save_item(
+        name=payload.name,
+        port_protocol=data.get("port-protocol"),
+        original_name=None,
+    )
     return {"ok": True}
 
 
@@ -51,20 +41,14 @@ def update_item(
     request: Request,
     product: str,
     payload: SaveItemRequest,
-    service: FwConfigService = Depends(get_service),
+    service: PortProtocolService = Depends(get_service),
 ) -> Dict[str, Any]:
-    original = str(payload.original_name or "").strip().lower()
-    if not original:
-        raise ValidationError("original_name", "is required for update")
-
-    items = [x for x in service.list_items("port-protocol") if str(x.get("filename", "")) == _FIXED_FILENAME]
-    existing = {str(x.get("name", "") or "").strip().lower() for x in items}
-    if original not in existing:
-        raise ValidationError("original_name", "not found")
-
-    name = str(payload.name or "").strip().lower()
     data = dict(payload.data or {})
-    service.save_port_protocol(filename=_FIXED_FILENAME, name=name, data=data, original_name=payload.original_name)
+    service.save_item(
+        name=payload.name,
+        port_protocol=data.get("port-protocol"),
+        original_name=payload.original_name,
+    )
     return {"ok": True}
 
 
@@ -73,7 +57,7 @@ def delete_item(
     request: Request,
     product: str,
     name: str,
-    service: FwConfigService = Depends(get_service),
+    service: PortProtocolService = Depends(get_service),
 ) -> Dict[str, Any]:
-    service.delete_item("port-protocol", filename=_FIXED_FILENAME, name=name)
+    service.delete_item(name=name)
     return {"ok": True}

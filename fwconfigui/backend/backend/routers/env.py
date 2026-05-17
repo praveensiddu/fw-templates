@@ -7,7 +7,7 @@ from fastapi import APIRouter, Depends, Request
 from backend.models import ListItemsResponse
 from backend.services.fwconfig_service import FwConfigService
 
-router = APIRouter(prefix="/api/v1/fwconfig/env", tags=["env"])
+router = APIRouter(prefix="/api/v1/infra/env", tags=["env"])
 
 _FIXED_FILENAME = "env.yaml"
 

@@ -1,5 +1,4 @@
 function BusinessPurposeTable({ setLoading, setError }) {
-  const FIXED_FILENAME = "business-purpose.yaml";
   const [items, setItems] = React.useState([]);
   const [editingKey, setEditingKey] = React.useState("");
   const [draft, setDraft] = React.useState({ name: "", bp: "" });
@@ -88,7 +87,6 @@ function BusinessPurposeTable({ setLoading, setError }) {
 
         const data = row?.data || {};
         await saveFwConfigItem("business-purpose", {
-          filename: FIXED_FILENAME,
           name: nextName,
           data: {
             name: nextName,
@@ -127,7 +125,6 @@ function BusinessPurposeTable({ setLoading, setError }) {
       const nextBp = safeTrim(draft.bp);
 
       await saveFwConfigItem("business-purpose", {
-        filename: FIXED_FILENAME,
         name: nextName,
         original_name: safeTrim(originalRef.name) || undefined,
         data: {
@@ -141,7 +138,7 @@ function BusinessPurposeTable({ setLoading, setError }) {
         isNonEmptyString(oldName) &&
         oldName !== nextName;
       if (shouldDeleteOld) {
-        await deleteFwConfigItem("business-purpose", { filename: FIXED_FILENAME, name: oldName });
+        await deleteFwConfigItem("business-purpose", { name: oldName });
       }
 
       onCancelEdit();
@@ -158,7 +155,7 @@ function BusinessPurposeTable({ setLoading, setError }) {
     try {
       setLoading(true);
       setError("");
-      await deleteFwConfigItem("business-purpose", { filename: FIXED_FILENAME, name: row.name });
+      await deleteFwConfigItem("business-purpose", { name: row.name });
       setConfirmDelete({ show: false, row: null });
       await load();
     } catch (e) {
@@ -189,7 +186,7 @@ function BusinessPurposeTable({ setLoading, setError }) {
       <ConfirmationModal
         show={confirmDelete.show}
         title="Delete item"
-        message={confirmDelete.row ? `Delete '${confirmDelete.row.name}' from ${confirmDelete.row.filename}?` : ""}
+        message={confirmDelete.row ? `Delete '${confirmDelete.row.name}'?` : ""}
         onClose={() => setConfirmDelete({ show: false, row: null })}
         onConfirm={onConfirmDelete}
         confirmText="Delete"

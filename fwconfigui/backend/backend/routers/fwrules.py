@@ -17,7 +17,7 @@ from backend.models import (
 from backend.repositories.fwconfig_repository import FwConfigRepository
 from backend.services.fwconfig_service import FwConfigService
 
-router = APIRouter(prefix="/api/v1/products/{product}/fwconfig/fw-rules", tags=["fw-rules"])
+router = APIRouter(prefix="/api/v1/products/{product}/rule-templates", tags=["fw-rules"])
 
 
 def get_service(product: str) -> FwConfigService:

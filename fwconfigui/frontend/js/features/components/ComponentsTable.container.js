@@ -1,6 +1,4 @@
 function ComponentsTable({ setLoading, setError }) {
-  const FIXED_FILENAME = "components.yaml";
-
   const [items, setItems] = React.useState([]);
   const [networkareaNames, setNetworkareaNames] = React.useState([]);
   const [siteNames, setSiteNames] = React.useState([]);
@@ -136,8 +134,12 @@ function ComponentsTable({ setLoading, setError }) {
     setActivePage("details");
     setCellEdit(null);
 
-    if (window.location.pathname !== "/components/add") {
-      window.history.pushState({}, "", "/components/add");
+    const p = String(window?.location?.pathname || "");
+    const m = p.match(/^\/products\/([^/]+)\//);
+    const currentProduct = m ? safeTrim(m[1]) : "";
+    const nextPath = currentProduct ? `/products/${encodeURIComponent(currentProduct)}/components/add` : "/components/add";
+    if (`${window.location.pathname}${window.location.search}` !== nextPath) {
+      window.history.pushState({}, "", nextPath);
     }
   }, []);
 
@@ -166,7 +168,12 @@ function ComponentsTable({ setLoading, setError }) {
 
     const qp = new URLSearchParams();
     qp.set("name", n);
-    const nextPath = `/components/edit?${qp.toString()}`;
+    const p = String(window?.location?.pathname || "");
+    const m = p.match(/^\/products\/([^/]+)\//);
+    const currentProduct = m ? safeTrim(m[1]) : "";
+    const nextPath = currentProduct
+      ? `/products/${encodeURIComponent(currentProduct)}/components/edit?${qp.toString()}`
+      : `/components/edit?${qp.toString()}`;
     if (`${window.location.pathname}${window.location.search}` !== nextPath) {
       window.history.pushState({}, "", nextPath);
     }
@@ -175,8 +182,13 @@ function ComponentsTable({ setLoading, setError }) {
   const onBack = React.useCallback(() => {
     setActivePage("list");
     setCellEdit(null);
-    if (window.location.pathname !== "/components") {
-      window.history.pushState({}, "", "/components");
+
+    const p = String(window?.location?.pathname || "");
+    const m = p.match(/^\/products\/([^/]+)\//);
+    const currentProduct = m ? safeTrim(m[1]) : "";
+    const nextPath = currentProduct ? `/products/${encodeURIComponent(currentProduct)}/components` : "/components";
+    if (`${window.location.pathname}${window.location.search}` !== nextPath) {
+      window.history.pushState({}, "", nextPath);
     }
   }, []);
 
@@ -203,7 +215,6 @@ function ComponentsTable({ setLoading, setError }) {
       }
 
       await saveFwConfigItem("components", {
-        filename: FIXED_FILENAME,
         name,
         original_name: detailsMode === "edit" ? (safeTrim(originalName) || undefined) : undefined,
         data: {
@@ -217,8 +228,13 @@ function ComponentsTable({ setLoading, setError }) {
 
       setActivePage("list");
       setCellEdit(null);
-      if (window.location.pathname !== "/components") {
-        window.history.pushState({}, "", "/components");
+
+      const p = String(window?.location?.pathname || "");
+      const m = p.match(/^\/products\/([^/]+)\//);
+      const currentProduct = m ? safeTrim(m[1]) : "";
+      const nextPath = currentProduct ? `/products/${encodeURIComponent(currentProduct)}/components` : "/components";
+      if (`${window.location.pathname}${window.location.search}` !== nextPath) {
+        window.history.pushState({}, "", nextPath);
       }
       await load();
     } catch (e) {
@@ -232,7 +248,7 @@ function ComponentsTable({ setLoading, setError }) {
     if (activePage !== "list") return;
 
     const path = String(window.location.pathname || "");
-    if (path !== "/components/edit") return;
+    if (path !== "/components/edit" && !path.endsWith("/components/edit")) return;
 
     const qp = new URLSearchParams(window.location.search || "");
     const name = safeTrim(qp.get("name"));
@@ -274,7 +290,6 @@ function ComponentsTable({ setLoading, setError }) {
 
         const data = row?.data || {};
         await saveFwConfigItem("components", {
-          filename: FIXED_FILENAME,
           name: nextName,
           data: {
             name: nextName,
@@ -300,7 +315,7 @@ function ComponentsTable({ setLoading, setError }) {
     try {
       setLoading(true);
       setError("");
-      await deleteFwConfigItem("components", { filename: FIXED_FILENAME, name: row.name });
+      await deleteFwConfigItem("components", { name: row.name });
       setConfirmDelete({ show: false, row: null });
       await load();
     } catch (e) {
@@ -349,7 +364,6 @@ function ComponentsTable({ setLoading, setError }) {
       const data = row?.data || {};
 
       await saveFwConfigItem("components", {
-        filename: FIXED_FILENAME,
         name,
         data: {
           name,
@@ -410,7 +424,7 @@ function ComponentsTable({ setLoading, setError }) {
       <ConfirmationModal
         show={confirmDelete.show}
         title="Delete item"
-        message={confirmDelete.row ? `Delete '${confirmDelete.row.name}' from ${confirmDelete.row.filename}?` : ""}
+        message={confirmDelete.row ? `Delete '${confirmDelete.row.name}'?` : ""}
         onClose={() => setConfirmDelete({ show: false, row: null })}
         onConfirm={onConfirmDelete}
         confirmText="Delete"

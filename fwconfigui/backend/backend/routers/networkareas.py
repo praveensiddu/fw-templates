@@ -20,7 +20,7 @@ from backend.models import ListItemsResponse, SaveItemRequest
 from backend.utils.workspace import get_fwconfigfiles_root
 from backend.utils.yaml_utils import read_yaml_dict, write_yaml_dict
 
-router = APIRouter(prefix="/api/v1/fwconfig/networkareas", tags=["networkareas"])
+router = APIRouter(prefix="/api/v1/infra/networkareas", tags=["networkareas"])
 
 _FIXED_FILENAME = "networkareas.yaml"
 

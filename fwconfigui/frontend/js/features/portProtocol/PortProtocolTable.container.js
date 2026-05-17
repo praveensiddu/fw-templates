@@ -1,5 +1,4 @@
 function PortProtocolTable({ setLoading, setError }) {
-  const FIXED_FILENAME = "port-protocol.yaml";
   const [items, setItems] = React.useState([]);
   const [editingKey, setEditingKey] = React.useState("");
   const [draft, setDraft] = React.useState({ name: "", port: "", service: "" });
@@ -94,7 +93,6 @@ function PortProtocolTable({ setLoading, setError }) {
 
         const data = row?.data || {};
         await saveFwConfigItem("port-protocol", {
-          filename: FIXED_FILENAME,
           name: nextName,
           data: {
             name: nextName,
@@ -141,7 +139,6 @@ function PortProtocolTable({ setLoading, setError }) {
       const nextService = safeTrim(draft.service);
 
       await saveFwConfigItem("port-protocol", {
-        filename: FIXED_FILENAME,
         name: nextName,
         original_name: safeTrim(originalRef.name) || undefined,
         data: {
@@ -155,7 +152,7 @@ function PortProtocolTable({ setLoading, setError }) {
         isNonEmptyString(oldName) &&
         oldName !== nextName;
       if (shouldDeleteOld) {
-        await deleteFwConfigItem("port-protocol", { filename: FIXED_FILENAME, name: oldName });
+        await deleteFwConfigItem("port-protocol", { name: oldName });
       }
 
       onCancelEdit();
@@ -172,13 +169,13 @@ function PortProtocolTable({ setLoading, setError }) {
     try {
       setLoading(true);
       setError("");
-      await deleteFwConfigItem("port-protocol", { filename: row.filename, name: row.name });
+      await deleteFwConfigItem("port-protocol", { name: row.name });
       setConfirmDelete({ show: false, row: null });
       await load();
     } catch (e) {
       setError(formatError(e));
     } finally {
-      setLoading(false);FIXED_FILENAME
+      setLoading(false);
     }
   }, [confirmDelete, setLoading, setError, load]);
 
@@ -203,7 +200,7 @@ function PortProtocolTable({ setLoading, setError }) {
       <ConfirmationModal
         show={confirmDelete.show}
         title="Delete item"
-        message={confirmDelete.row ? `Delete '${confirmDelete.row.name}' from ${confirmDelete.row.filename}?` : ""}
+        message={confirmDelete.row ? `Delete '${confirmDelete.row.name}'?` : ""}
         onClose={() => setConfirmDelete({ show: false, row: null })}
         onConfirm={onConfirmDelete}
         confirmText="Delete"

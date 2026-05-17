@@ -48,7 +48,6 @@ function RuleFilesTable({ setLoading, setError }) {
       const name = safeTrim(draft?.name);
       if (!name) throw new Error("name is required");
       await saveFwConfigItem("rule-files", {
-        filename: "rule-files.yaml",
         name,
         data: { name },
       });
@@ -67,7 +66,6 @@ function RuleFilesTable({ setLoading, setError }) {
         setLoading(true);
         setError("");
         await deleteFwConfigItem("rule-files", {
-          filename: "rule-files.yaml",
           name: safeTrim(row?.name),
         });
         await load();

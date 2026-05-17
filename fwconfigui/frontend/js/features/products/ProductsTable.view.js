@@ -220,12 +220,22 @@ function ProductsTableView({
           {(rows || []).map((r, idx) => {
             const rowKey = safeTrim(r?.name) || `${idx}`;
             return (
-              <tr key={rowKey}>
+              <tr
+                key={rowKey}
+                onClick={(e) => {
+                  const t = e?.target;
+                  const btn = t && typeof t.closest === "function" ? t.closest("button") : null;
+                  if (btn && !btn.hasAttribute("data-open-product")) return;
+                  if (typeof onOpenProduct === "function") onOpenProduct(r);
+                }}
+                style={{ cursor: typeof onOpenProduct === "function" ? "pointer" : undefined }}
+              >
                 <td style={{ fontWeight: 650 }}>
                   <button
                     type="button"
                     className="btn"
                     style={{ padding: 0, border: "none", background: "transparent", fontWeight: 650, cursor: "pointer" }}
+                    data-open-product
                     onClick={() => {
                       if (typeof onOpenProduct === "function") onOpenProduct(r);
                     }}
@@ -264,7 +274,10 @@ function ProductsTableView({
                       <button
                         className="iconBtn"
                         title="Edit"
-                        onClick={() => onStartCellEdit(r, "envs")}
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          onStartCellEdit(r, "envs");
+                        }}
                         style={{ alignSelf: "flex-start" }}
                       >
                         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
@@ -309,7 +322,10 @@ function ProductsTableView({
                       <button
                         className="iconBtn"
                         title="Edit"
-                        onClick={() => onStartCellEdit(r, "description")}
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          onStartCellEdit(r, "description");
+                        }}
                         style={{ alignSelf: "flex-start" }}
                       >
                         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
@@ -356,7 +372,10 @@ function ProductsTableView({
                       <button
                         className="iconBtn"
                         title="Edit"
-                        onClick={() => onStartCellEdit(r, "componentsPrefixListText")}
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          onStartCellEdit(r, "componentsPrefixListText");
+                        }}
                         style={{ alignSelf: "flex-start" }}
                       >
                         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
@@ -403,7 +422,10 @@ function ProductsTableView({
                       <button
                         className="iconBtn"
                         title="Edit"
-                        onClick={() => onStartCellEdit(r, "componentsExcludeListText")}
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          onStartCellEdit(r, "componentsExcludeListText");
+                        }}
                         style={{ alignSelf: "flex-start" }}
                       >
                         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
@@ -416,14 +438,28 @@ function ProductsTableView({
                 </td>
                 <td>
                   <div style={{ display: "flex", gap: 6 }}>
-                    <button className="iconBtn" title="Import" onClick={() => onImport(r)}>
+                    <button
+                      className="iconBtn"
+                      title="Import"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        onImport(r);
+                      }}
+                    >
                       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                         <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
                         <polyline points="7 10 12 15 17 10" />
                         <line x1="12" y1="15" x2="12" y2="3" />
                       </svg>
                     </button>
-                    <button className="iconBtn iconBtn-danger" title="Delete" onClick={() => onDelete(r)}>
+                    <button
+                      className="iconBtn iconBtn-danger"
+                      title="Delete"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        onDelete(r);
+                      }}
+                    >
                       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                         <polyline points="3 6 5 6 21 6" />
                         <path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6" />

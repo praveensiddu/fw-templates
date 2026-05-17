@@ -47,6 +47,12 @@ function fwconfigTypeBasePath(type) {
       t === "business-purpose" ||
       t === "fw-rules")
   ) {
+    if (t === "keywords") return `/api/v1/products/${encodeURIComponent(product)}/keywords`;
+    if (t === "rule-files") return `/api/v1/products/${encodeURIComponent(product)}/rule-files`;
+    if (t === "components") return `/api/v1/products/${encodeURIComponent(product)}/components`;
+    if (t === "port-protocol") return `/api/v1/products/${encodeURIComponent(product)}/port-protocol`;
+    if (t === "business-purpose") return `/api/v1/products/${encodeURIComponent(product)}/business-purpose`;
+    if (t === "fw-rules") return `/api/v1/products/${encodeURIComponent(product)}/rule-templates`;
     return `/api/v1/products/${encodeURIComponent(product)}/fwconfig/${encodeURIComponent(t)}`;
   }
 
@@ -62,6 +68,9 @@ function fwconfigTypeBasePath(type) {
     t === "business-purpose" ||
     t === "fw-rules"
   ) {
+    if (t === "env" || t === "networkareas" || t === "sites") {
+      return `/api/v1/infra/${encodeURIComponent(t)}`;
+    }
     return `/api/v1/fwconfig/${encodeURIComponent(t)}`;
   }
   return "";
@@ -91,7 +100,7 @@ async function saveFwConfigItem(type, payload) {
   const url = base ? base : `/api/v1/fwconfig/items?type=${encodeURIComponent(t)}`;
 
   const isUpdate = isNonEmptyString(originalName);
-  if (t === "env" || t === "keywords" || (t === "business-purpose" && !isUpdate)) {
+  if (t === "env" || t === "keywords") {
     const sep = url.includes("?") ? "&" : "?";
     return await postJson(`${url}${sep}name=${encodeURIComponent(name)}`);
   }

@@ -4,21 +4,19 @@ from typing import Any, Dict
 
 from fastapi import APIRouter, Depends, Request
 
-from backend.models import ListItemsResponse
-from backend.services.fwconfig_service import FwConfigService
+from backend.services.keywords_service import KeywordsService
 
-router = APIRouter(prefix="/api/v1/products/{product}/fwconfig/keywords", tags=["keywords"])
-
-_FIXED_FILENAME = "keywords.yaml"
+router = APIRouter(prefix="/api/v1/products/{product}/keywords", tags=["keywords"])
 
 
-def get_service(product: str) -> FwConfigService:
-    return FwConfigService(product)
+
+def get_service(product: str) -> KeywordsService:
+    return KeywordsService(product)
 
 
-@router.get("", response_model=ListItemsResponse)
-def list_items(request: Request, product: str, service: FwConfigService = Depends(get_service)):
-    items = [x for x in service.list_items("keywords") if str(x.get("filename", "")) == _FIXED_FILENAME]
+@router.get("")
+def list_items(request: Request, product: str, service: KeywordsService = Depends(get_service)):
+    items = service.list_items()
     return {"type": "keywords", "items": items}
 
 
@@ -27,10 +25,9 @@ def save_item(
     request: Request,
     product: str,
     name: str,
-    service: FwConfigService = Depends(get_service),
+    service: KeywordsService = Depends(get_service),
 ) -> Dict[str, Any]:
-    name = str(name or "").strip().upper()
-    service.save_keywords(filename=_FIXED_FILENAME, name=name, data={}, original_name=None)
+    service.save_item(name=name)
     return {"ok": True}
 
 
@@ -39,7 +36,7 @@ def delete_item(
     request: Request,
     product: str,
     name: str,
-    service: FwConfigService = Depends(get_service),
+    service: KeywordsService = Depends(get_service),
 ) -> Dict[str, Any]:
-    service.delete_item("keywords", filename=_FIXED_FILENAME, name=name)
+    service.delete_item(name=name)
     return {"ok": True}

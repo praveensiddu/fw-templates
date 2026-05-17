@@ -19,7 +19,7 @@ from backend.models import ListItemsResponse, SaveItemRequest
 from backend.utils.workspace import get_fwconfigfiles_root
 from backend.utils.yaml_utils import read_yaml_dict, write_yaml_dict
 
-router = APIRouter(prefix="/api/v1/fwconfig/sites", tags=["sites"])
+router = APIRouter(prefix="/api/v1/infra/sites", tags=["sites"])
 
 _FIXED_FILENAME = "sites.yaml"
 

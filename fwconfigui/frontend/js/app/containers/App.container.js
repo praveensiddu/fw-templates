@@ -40,6 +40,7 @@ function App() {
   const [activeTab, setActiveTab] = React.useState(initialTopTab);
   const [infraSubTab, setInfraSubTab] = React.useState(initialInfraSubTab);
   const [productSubTab, setProductSubTab] = React.useState(initialProductSubTab);
+  const [routeVersion, setRouteVersion] = React.useState(0);
   const [loading, setLoading] = React.useState(false);
   const [error, setError] = React.useState("");
 
@@ -89,6 +90,8 @@ function App() {
     if (window.location.pathname === "/") {
       window.history.replaceState({}, "", "/products");
     }
+
+    setRouteVersion((v) => v + 1);
 
     const p0 = String(window.location.pathname || "").trim();
     const m0 = p0.match(/^\/products\/([^/]+)$/);
@@ -147,6 +150,8 @@ function App() {
         window.history.pushState({}, "", lastAllowedPathRef.current || "/rule-templates");
         return;
       }
+
+      setRouteVersion((v) => v + 1);
       setError("");
 
       if (window.location.pathname === "/infra/products") {
@@ -195,7 +200,27 @@ function App() {
       const subTabs = (
         <div className="card" style={{ padding: 12 }}>
           <div className="actions" style={{ marginTop: 0, justifyContent: "flex-start" }}>
-            <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
+            <div style={{ display: "flex", gap: 8, flexWrap: "wrap", alignItems: "center" }}>
+              <button
+                className="btn"
+                onClick={async () => {
+                  const ok = await canNavigateAway();
+                  if (!ok) return;
+                  if (typeof setCurrentProduct === "function") setCurrentProduct("");
+                  if (window.__fwCurrentProduct) window.__fwCurrentProduct = "";
+                  if (`${window.location.pathname}${window.location.search}` !== "/products") {
+                    window.history.pushState({}, "", "/products");
+                    window.dispatchEvent(new PopStateEvent("popstate"));
+                  }
+                }}
+              >
+                <span style={{ display: "inline-flex", gap: 6, alignItems: "center" }}>
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ width: 16, height: 16 }}>
+                    <polyline points="15 18 9 12 15 6" />
+                  </svg>
+                  Back to Products
+                </span>
+              </button>
               <button
                 className={`tab ${productSubTab === "rule-templates" ? "active" : ""}`}
                 onClick={() => {
@@ -338,7 +363,7 @@ function App() {
       );
     }
     return <FwRulesTable setLoading={setLoading} setError={setError} />;
-  }, [activeTab, infraSubTab, productSubTab, getProductFromPath]);
+  }, [activeTab, infraSubTab, productSubTab, getProductFromPath, routeVersion]);
 
   return (
     <>
@@ -358,7 +383,13 @@ function App() {
           }
 
           if (t === "products") {
-            nextPath = "/products";
+            const currentProduct = safeTrim(window.__fwCurrentProduct) || getProductFromPath(window.location.pathname);
+            if (isNonEmptyString(currentProduct)) {
+              const sub = safeTrim(productSubTab) || "rule-templates";
+              nextPath = `/products/${encodeURIComponent(currentProduct)}/${encodeURIComponent(sub)}`;
+            } else {
+              nextPath = "/products";
+            }
           }
 
           if (window.location.pathname !== nextPath) {

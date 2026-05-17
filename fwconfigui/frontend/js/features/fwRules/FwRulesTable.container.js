@@ -1169,7 +1169,7 @@ function FwRulesTable({ setLoading, setError }) {
         title="Delete item"
         message={
           confirmDelete.row
-            ? `Delete '${safeTrim(confirmDelete.row?.data?.appflowid)}' from ${confirmDelete.row.filename}?`
+            ? `Delete '${safeTrim(confirmDelete.row?.data?.appflowid)}'${safeTrim(confirmDelete.row.filename) ? ` from ${confirmDelete.row.filename}` : ""}?`
             : ""
         }
         onClose={() => setConfirmDelete({ show: false, row: null })}

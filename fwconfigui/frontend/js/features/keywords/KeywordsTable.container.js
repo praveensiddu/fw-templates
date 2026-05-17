@@ -1,5 +1,4 @@
 function KeywordsTable({ setLoading, setError }) {
-  const FIXED_FILENAME = "keywords.yaml";
   const [items, setItems] = React.useState([]);
   const [editingKey, setEditingKey] = React.useState("");
   const [draft, setDraft] = React.useState({ name: "" });
@@ -73,7 +72,6 @@ function KeywordsTable({ setLoading, setError }) {
         .replace(/[^A-Z0-9]/g, "");
 
       await saveFwConfigItem("keywords", {
-        filename: FIXED_FILENAME,
         name: nextName,
         original_name: safeTrim(originalRef.name) || undefined,
         data: { name: nextName },
@@ -84,7 +82,7 @@ function KeywordsTable({ setLoading, setError }) {
         isNonEmptyString(oldName) &&
         oldName !== nextName;
       if (shouldDeleteOld) {
-        await deleteFwConfigItem("keywords", { filename: FIXED_FILENAME, name: oldName });
+        await deleteFwConfigItem("keywords", { name: oldName });
       }
 
       onCancelEdit();
@@ -101,7 +99,7 @@ function KeywordsTable({ setLoading, setError }) {
     try {
       setLoading(true);
       setError("");
-      await deleteFwConfigItem("keywords", { filename: FIXED_FILENAME, name: row.name });
+      await deleteFwConfigItem("keywords", { name: row.name });
       setConfirmDelete({ show: false, row: null });
       await load();
     } catch (e) {
@@ -131,7 +129,7 @@ function KeywordsTable({ setLoading, setError }) {
       <ConfirmationModal
         show={confirmDelete.show}
         title="Delete item"
-        message={confirmDelete.row ? `Delete '${confirmDelete.row.name}' from ${confirmDelete.row.filename}?` : ""}
+        message={confirmDelete.row ? `Delete '${confirmDelete.row.name}'?` : ""}
         onClose={() => setConfirmDelete({ show: false, row: null })}
         onConfirm={onConfirmDelete}
         confirmText="Delete"
