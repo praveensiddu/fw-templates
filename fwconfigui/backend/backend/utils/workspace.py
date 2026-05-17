@@ -21,10 +21,18 @@ def get_workspace_root() -> Path:
     return (Path.home() / "workspace").expanduser()
 
 
-def get_fwconfigfiles_root() -> Path:
+def _normalize_product_name(product: str) -> str:
+    v = str(product or "").strip().lower()
+    return v
+
+
+def get_fwconfigfiles_root(product: str | None = None) -> Path:
     """Get the root directory where fwconfig yaml files are stored.
 
     Root is always under: <WORKSPACE>/fwconfigfiles
+
+    If product is provided, returns:
+        <WORKSPACE>/fwconfigfiles/<lowercase(product)>
 
     Raises:
         NotInitializedError: If the root does not exist
@@ -34,7 +42,14 @@ def get_fwconfigfiles_root() -> Path:
     if not root.exists() or not root.is_dir():
         logger.warning("fwconfigfiles root directory not found: %s", root)
         raise NotInitializedError("fwconfigfiles")
-    return root
+
+    if product is None:
+        return root
+
+    p = _normalize_product_name(product)
+    scoped = root / p
+    scoped.mkdir(parents=True, exist_ok=True)
+    return scoped
 
 
 def ensure_fwconfigfiles_root() -> Path:

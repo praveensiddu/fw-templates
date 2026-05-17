@@ -15,7 +15,7 @@ import re
 from fastapi import APIRouter, Depends, Request
 
 from backend.exceptions.custom import AlreadyExistsError, ValidationError
-from backend.models import DeleteItemRequest, ListItemsResponse, SaveItemRequest
+from backend.models import ListItemsResponse, SaveItemRequest
 from backend.utils.workspace import get_fwconfigfiles_root
 from backend.utils.yaml_utils import read_yaml_dict, write_yaml_dict
 
@@ -46,7 +46,7 @@ def get_service():
     return True
 
 
-@router.get("", response_model=ListItemsResponse)
+@router.get("", response_model=ListItemsResponse, response_model_exclude_none=True)
 def list_items(request: Request):
     raw = read_yaml_dict(_path())
     if not isinstance(raw, dict):
@@ -58,7 +58,6 @@ def list_items(request: Request):
         data = val if isinstance(val, dict) else {}
         items.append(
             {
-                "filename": _FIXED_FILENAME,
                 "name": k,
                 "data": {
                     "name": k,
@@ -133,10 +132,10 @@ def update_item(
 @router.delete("")
 def delete_item(
     request: Request,
-    payload: DeleteItemRequest,
+    name: str,
     _ok: bool = Depends(get_service),
 ) -> Dict[str, Any]:
-    name = _normalize_name(payload.name)
+    name = _normalize_name(name)
     path = _path()
     raw = read_yaml_dict(path)
     if not isinstance(raw, dict):

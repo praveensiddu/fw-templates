@@ -1,5 +1,4 @@
-from backend.models.fwconfig import (
-    DeleteItemRequest,
+from backend.models.fwmodels import (
     ListItemsResponse,
     ListYamlFilesResponse,
     MoveFwRuleRequest,

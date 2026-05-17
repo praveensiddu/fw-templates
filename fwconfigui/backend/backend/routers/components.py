@@ -21,18 +21,18 @@ import re
 from fastapi import APIRouter, Depends, Request
 
 from backend.exceptions.custom import AlreadyExistsError, ValidationError
-from backend.models import DeleteItemRequest, ListItemsResponse, SaveItemRequest
+from backend.models import ListItemsResponse, SaveItemRequest
 from backend.utils.workspace import get_fwconfigfiles_root
 from backend.utils.yaml_utils import read_yaml_dict, write_yaml_dict
 
-router = APIRouter(prefix="/api/v1/fwconfig/components", tags=["components"])
+router = APIRouter(prefix="/api/v1/products/{product}/fwconfig/components", tags=["components"])
 
 _FIXED_FILENAME = "components.yaml"
 _ALLOWED_SITE_ENVS = {"prd", "pac", "rtb", "ent", "dev"}
 
 
-def _path() -> Path:
-    return get_fwconfigfiles_root() / _FIXED_FILENAME
+def _path(product: str) -> Path:
+    return get_fwconfigfiles_root(product) / _FIXED_FILENAME
 
 
 def _normalize_component_name(name: str) -> str:
@@ -90,8 +90,8 @@ def get_service():
 
 
 @router.get("", response_model=ListItemsResponse)
-def list_items(request: Request):
-    raw = read_yaml_dict(_path())
+def list_items(request: Request, product: str):
+    raw = read_yaml_dict(_path(product))
     if not isinstance(raw, dict):
         raw = {}
 
@@ -119,6 +119,7 @@ def list_items(request: Request):
 @router.post("")
 def save_item(
     request: Request,
+    product: str,
     payload: SaveItemRequest,
     _ok: bool = Depends(get_service),
 ) -> Dict[str, Any]:
@@ -136,7 +137,7 @@ def save_item(
     exposedto = _normalize_exposedto(data.get("exposedto"))
     sites = _normalize_sites(data.get("sites"))
 
-    path = _path()
+    path = _path(product)
     raw = read_yaml_dict(path)
     if not isinstance(raw, dict):
         raw = {}
@@ -157,6 +158,7 @@ def save_item(
 @router.put("")
 def update_item(
     request: Request,
+    product: str,
     payload: SaveItemRequest,
     _ok: bool = Depends(get_service),
 ) -> Dict[str, Any]:
@@ -173,7 +175,7 @@ def update_item(
     exposedto = _normalize_exposedto(data.get("exposedto"))
     sites = _normalize_sites(data.get("sites"))
 
-    path = _path()
+    path = _path(product)
     raw = read_yaml_dict(path)
     if not isinstance(raw, dict):
         raw = {}
@@ -196,11 +198,12 @@ def update_item(
 @router.delete("")
 def delete_item(
     request: Request,
-    payload: DeleteItemRequest,
+    product: str,
+    name: str,
     _ok: bool = Depends(get_service),
 ) -> Dict[str, Any]:
-    name = _normalize_component_name(payload.name)
-    path = _path()
+    name = _normalize_component_name(name)
+    path = _path(product)
     raw = read_yaml_dict(path)
     if not isinstance(raw, dict):
         raw = {}

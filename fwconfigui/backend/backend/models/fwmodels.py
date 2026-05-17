@@ -10,7 +10,7 @@ class YamlFileRef(BaseModel):
 
 
 class YamlItem(BaseModel):
-    filename: str
+    filename: Optional[str] = None
     name: Optional[str] = None
     data: Dict[str, Any] = {}
 
@@ -29,11 +29,6 @@ class SaveItemRequest(BaseModel):
     name: str
     original_name: Optional[str] = None
     data: Optional[Dict[str, Any]] = None
-
-
-class DeleteItemRequest(BaseModel):
-    name: str
-
 
 class UpdateFwRuleFieldsRequest(BaseModel):
     appflowid: str

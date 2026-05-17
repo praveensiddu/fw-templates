@@ -1,40 +1,45 @@
 function App() {
+  const initialPathname = String(window?.location?.pathname || "/");
+  const initialTopTab = (() => {
+    const p = String(initialPathname || "/").trim();
+    if (p === "/products" || p === "/infra/products") return "products";
+    if (p.startsWith("/products/")) return "products";
+    if (p === "/env" || p === "/infra" || p.startsWith("/infra/")) return "infra";
+    return "products";
+  })();
+
+  const initialProductSubTab = (() => {
+    const p = String(initialPathname || "/").trim();
+    const pm = p.match(/^\/products\/[^/]+\/(rule-templates|port-protocol|business-purpose|components|keywords|rule-files)(?:\/.*)?$/);
+    if (pm) return safeTrim(pm[1]) || "rule-templates";
+    return "rule-templates";
+  })();
+
+  const initialInfraSubTab = (() => {
+    const p = String(initialPathname || "/");
+    if (p.startsWith("/infra/")) return String(p.split("/")[2] || "").trim() || "env";
+    if (p === "/infra") return "env";
+    if (p === "/env") return "env";
+    return "env";
+  })();
+
   const tabToPath = React.useMemo(
     () => ({
       products: "/products",
-      "rule-templates": "/rule-templates",
-      "port-protocol": "/port-protocol",
-      "business-purpose": "/business-purpose",
-      components: "/components",
-      keywords: "/keywords",
-      "rule-files": "/rule-files",
       infra: "/infra",
     }),
     []
   );
 
-  const pathToTab = React.useCallback(
-    (pathname) => {
-      const p = String(pathname || "/").trim();
-      if (p === "/products") return "products";
-      if (p === "/infra/products") return "products";
-      if (p === "/port-protocol") return "port-protocol";
-      if (p === "/business-purpose") return "business-purpose";
-      if (p === "/components" || p.startsWith("/components/")) return "components";
-      if (p === "/env") return "infra";
-      if (p === "/keywords") return "keywords";
-      if (p === "/rule-files") return "rule-files";
-      if (p === "/infra" || p.startsWith("/infra/")) return "infra";
-      if (p === "/fw-rules") return "rule-templates";
-      if (p === "/rule-templates") return "rule-templates";
-      if (p === "/") return "rule-templates";
-      return "rule-templates";
-    },
-    []
-  );
+  const getProductFromPath = React.useCallback((pathname) => {
+    const p = String(pathname || "");
+    const m = p.match(/^\/products\/([^/]+)(?:\/|$)/);
+    return m ? safeTrim(m[1]) : "";
+  }, []);
 
-  const [activeTab, setActiveTab] = React.useState("rule-templates");
-  const [infraSubTab, setInfraSubTab] = React.useState("env");
+  const [activeTab, setActiveTab] = React.useState(initialTopTab);
+  const [infraSubTab, setInfraSubTab] = React.useState(initialInfraSubTab);
+  const [productSubTab, setProductSubTab] = React.useState(initialProductSubTab);
   const [loading, setLoading] = React.useState(false);
   const [error, setError] = React.useState("");
 
@@ -82,10 +87,32 @@ function App() {
 
   React.useEffect(() => {
     if (window.location.pathname === "/") {
-      window.history.replaceState({}, "", "/rule-templates");
+      window.history.replaceState({}, "", "/products");
+    }
+
+    const p0 = String(window.location.pathname || "").trim();
+    const m0 = p0.match(/^\/products\/([^/]+)$/);
+    if (m0) {
+      const prod = safeTrim(m0[1]);
+      if (prod) {
+        if (typeof setCurrentProduct === "function") setCurrentProduct(prod);
+        window.history.replaceState({}, "", `/products/${encodeURIComponent(prod)}/rule-templates`);
+      }
     }
 
     if (window.location.pathname === "/infra/products") {
+      window.history.replaceState({}, "", "/products");
+    }
+
+    // Legacy (non-product) routes are no longer used for these pages.
+    if (
+      window.location.pathname === "/rule-templates" ||
+      window.location.pathname === "/port-protocol" ||
+      window.location.pathname === "/business-purpose" ||
+      window.location.pathname === "/components" ||
+      window.location.pathname === "/keywords" ||
+      window.location.pathname === "/rule-files"
+    ) {
       window.history.replaceState({}, "", "/products");
     }
 
@@ -102,8 +129,17 @@ function App() {
       window.history.replaceState({}, "", "/infra/env");
     }
 
-    const next = pathToTab(window.location.pathname);
-    setActiveTab(next);
+    const pm = p.match(/^\/products\/[^/]+\/(rule-templates|port-protocol|business-purpose|components|keywords|rule-files)(?:\/.*)?$/);
+    if (pm) {
+      setProductSubTab(safeTrim(pm[1]) || "rule-templates");
+      setActiveTab("products");
+    } else if (p === "/products" || p.startsWith("/products/")) {
+      setActiveTab("products");
+    } else if (p === "/env" || p === "/infra" || p.startsWith("/infra/")) {
+      setActiveTab("infra");
+    } else {
+      setActiveTab("products");
+    }
 
     const onPop = async () => {
       const ok = await canNavigateAway();
@@ -130,30 +166,128 @@ function App() {
         setInfraSubTab("env");
         window.history.replaceState({}, "", "/infra/env");
       }
-      setActiveTab(pathToTab(window.location.pathname));
+
+      const pm = p.match(/^\/products\/[^/]+\/(rule-templates|port-protocol|business-purpose|components|keywords|rule-files)(?:\/.*)?$/);
+      if (pm) {
+        setProductSubTab(safeTrim(pm[1]) || "rule-templates");
+        setActiveTab("products");
+      } else if (p === "/products" || p.startsWith("/products/")) {
+        setActiveTab("products");
+      } else if (p === "/env" || p === "/infra" || p.startsWith("/infra/")) {
+        setActiveTab("infra");
+      } else {
+        setActiveTab("products");
+      }
     };
     window.addEventListener("popstate", onPop);
     return () => window.removeEventListener("popstate", onPop);
-  }, [pathToTab]);
+  }, [canNavigateAway, setError]);
 
   const content = React.useMemo(() => {
     if (activeTab === "products") {
-      return <ProductsTable setLoading={setLoading} setError={setError} />;
-    }
-    if (activeTab === "port-protocol") {
-      return <PortProtocolTable setLoading={setLoading} setError={setError} />;
-    }
-    if (activeTab === "business-purpose") {
-      return <BusinessPurposeTable setLoading={setLoading} setError={setError} />;
-    }
-    if (activeTab === "components") {
-      return <ComponentsTable setLoading={setLoading} setError={setError} />;
-    }
-    if (activeTab === "keywords") {
-      return <KeywordsTable setLoading={setLoading} setError={setError} />;
-    }
-    if (activeTab === "rule-files") {
-      return <RuleFilesTable setLoading={setLoading} setError={setError} />;
+      const currentProduct = safeTrim(window.__fwCurrentProduct) || getProductFromPath(window.location.pathname);
+      const hasProduct = isNonEmptyString(currentProduct);
+
+      if (!hasProduct) {
+        return <ProductsTable setLoading={setLoading} setError={setError} />;
+      }
+
+      const subTabs = (
+        <div className="card" style={{ padding: 12 }}>
+          <div className="actions" style={{ marginTop: 0, justifyContent: "flex-start" }}>
+            <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
+              <button
+                className={`tab ${productSubTab === "rule-templates" ? "active" : ""}`}
+                onClick={() => {
+                  const nextPath = `/products/${encodeURIComponent(currentProduct)}/rule-templates`;
+                  if (`${window.location.pathname}${window.location.search}` !== nextPath) {
+                    window.history.pushState({}, "", nextPath);
+                  }
+                  setProductSubTab("rule-templates");
+                }}
+              >
+                rule-templates
+              </button>
+              <button
+                className={`tab ${productSubTab === "port-protocol" ? "active" : ""}`}
+                onClick={() => {
+                  const nextPath = `/products/${encodeURIComponent(currentProduct)}/port-protocol`;
+                  if (`${window.location.pathname}${window.location.search}` !== nextPath) {
+                    window.history.pushState({}, "", nextPath);
+                  }
+                  setProductSubTab("port-protocol");
+                }}
+              >
+                port-protocol
+              </button>
+              <button
+                className={`tab ${productSubTab === "business-purpose" ? "active" : ""}`}
+                onClick={() => {
+                  const nextPath = `/products/${encodeURIComponent(currentProduct)}/business-purpose`;
+                  if (`${window.location.pathname}${window.location.search}` !== nextPath) {
+                    window.history.pushState({}, "", nextPath);
+                  }
+                  setProductSubTab("business-purpose");
+                }}
+              >
+                business-purpose
+              </button>
+              <button
+                className={`tab ${productSubTab === "components" ? "active" : ""}`}
+                onClick={() => {
+                  const nextPath = `/products/${encodeURIComponent(currentProduct)}/components`;
+                  if (`${window.location.pathname}${window.location.search}` !== nextPath) {
+                    window.history.pushState({}, "", nextPath);
+                  }
+                  setProductSubTab("components");
+                }}
+              >
+                components
+              </button>
+              <button
+                className={`tab ${productSubTab === "keywords" ? "active" : ""}`}
+                onClick={() => {
+                  const nextPath = `/products/${encodeURIComponent(currentProduct)}/keywords`;
+                  if (`${window.location.pathname}${window.location.search}` !== nextPath) {
+                    window.history.pushState({}, "", nextPath);
+                  }
+                  setProductSubTab("keywords");
+                }}
+              >
+                keywords
+              </button>
+              <button
+                className={`tab ${productSubTab === "rule-files" ? "active" : ""}`}
+                onClick={() => {
+                  const nextPath = `/products/${encodeURIComponent(currentProduct)}/rule-files`;
+                  if (`${window.location.pathname}${window.location.search}` !== nextPath) {
+                    window.history.pushState({}, "", nextPath);
+                  }
+                  setProductSubTab("rule-files");
+                }}
+              >
+                rule-files
+              </button>
+            </div>
+          </div>
+        </div>
+      );
+
+      const body = (() => {
+        if (productSubTab === "port-protocol") return <PortProtocolTable setLoading={setLoading} setError={setError} />;
+        if (productSubTab === "business-purpose") return <BusinessPurposeTable setLoading={setLoading} setError={setError} />;
+        if (productSubTab === "components") return <ComponentsTable setLoading={setLoading} setError={setError} />;
+        if (productSubTab === "keywords") return <KeywordsTable setLoading={setLoading} setError={setError} />;
+        if (productSubTab === "rule-files") return <RuleFilesTable setLoading={setLoading} setError={setError} />;
+        return <FwRulesTable setLoading={setLoading} setError={setError} />;
+      })();
+
+      return (
+        <>
+          {subTabs}
+          {body}
+        </>
+      );
     }
     if (activeTab === "infra") {
       return (
@@ -204,7 +338,7 @@ function App() {
       );
     }
     return <FwRulesTable setLoading={setLoading} setError={setError} />;
-  }, [activeTab, infraSubTab]);
+  }, [activeTab, infraSubTab, productSubTab, getProductFromPath]);
 
   return (
     <>
@@ -222,9 +356,11 @@ function App() {
             setInfraSubTab("env");
             nextPath = "/infra/env";
           }
-          if (t === "components") {
-            nextPath = "/components";
+
+          if (t === "products") {
+            nextPath = "/products";
           }
+
           if (window.location.pathname !== nextPath) {
             window.history.pushState({}, "", nextPath);
           }

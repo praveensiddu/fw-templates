@@ -6,7 +6,7 @@ from fastapi import APIRouter, Depends, Request
 
 from backend.dependencies import require_yaml_type
 from backend.exceptions.custom import ValidationError
-from backend.models import DeleteItemRequest, ListItemsResponse, SaveItemRequest
+from backend.models import ListItemsResponse, SaveItemRequest
 from backend.services.fwconfig_service import FwConfigService
 
 router = APIRouter(prefix="/api/v1/fwconfig", tags=["fwconfig"])
@@ -85,7 +85,7 @@ def save_item(
 @router.delete("/items")
 def delete_item(
     request: Request,
-    payload: DeleteItemRequest,
+    name: str,
     type: Optional[str] = None,
     service: FwConfigService = Depends(get_service),
 ) -> Dict[str, Any]:
@@ -94,5 +94,5 @@ def delete_item(
     if len(files) != 1:
         raise ValidationError("filename", f"ambiguous for type '{yaml_type}'")
     filename = files[0]
-    service.delete_item(yaml_type, filename=filename, name=payload.name)
+    service.delete_item(yaml_type, filename=filename, name=name)
     return {"ok": True}

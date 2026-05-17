@@ -4,20 +4,20 @@ from typing import Any, Dict
 
 from fastapi import APIRouter, Depends, Request
 
-from backend.models import DeleteItemRequest, ListItemsResponse, SaveItemRequest
+from backend.models import ListItemsResponse
 from backend.services.fwconfig_service import FwConfigService
 
-router = APIRouter(prefix="/api/v1/fwconfig/keywords", tags=["keywords"])
+router = APIRouter(prefix="/api/v1/products/{product}/fwconfig/keywords", tags=["keywords"])
 
 _FIXED_FILENAME = "keywords.yaml"
 
 
-def get_service() -> FwConfigService:
-    return FwConfigService()
+def get_service(product: str) -> FwConfigService:
+    return FwConfigService(product)
 
 
 @router.get("", response_model=ListItemsResponse)
-def list_items(request: Request, service: FwConfigService = Depends(get_service)):
+def list_items(request: Request, product: str, service: FwConfigService = Depends(get_service)):
     items = [x for x in service.list_items("keywords") if str(x.get("filename", "")) == _FIXED_FILENAME]
     return {"type": "keywords", "items": items}
 
@@ -25,19 +25,21 @@ def list_items(request: Request, service: FwConfigService = Depends(get_service)
 @router.post("")
 def save_item(
     request: Request,
-    payload: SaveItemRequest,
+    product: str,
+    name: str,
     service: FwConfigService = Depends(get_service),
 ) -> Dict[str, Any]:
-    name = str(payload.name or "").strip().upper()
-    service.save_keywords(filename=_FIXED_FILENAME, name=name, data={}, original_name=payload.original_name)
+    name = str(name or "").strip().upper()
+    service.save_keywords(filename=_FIXED_FILENAME, name=name, data={}, original_name=None)
     return {"ok": True}
 
 
 @router.delete("")
 def delete_item(
     request: Request,
-    payload: DeleteItemRequest,
+    product: str,
+    name: str,
     service: FwConfigService = Depends(get_service),
 ) -> Dict[str, Any]:
-    service.delete_item("keywords", filename=_FIXED_FILENAME, name=payload.name)
+    service.delete_item("keywords", filename=_FIXED_FILENAME, name=name)
     return {"ok": True}

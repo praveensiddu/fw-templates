@@ -14,17 +14,17 @@ from typing import Any, Dict
 from fastapi import APIRouter, Depends, Request
 
 from backend.exceptions.custom import ValidationError
-from backend.models import DeleteItemRequest, ListItemsResponse, SaveItemRequest
+from backend.models import ListItemsResponse, SaveItemRequest
 from backend.utils.workspace import get_fwconfigfiles_root
 from backend.utils.yaml_utils import read_yaml_dict, write_yaml_dict
 
-router = APIRouter(prefix="/api/v1/fwconfig/rule-files", tags=["rule-files"])
+router = APIRouter(prefix="/api/v1/products/{product}/fwconfig/rule-files", tags=["rule-files"])
 
 _FIXED_FILENAME = "rule-files.yaml"
 
 
-def _path() -> Path:
-    return get_fwconfigfiles_root() / _FIXED_FILENAME
+def _path(product: str) -> Path:
+    return get_fwconfigfiles_root(product) / _FIXED_FILENAME
 
 
 def _normalize_rule_filename(name: str) -> str:
@@ -41,8 +41,8 @@ def get_service():
 
 
 @router.get("", response_model=ListItemsResponse)
-def list_items(request: Request):
-    path = _path()
+def list_items(request: Request, product: str):
+    path = _path(product)
     raw = read_yaml_dict(path)
     if not isinstance(raw, dict):
         raw = {}
@@ -57,13 +57,14 @@ def list_items(request: Request):
 @router.post("")
 def save_item(
     request: Request,
+    product: str,
     payload: SaveItemRequest,
     _ok: bool = Depends(get_service),
 ) -> Dict[str, Any]:
     name = _normalize_rule_filename(payload.name)
     original = str(payload.original_name or "").strip()
 
-    path = _path()
+    path = _path(product)
     raw = read_yaml_dict(path)
     if not isinstance(raw, dict):
         raw = {}
@@ -79,12 +80,12 @@ def save_item(
 @router.delete("")
 def delete_item(
     request: Request,
-    payload: DeleteItemRequest,
+    product: str,
+    name: str,
     _ok: bool = Depends(get_service),
 ) -> Dict[str, Any]:
-    name = _normalize_rule_filename(payload.name)
-
-    path = _path()
+    name = _normalize_rule_filename(name)
+    path = _path(product)
     raw = read_yaml_dict(path)
     if not isinstance(raw, dict):
         raw = {}

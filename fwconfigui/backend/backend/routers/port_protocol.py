@@ -5,20 +5,20 @@ from typing import Any, Dict
 from fastapi import APIRouter, Depends, Request
 
 from backend.exceptions.custom import AlreadyExistsError, ValidationError
-from backend.models import DeleteItemRequest, ListItemsResponse, SaveItemRequest
+from backend.models import ListItemsResponse, SaveItemRequest
 from backend.services.fwconfig_service import FwConfigService
 
-router = APIRouter(prefix="/api/v1/fwconfig/port-protocol", tags=["port-protocol"])
+router = APIRouter(prefix="/api/v1/products/{product}/fwconfig/port-protocol", tags=["port-protocol"])
 
 _FIXED_FILENAME = "port-protocol.yaml"
 
 
-def get_service() -> FwConfigService:
-    return FwConfigService()
+def get_service(product: str) -> FwConfigService:
+    return FwConfigService(product)
 
 
 @router.get("", response_model=ListItemsResponse)
-def list_items(request: Request, service: FwConfigService = Depends(get_service)):
+def list_items(request: Request, product: str, service: FwConfigService = Depends(get_service)):
     items = [x for x in service.list_items("port-protocol") if str(x.get("filename", "")) == _FIXED_FILENAME]
     return {"type": "port-protocol", "items": items}
 
@@ -26,6 +26,7 @@ def list_items(request: Request, service: FwConfigService = Depends(get_service)
 @router.post("")
 def save_item(
     request: Request,
+    product: str,
     payload: SaveItemRequest,
     service: FwConfigService = Depends(get_service),
 ) -> Dict[str, Any]:
@@ -48,6 +49,7 @@ def save_item(
 @router.put("")
 def update_item(
     request: Request,
+    product: str,
     payload: SaveItemRequest,
     service: FwConfigService = Depends(get_service),
 ) -> Dict[str, Any]:
@@ -69,8 +71,9 @@ def update_item(
 @router.delete("")
 def delete_item(
     request: Request,
-    payload: DeleteItemRequest,
+    product: str,
+    name: str,
     service: FwConfigService = Depends(get_service),
 ) -> Dict[str, Any]:
-    service.delete_item("port-protocol", filename=_FIXED_FILENAME, name=payload.name)
+    service.delete_item("port-protocol", filename=_FIXED_FILENAME, name=name)
     return {"ok": True}

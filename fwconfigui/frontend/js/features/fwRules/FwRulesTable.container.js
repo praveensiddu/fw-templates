@@ -531,8 +531,12 @@ function FwRulesTable({ setLoading, setError }) {
     setSavedDestinationItems([{ group: "", envs: defaultEnvs }]);
     setActivePage("details");
 
-    if (window.location.pathname !== "/rule-templates/add") {
-      window.history.pushState({}, "", "/rule-templates/add");
+    const p = String(window?.location?.pathname || "");
+    const m = p.match(/^\/products\/([^/]+)\//);
+    const currentProduct = m ? safeTrim(m[1]) : "";
+    const nextPath = currentProduct ? `/products/${encodeURIComponent(currentProduct)}/rule-templates/add` : "/rule-templates/add";
+    if (`${window.location.pathname}${window.location.search}` !== nextPath) {
+      window.history.pushState({}, "", nextPath);
     }
   }, [createNewAppFlowId]);
 
@@ -595,7 +599,12 @@ function FwRulesTable({ setLoading, setError }) {
 
     const qp = new URLSearchParams();
     qp.set("appflowid", prevAppflowid);
-    const nextPath = `/rule-templates/edit?${qp.toString()}`;
+    const p = String(window?.location?.pathname || "");
+    const m = p.match(/^\/products\/([^/]+)\//);
+    const currentProduct = m ? safeTrim(m[1]) : "";
+    const nextPath = currentProduct
+      ? `/products/${encodeURIComponent(currentProduct)}/rule-templates/edit?${qp.toString()}`
+      : `/rule-templates/edit?${qp.toString()}`;
     if (`${window.location.pathname}${window.location.search}` !== nextPath) {
       window.history.pushState({}, "", nextPath);
     }
@@ -605,7 +614,7 @@ function FwRulesTable({ setLoading, setError }) {
     if (activePage !== "list") return;
 
     const path = String(window.location.pathname || "");
-    if (path !== "/rule-templates/edit") return;
+    if (path !== "/rule-templates/edit" && !path.endsWith("/rule-templates/edit")) return;
 
     const qp = new URLSearchParams(window.location.search || "");
     const appflowid = safeTrim(qp.get("appflowid"));
@@ -681,7 +690,7 @@ function FwRulesTable({ setLoading, setError }) {
         const filename = safeTrim(row?.filename);
         const appflowid = safeTrim(row?.data?.appflowid) || safeTrim(row?.name);
         const res = await fetchJson(
-          `/api/v1/fwconfig/fw-rules/yaml?filename=${encodeURIComponent(filename)}&appflowid=${encodeURIComponent(appflowid)}`
+          `${fwconfigTypeBasePath("fw-rules")}/yaml?filename=${encodeURIComponent(filename)}&appflowid=${encodeURIComponent(appflowid)}`
         );
         const rawYaml = String(res?.yaml || "");
         const extracted = extractLockedAppflowIdFromYaml(rawYaml, appflowid);
@@ -708,7 +717,7 @@ function FwRulesTable({ setLoading, setError }) {
       const finalYaml = `appflowid: ${locked}\n${String(body || "").replace(/^\n+/, "")}`;
 
       await putJson(
-        `/api/v1/fwconfig/fw-rules/yaml?filename=${encodeURIComponent(filename)}&appflowid=${encodeURIComponent(appflowid)}`,
+        `${fwconfigTypeBasePath("fw-rules")}/yaml?filename=${encodeURIComponent(filename)}&appflowid=${encodeURIComponent(appflowid)}`,
         { yaml_text: finalYaml }
       );
       setYamlEditor({ show: false, row: null, appflowid: "", yaml: "" });
@@ -719,6 +728,67 @@ function FwRulesTable({ setLoading, setError }) {
       setLoading(false);
     }
   }, [yamlEditor, setLoading, setError, load]);
+
+  const onCommit = React.useCallback(async () => {
+    try {
+      setLoading(true);
+      setError("");
+      const res = await postJson(`${fwconfigTypeBasePath("fw-rules")}/commit`, {});
+      const ok = !!res?.ok;
+      const errors = Array.isArray(res?.errors) ? res.errors : [];
+      setCommitResult({ show: true, ok, errors });
+      if (!ok && errors.length) {
+        setError(String(errors[0] || "Validation failed"));
+      }
+    } catch (e) {
+      setError(formatError(e));
+      setCommitResult({ show: true, ok: false, errors: [formatError(e)] });
+    } finally {
+      setLoading(false);
+    }
+  }, [setLoading, setError]);
+
+  const onMoveFile = React.useCallback(
+    async (row, nextFilename) => {
+      try {
+        const fromFilename = safeTrim(row?.filename);
+        const toFilename = safeTrim(nextFilename);
+        if (!fromFilename || !toFilename || fromFilename === toFilename) return;
+
+        setLoading(true);
+        setError("");
+
+        const appflowid = safeTrim(row?.data?.appflowid) || safeTrim(row?.name);
+        await putJson(`${fwconfigTypeBasePath("fw-rules")}/move`, {
+          appflowid,
+          from_filename: fromFilename,
+          to_filename: toFilename,
+        });
+
+        await load();
+      } catch (e) {
+        setError(formatError(e));
+      } finally {
+        setLoading(false);
+      }
+    },
+    [setLoading, setError, load]
+  );
+
+  const onConfirmDelete = React.useCallback(async () => {
+    const row = confirmDelete.row;
+    try {
+      setLoading(true);
+      setError("");
+      await deleteFwConfigItem("fw-rules", { filename: row.filename, name: safeTrim(row?.data?.appflowid) || row.name });
+      setConfirmDelete({ show: false, row: null });
+      await load();
+    } catch (e) {
+      setError(formatError(e));
+    } finally {
+      setLoading(false);
+    }
+  }, [confirmDelete, setLoading, setError, load]);
 
   function generateUniqueAppflowId(existingIds) {
     const existing = new Set((existingIds || []).map((x) => String(x).trim().toLowerCase()));
@@ -767,29 +837,6 @@ function FwRulesTable({ setLoading, setError }) {
     },
     [items, setLoading, setError, load, createNewAppFlowId]
   );
-
-  const onCommit = React.useCallback(async () => {
-    try {
-      setLoading(true);
-      setError("");
-      const res = await postJson("/api/v1/fwconfig/fw-rules/commit", {});
-      const ok = !!res?.ok;
-      const errors = Array.isArray(res?.errors) ? res.errors : [];
-      setCommitResult({ show: true, ok, errors });
-      if (!ok && errors.length) {
-        setError(String(errors[0] || "Validation failed"));
-      }
-    } catch (e) {
-      setError(formatError(e));
-      setCommitResult({ show: true, ok: false, errors: [formatError(e)] });
-    } finally {
-      setLoading(false);
-    }
-  }, [setLoading, setError]);
-
-  const canSubmit = React.useMemo(() => {
-    return isNonEmptyString(form.filename) && isNonEmptyString(form.appflowid);
-  }, [form]);
 
   const onSave = React.useCallback(async () => {
     try {
@@ -840,7 +887,7 @@ function FwRulesTable({ setLoading, setError }) {
       };
 
       if (detailsMode === "edit") {
-        await putJson("/api/v1/fwconfig/fw-rules", payload);
+        await putJson(fwconfigTypeBasePath("fw-rules"), payload);
       } else {
         await saveFwConfigItem("fw-rules", payload);
       }
@@ -852,8 +899,14 @@ function FwRulesTable({ setLoading, setError }) {
       setIsEditingSource(false);
       setIsEditingDestination(false);
 
-      if (window.location.pathname !== "/rule-templates") {
-        window.history.pushState({}, "", "/rule-templates");
+      const currentProduct = (function () {
+        const p = String(window?.location?.pathname || "");
+        const m = p.match(/^\/products\/([^/]+)\//);
+        return m ? safeTrim(m[1]) : "";
+      })();
+      const nextPath = currentProduct ? `/products/${encodeURIComponent(currentProduct)}/rule-templates` : "/rule-templates";
+      if (`${window.location.pathname}${window.location.search}` !== nextPath) {
+        window.history.pushState({}, "", nextPath);
       }
 
       await load();
@@ -884,8 +937,12 @@ function FwRulesTable({ setLoading, setError }) {
         setActivePage("list");
         setIsEditingSource(false);
         setIsEditingDestination(false);
-        if (window.location.pathname !== "/rule-templates") {
-          window.history.pushState({}, "", "/rule-templates");
+        const p = String(window?.location?.pathname || "");
+        const m = p.match(/^\/products\/([^/]+)\//);
+        const currentProduct = m ? safeTrim(m[1]) : "";
+        const nextPath = currentProduct ? `/products/${encodeURIComponent(currentProduct)}/rule-templates` : "/rule-templates";
+        if (`${window.location.pathname}${window.location.search}` !== nextPath) {
+          window.history.pushState({}, "", nextPath);
         }
       },
     };
@@ -893,48 +950,6 @@ function FwRulesTable({ setLoading, setError }) {
       if (window.__fwRulesNavGuard) delete window.__fwRulesNavGuard;
     };
   }, [hasUnsavedDetailsChanges, onSave]);
-
-  const onMoveFile = React.useCallback(
-    async (row, nextFilename) => {
-      try {
-        const fromFilename = safeTrim(row?.filename);
-        const toFilename = safeTrim(nextFilename);
-        if (!fromFilename || !toFilename || fromFilename === toFilename) return;
-
-        setLoading(true);
-        setError("");
-
-        const appflowid = safeTrim(row?.data?.appflowid) || safeTrim(row?.name);
-        await putJson("/api/v1/fwconfig/fw-rules/move", {
-          appflowid,
-          from_filename: fromFilename,
-          to_filename: toFilename,
-        });
-
-        await load();
-      } catch (e) {
-        setError(formatError(e));
-      } finally {
-        setLoading(false);
-      }
-    },
-    [setLoading, setError, load]
-  );
-
-  const onConfirmDelete = React.useCallback(async () => {
-    const row = confirmDelete.row;
-    try {
-      setLoading(true);
-      setError("");
-      await deleteFwConfigItem("fw-rules", { filename: row.filename, name: safeTrim(row?.data?.appflowid) || row.name });
-      setConfirmDelete({ show: false, row: null });
-      await load();
-    } catch (e) {
-      setError(formatError(e));
-    } finally {
-      setLoading(false);
-    }
-  }, [confirmDelete, setLoading, setError, load]);
 
   const getRowKey = React.useCallback((row) => {
     const filename = safeTrim(row?.filename);
@@ -990,7 +1005,7 @@ function FwRulesTable({ setLoading, setError }) {
         throw new Error("Unknown field");
       }
 
-      await putJson(`/api/v1/fwconfig/fw-rules/fields`, body);
+      await putJson(`${fwconfigTypeBasePath("fw-rules")}/fields`, body);
       onCancelCellEdit();
       await load();
     } catch (e) {
@@ -1013,8 +1028,12 @@ function FwRulesTable({ setLoading, setError }) {
             if (!ok) return;
 
             setActivePage("list");
-            if (window.location.pathname !== "/rule-templates") {
-              window.history.pushState({}, "", "/rule-templates");
+            const p = String(window?.location?.pathname || "");
+            const m = p.match(/^\/products\/([^/]+)\//);
+            const currentProduct = m ? safeTrim(m[1]) : "";
+            const nextPath = currentProduct ? `/products/${encodeURIComponent(currentProduct)}/rule-templates` : "/rule-templates";
+            if (`${window.location.pathname}${window.location.search}` !== nextPath) {
+              window.history.pushState({}, "", nextPath);
             }
           }}
           onSave={onSave}

@@ -10,33 +10,6 @@ function AppView({ activeTab, onSetTab, error, loading, children }) {
           <button className={`tab ${activeTab === "products" ? "active" : ""}`} onClick={() => onSetTab("products")}>
             products
           </button>
-          <button
-            className={`tab ${activeTab === "rule-templates" ? "active" : ""}`}
-            onClick={() => onSetTab("rule-templates")}
-          >
-            rule-templates
-          </button>
-          <button
-            className={`tab ${activeTab === "port-protocol" ? "active" : ""}`}
-            onClick={() => onSetTab("port-protocol")}
-          >
-            port-protocol
-          </button>
-          <button
-            className={`tab ${activeTab === "business-purpose" ? "active" : ""}`}
-            onClick={() => onSetTab("business-purpose")}
-          >
-            business-purpose
-          </button>
-          <button className={`tab ${activeTab === "components" ? "active" : ""}`} onClick={() => onSetTab("components")}>
-            components
-          </button>
-          <button className={`tab ${activeTab === "keywords" ? "active" : ""}`} onClick={() => onSetTab("keywords")}>
-            keywords
-          </button>
-          <button className={`tab ${activeTab === "rule-files" ? "active" : ""}`} onClick={() => onSetTab("rule-files")}>
-            rule-files
-          </button>
           <button className={`tab ${activeTab === "infra" ? "active" : ""}`} onClick={() => onSetTab("infra")}>
             infra
           </button>

@@ -227,6 +227,17 @@ function ProductsTable({ setLoading, setError }) {
     [setLoading, setError, load]
   );
 
+  const onOpenProduct = React.useCallback((row) => {
+    const name = safeTrim(row?.name);
+    if (!name) return;
+    if (typeof setCurrentProduct === "function") setCurrentProduct(name);
+    const nextPath = `/products/${encodeURIComponent(name)}/rule-templates`;
+    if (`${window.location.pathname}${window.location.search}` !== nextPath) {
+      window.history.pushState({}, "", nextPath);
+      window.dispatchEvent(new PopStateEvent("popstate"));
+    }
+  }, []);
+
   const onConfirmDelete = React.useCallback(async () => {
     const row = confirmDelete.row;
     try {
@@ -249,6 +260,7 @@ function ProductsTable({ setLoading, setError }) {
         filters={filters}
         setFilters={setFilters}
         onAdd={onAdd}
+        onOpenProduct={onOpenProduct}
         onDelete={onDelete}
         onImport={onImport}
         editingKey={editingKey}

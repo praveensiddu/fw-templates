@@ -8,7 +8,6 @@ from fastapi import APIRouter, Body, Depends, Request
 
 from backend.exceptions.custom import NotFoundError, ValidationError
 from backend.models import (
-    DeleteItemRequest,
     ListItemsResponse,
     ListYamlFilesResponse,
     MoveFwRuleRequest,
@@ -18,21 +17,21 @@ from backend.models import (
 from backend.repositories.fwconfig_repository import FwConfigRepository
 from backend.services.fwconfig_service import FwConfigService
 
-router = APIRouter(prefix="/api/v1/fwconfig/fw-rules", tags=["fw-rules"])
+router = APIRouter(prefix="/api/v1/products/{product}/fwconfig/fw-rules", tags=["fw-rules"])
 
 
-def get_service() -> FwConfigService:
-    return FwConfigService()
+def get_service(product: str) -> FwConfigService:
+    return FwConfigService(product)
 
 
 @router.get("/files", response_model=ListYamlFilesResponse)
-def list_yaml_files(request: Request, service: FwConfigService = Depends(get_service)):
+def list_yaml_files(request: Request, product: str, service: FwConfigService = Depends(get_service)):
     files = [{"filename": f} for f in service.list_files("fw-rules")]
     return {"type": "fw-rules", "files": files}
 
 
 @router.get("", response_model=ListItemsResponse)
-def list_items(request: Request, service: FwConfigService = Depends(get_service)):
+def list_items(request: Request, product: str, service: FwConfigService = Depends(get_service)):
     items = service.list_items("fw-rules")
     return {"type": "fw-rules", "items": items}
 
@@ -40,6 +39,7 @@ def list_items(request: Request, service: FwConfigService = Depends(get_service)
 @router.post("")
 def save_item(
     request: Request,
+    product: str,
     filename: str,
     payload: SaveItemRequest,
     service: FwConfigService = Depends(get_service),
@@ -65,6 +65,7 @@ def save_item(
 @router.put("")
 def update_item(
     request: Request,
+    product: str,
     filename: str,
     payload: SaveItemRequest,
     service: FwConfigService = Depends(get_service),
@@ -85,7 +86,7 @@ def update_item(
     if not original:
         raise ValidationError("original_name", "is required for update")
 
-    found_filename = FwConfigRepository.find_item_file("fw-rules", original)
+    found_filename = service.repo.find_item_file("fw-rules", original)
     if not found_filename:
         raise NotFoundError("Item", original)
 
@@ -117,20 +118,22 @@ def update_item(
 @router.delete("")
 def delete_item(
     request: Request,
+    product: str,
     filename: str,
-    payload: DeleteItemRequest,
+    name: str,
     service: FwConfigService = Depends(get_service),
 ) -> Dict[str, Any]:
     file_name = str(filename or "").strip()
     if not file_name:
         raise ValidationError("filename", "is required")
-    service.delete_item("fw-rules", filename=file_name, name=payload.name)
+    service.delete_item("fw-rules", filename=file_name, name=name)
     return {"ok": True}
 
 
 @router.get("/yaml")
 def get_rule_yaml(
     request: Request,
+    product: str,
     filename: str,
     appflowid: Optional[str] = None,
 ) -> Dict[str, Any]:
@@ -144,7 +147,8 @@ def get_rule_yaml(
         raise ValidationError("appflowid", "is required")
 
     # Find entry
-    for fn, entry in FwConfigRepository.read_items("fw-rules"):
+    repo = FwConfigRepository(product)
+    for fn, entry in repo.read_items("fw-rules"):
         if fn != file_name:
             continue
         if not isinstance(entry, dict):
@@ -161,6 +165,7 @@ def get_rule_yaml(
 @router.put("/yaml")
 def put_rule_yaml(
     request: Request,
+    product: str,
     filename: str,
     appflowid: Optional[str] = None,
     yaml_text: str = Body(..., embed=True),
@@ -177,7 +182,7 @@ def put_rule_yaml(
 
     # Update-only: the referenced appflowid must already exist in some fw-rules file.
     found_filename = None
-    for fn, entry in FwConfigRepository.read_items("fw-rules"):
+    for fn, entry in service.repo.read_items("fw-rules"):
         if not isinstance(entry, dict):
             continue
         entry_appflowid = str(entry.get("appflowid", "") or "").strip().upper()
@@ -214,6 +219,7 @@ def put_rule_yaml(
 @router.put("/fields")
 def put_rule_fields(
     request: Request,
+    product: str,
     payload: UpdateFwRuleFieldsRequest,
     service: FwConfigService = Depends(get_service),
 ) -> Dict[str, Any]:
@@ -230,6 +236,7 @@ def put_rule_fields(
 @router.put("/move")
 def put_move_rule(
     request: Request,
+    product: str,
     payload: MoveFwRuleRequest,
     service: FwConfigService = Depends(get_service),
 ) -> Dict[str, Any]:
@@ -240,6 +247,7 @@ def put_move_rule(
 @router.post("/commit")
 def commit_validate_rules(
     request: Request,
+    product: str,
     service: FwConfigService = Depends(get_service),
 ) -> Dict[str, Any]:
     errors = service.validate_fw_rules_commit()

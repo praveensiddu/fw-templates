@@ -33,14 +33,16 @@ def _is_mapping_storage_type(yaml_type: str) -> bool:
 class FwConfigRepository:
     """Data access for fwconfig YAML types."""
 
-    @staticmethod
-    def find_item_file(yaml_type: str, name: str) -> Optional[str]:
+    def __init__(self, product: Optional[str] = None):
+        self._base_root = get_fwconfigfiles_root(product)
+
+    def find_item_file(self, yaml_type: str, name: str) -> Optional[str]:
         item_name = str(name or "").strip()
         if not item_name:
             return None
 
         match_key = "appflowid" if yaml_type == "fw-rules" else "name"
-        for filename, entry in FwConfigRepository.read_items(yaml_type):
+        for filename, entry in self.read_items(yaml_type):
             if not isinstance(entry, dict):
                 continue
             if str(entry.get(match_key, "") or "").strip() == item_name:
@@ -67,23 +69,20 @@ class FwConfigRepository:
         appflowid = str(entry.get("appflowid", "") or "").strip().upper()
         return (src_key, dst_key, appflowid)
 
-    @staticmethod
-    def _type_root(yaml_type: str) -> Path:
-        base = get_fwconfigfiles_root()
+    def _type_root(self, yaml_type: str) -> Path:
+        base = self._base_root
         subdir = _TYPE_TO_DIR[yaml_type]
         root = base if not subdir else (base / subdir)
         root.mkdir(parents=True, exist_ok=True)
         return root
 
-    @staticmethod
-    def list_files(yaml_type: str) -> List[Path]:
-        return list_yaml_files(FwConfigRepository._type_root(yaml_type))
+    def list_files(self, yaml_type: str) -> List[Path]:
+        return list_yaml_files(self._type_root(yaml_type))
 
-    @staticmethod
-    def read_items(yaml_type: str) -> List[Tuple[str, Dict[str, Any]]]:
+    def read_items(self, yaml_type: str) -> List[Tuple[str, Dict[str, Any]]]:
         items: List[Tuple[str, Dict[str, Any]]] = []
 
-        for path in FwConfigRepository.list_files(yaml_type):
+        for path in self.list_files(yaml_type):
             raw = read_yaml_dict(path)
 
             if _is_mapping_storage_type(yaml_type):
@@ -121,8 +120,7 @@ class FwConfigRepository:
 
         return items
 
-    @staticmethod
-    def item_exists(yaml_type: str, filename: str, name: str) -> bool:
+    def item_exists(self, yaml_type: str, filename: str, name: str) -> bool:
         file_name = str(filename or "").strip()
         if not file_name:
             raise ValidationError("filename", "is required")
@@ -133,7 +131,7 @@ class FwConfigRepository:
         if not item_name:
             raise ValidationError("name", "is required")
 
-        path = FwConfigRepository._type_root(yaml_type) / file_name
+        path = self._type_root(yaml_type) / file_name
 
         raw = read_yaml_dict(path)
 
@@ -153,8 +151,7 @@ class FwConfigRepository:
                 return True
         return False
 
-    @staticmethod
-    def upsert_item(yaml_type: str, filename: str, name: str, entry: Dict[str, Any]) -> None:
+    def upsert_item(self, yaml_type: str, filename: str, name: str, entry: Dict[str, Any]) -> None:
         file_name = str(filename or "").strip()
         if not file_name:
             raise ValidationError("filename", "is required")
@@ -165,7 +162,7 @@ class FwConfigRepository:
         if not item_name:
             raise ValidationError("name", "is required")
 
-        path = FwConfigRepository._type_root(yaml_type) / file_name
+        path = self._type_root(yaml_type) / file_name
 
         raw = read_yaml_dict(path)
 
@@ -214,8 +211,7 @@ class FwConfigRepository:
         raw[key] = next_lst
         write_yaml_dict(path, raw, sort_keys=False)
 
-    @staticmethod
-    def delete_item(yaml_type: str, filename: str, name: str) -> None:
+    def delete_item(self, yaml_type: str, filename: str, name: str) -> None:
         file_name = str(filename or "").strip()
         if not file_name:
             raise ValidationError("filename", "is required")
@@ -225,7 +221,7 @@ class FwConfigRepository:
         item_name = str(name or "").strip()
         if not item_name:
             raise ValidationError("name", "is required")
-        path = FwConfigRepository._type_root(yaml_type) / file_name
+        path = self._type_root(yaml_type) / file_name
 
         if not path.exists() or not path.is_file():
             logger.warning("File not found for delete: %s", path)

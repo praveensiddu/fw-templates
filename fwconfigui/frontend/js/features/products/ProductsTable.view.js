@@ -3,6 +3,7 @@ function ProductsTableView({
   filters,
   setFilters,
   onAdd,
+  onOpenProduct,
   onDelete,
   onImport,
   editingKey,
@@ -220,7 +221,18 @@ function ProductsTableView({
             const rowKey = safeTrim(r?.name) || `${idx}`;
             return (
               <tr key={rowKey}>
-                <td style={{ fontWeight: 650 }}>{safeTrim(r?.name)}</td>
+                <td style={{ fontWeight: 650 }}>
+                  <button
+                    type="button"
+                    className="btn"
+                    style={{ padding: 0, border: "none", background: "transparent", fontWeight: 650, cursor: "pointer" }}
+                    onClick={() => {
+                      if (typeof onOpenProduct === "function") onOpenProduct(r);
+                    }}
+                  >
+                    {safeTrim(r?.name)}
+                  </button>
+                </td>
                 <td>
                   {isEditingCell(r, "envs") ? (
                     <div style={{ display: "flex", gap: 8, alignItems: "flex-start" }}>

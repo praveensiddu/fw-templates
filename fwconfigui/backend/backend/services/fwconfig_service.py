@@ -13,8 +13,8 @@ logger = logging.getLogger("uvicorn.error")
 class FwConfigService:
     """Business logic for fwconfig YAML entities."""
 
-    def __init__(self):
-        self.repo = FwConfigRepository()
+    def __init__(self, product: Optional[str] = None):
+        self.repo = FwConfigRepository(product)
 
     def list_files(self, yaml_type: str) -> List[str]:
         return [p.name for p in self.repo.list_files(yaml_type)]

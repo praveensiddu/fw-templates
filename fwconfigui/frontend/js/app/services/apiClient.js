@@ -38,10 +38,13 @@ async function fetchJson(url) {
 }
 
 async function deleteJson(url, body) {
+  const hasBody = body !== undefined && body !== null;
   const res = await fetch(url, {
     method: "DELETE",
-    headers: { Accept: "application/json", "Content-Type": "application/json" },
-    body: JSON.stringify(body || {}),
+    headers: hasBody
+      ? { Accept: "application/json", "Content-Type": "application/json" }
+      : { Accept: "application/json" },
+    ...(hasBody ? { body: JSON.stringify(body) } : {}),
   });
   if (!res.ok) {
     const info = await readErrorMessage(res);
