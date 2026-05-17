@@ -7,6 +7,9 @@ function AppView({ activeTab, onSetTab, error, loading, children }) {
       </div>
       <div className="container">
         <div className="tabs">
+          <button className={`tab ${activeTab === "products" ? "active" : ""}`} onClick={() => onSetTab("products")}>
+            products
+          </button>
           <button
             className={`tab ${activeTab === "rule-templates" ? "active" : ""}`}
             onClick={() => onSetTab("rule-templates")}

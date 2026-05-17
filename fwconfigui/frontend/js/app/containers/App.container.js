@@ -1,6 +1,7 @@
 function App() {
   const tabToPath = React.useMemo(
     () => ({
+      products: "/products",
       "rule-templates": "/rule-templates",
       "port-protocol": "/port-protocol",
       "business-purpose": "/business-purpose",
@@ -15,6 +16,8 @@ function App() {
   const pathToTab = React.useCallback(
     (pathname) => {
       const p = String(pathname || "/").trim();
+      if (p === "/products") return "products";
+      if (p === "/infra/products") return "products";
       if (p === "/port-protocol") return "port-protocol";
       if (p === "/business-purpose") return "business-purpose";
       if (p === "/components" || p.startsWith("/components/")) return "components";
@@ -82,6 +85,10 @@ function App() {
       window.history.replaceState({}, "", "/rule-templates");
     }
 
+    if (window.location.pathname === "/infra/products") {
+      window.history.replaceState({}, "", "/products");
+    }
+
     lastAllowedPathRef.current = `${window.location.pathname}${window.location.search}` || "/rule-templates";
 
     const p = String(window.location.pathname || "/");
@@ -105,6 +112,11 @@ function App() {
         return;
       }
       setError("");
+
+      if (window.location.pathname === "/infra/products") {
+        window.history.replaceState({}, "", "/products");
+      }
+
       const full = `${window.location.pathname}${window.location.search}`;
       lastAllowedPathRef.current = full;
 
@@ -125,6 +137,9 @@ function App() {
   }, [pathToTab]);
 
   const content = React.useMemo(() => {
+    if (activeTab === "products") {
+      return <ProductsTable setLoading={setLoading} setError={setError} />;
+    }
     if (activeTab === "port-protocol") {
       return <PortProtocolTable setLoading={setLoading} setError={setError} />;
     }
@@ -179,24 +194,12 @@ function App() {
                 >
                   site
                 </button>
-                <button
-                  className={`tab ${infraSubTab === "products" ? "active" : ""}`}
-                  onClick={() => {
-                    setInfraSubTab("products");
-                    if (window.location.pathname !== "/infra/products") {
-                      window.history.pushState({}, "", "/infra/products");
-                    }
-                  }}
-                >
-                  products
-                </button>
               </div>
             </div>
           </div>
           {infraSubTab === "env" ? <EnvTable setLoading={setLoading} setError={setError} /> : null}
           {infraSubTab === "networkarea" ? <NetworkAreasTable setLoading={setLoading} setError={setError} /> : null}
           {infraSubTab === "site" ? <SitesTable setLoading={setLoading} setError={setError} /> : null}
-          {infraSubTab === "products" ? <ProductsTable setLoading={setLoading} setError={setError} /> : null}
         </>
       );
     }
