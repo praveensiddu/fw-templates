@@ -42,11 +42,7 @@ def _normalize_envs(v: Any) -> list[str]:
     return sorted(list(dict.fromkeys(out)))
 
 
-def get_service():
-    return True
-
-
-@router.get("", response_model=ListItemsResponse, response_model_exclude_none=True)
+@router.get("", response_model=ListItemsResponse)
 def list_items(request: Request):
     raw = read_yaml_dict(_path())
     if not isinstance(raw, dict):
@@ -73,7 +69,6 @@ def list_items(request: Request):
 def save_item(
     request: Request,
     payload: SaveItemRequest,
-    _ok: bool = Depends(get_service),
 ) -> Dict[str, Any]:
     name = _normalize_name(payload.name)
     original = str(payload.original_name or "").strip().upper()
@@ -102,7 +97,6 @@ def save_item(
 def update_item(
     request: Request,
     payload: SaveItemRequest,
-    _ok: bool = Depends(get_service),
 ) -> Dict[str, Any]:
     original = str(payload.original_name or "").strip().upper()
     original = re.sub(r"[^A-Z0-9_-]", "", original)
@@ -133,7 +127,6 @@ def update_item(
 def delete_item(
     request: Request,
     name: str,
-    _ok: bool = Depends(get_service),
 ) -> Dict[str, Any]:
     name = _normalize_name(name)
     path = _path()

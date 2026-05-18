@@ -67,7 +67,7 @@ def get_service():
     return True
 
 
-@router.get("", response_model=ListItemsResponse, response_model_exclude_none=True)
+@router.get("", response_model=ListItemsResponse)
 def list_items(request: Request):
     raw = read_yaml_dict(_path())
     if not isinstance(raw, dict):

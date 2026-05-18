@@ -36,7 +36,12 @@ function BusinessPurposeTable({ setLoading, setError }) {
       name: safeTrim(row.name),
       bp: safeTrim(row.bp),
     }),
-    sortBy: (a, b) => safeTrim(a?.name).localeCompare(safeTrim(b?.name)),
+    sortBy: (a, b) => {
+      const abp = safeTrim(a?.bp).toLowerCase();
+      const bbp = safeTrim(b?.bp).toLowerCase();
+      if (abp !== bbp) return abp.localeCompare(bbp);
+      return safeTrim(a?.name).localeCompare(safeTrim(b?.name));
+    },
   });
 
   const onAdd = React.useCallback(() => {

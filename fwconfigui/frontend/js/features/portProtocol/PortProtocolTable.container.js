@@ -41,7 +41,23 @@ function PortProtocolTable({ setLoading, setError }) {
       port: safeTrim(row.port),
       service: safeTrim(row.service),
     }),
-    sortBy: (a, b) => safeTrim(a?.name).localeCompare(safeTrim(b?.name)),
+    sortBy: (a, b) => {
+      const ap = safeTrim(a?.port);
+      const bp = safeTrim(b?.port);
+      const apNum = Number(ap);
+      const bpNum = Number(bp);
+      const apIsNum = ap !== "" && Number.isFinite(apNum);
+      const bpIsNum = bp !== "" && Number.isFinite(bpNum);
+
+      if (apIsNum && bpIsNum && apNum !== bpNum) return apNum - bpNum;
+      if (ap.toLowerCase() !== bp.toLowerCase()) return ap.toLowerCase().localeCompare(bp.toLowerCase());
+
+      const as = safeTrim(a?.service).toLowerCase();
+      const bs = safeTrim(b?.service).toLowerCase();
+      if (as !== bs) return as.localeCompare(bs);
+
+      return safeTrim(a?.name).localeCompare(safeTrim(b?.name));
+    },
   });
 
   const onAdd = React.useCallback(() => {
