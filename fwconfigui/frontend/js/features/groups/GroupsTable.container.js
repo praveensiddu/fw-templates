@@ -1,7 +1,8 @@
 function GroupsTable({ env, setLoading, setError }) {
   const [items, setItems] = React.useState([]);
+  const [memberOptions, setMemberOptions] = React.useState([]);
   const [editingKey, setEditingKey] = React.useState("");
-  const [draft, setDraft] = React.useState({ filename: "groups.yaml", name: "", membersText: "", nameOverride: "" });
+  const [draft, setDraft] = React.useState({ filename: "groups.yaml", name: "", members: [], nameOverride: "" });
   const [originalRef, setOriginalRef] = React.useState({ filename: "groups.yaml", name: "" });
   const [confirmDelete, setConfirmDelete] = React.useState({ show: false, row: null });
 
@@ -9,8 +10,14 @@ function GroupsTable({ env, setLoading, setError }) {
     try {
       setLoading(true);
       setError("");
-      const resp = await listGroups(env);
-      setItems(resp?.items || []);
+      const [groupsResp, addrsResp] = await Promise.all([listGroups(env), listAddrs(env)]);
+      setItems(groupsResp?.items || []);
+
+      const opts = (addrsResp?.items || [])
+        .map((it) => safeTrim(it?.name))
+        .filter(Boolean)
+        .sort((a, b) => a.toLowerCase().localeCompare(b.toLowerCase()));
+      setMemberOptions(opts);
     } catch (e) {
       setError(formatError(e));
     } finally {
@@ -20,7 +27,7 @@ function GroupsTable({ env, setLoading, setError }) {
 
   React.useEffect(() => {
     setEditingKey("");
-    setDraft({ filename: "groups.yaml", name: "", membersText: "", nameOverride: "" });
+    setDraft({ filename: "groups.yaml", name: "", members: [], nameOverride: "" });
     setOriginalRef({ filename: "groups.yaml", name: "" });
     setConfirmDelete({ show: false, row: null });
     load();
@@ -43,7 +50,7 @@ function GroupsTable({ env, setLoading, setError }) {
   });
 
   const onAdd = React.useCallback(() => {
-    setDraft({ filename: "groups.yaml", name: "", membersText: "", nameOverride: "" });
+    setDraft({ filename: "groups.yaml", name: "", members: [], nameOverride: "" });
     setOriginalRef({ filename: "groups.yaml", name: "" });
     setEditingKey("__new__");
   }, []);
@@ -52,9 +59,9 @@ function GroupsTable({ env, setLoading, setError }) {
     const n = safeTrim(row.name);
     const fn = safeTrim(row.filename) || "groups.yaml";
     const members = Array.isArray(row?.data?.members) ? row.data.members : [];
-    const membersText = (members || []).map((m) => safeTrim(m)).filter(Boolean).join("\n");
+    const cleanedMembers = (members || []).map((m) => safeTrim(m)).filter(Boolean);
     const no = safeTrim(row?.data?.["name-override"]);
-    setDraft({ filename: fn, name: n, membersText, nameOverride: no });
+    setDraft({ filename: fn, name: n, members: cleanedMembers, nameOverride: no });
     setOriginalRef({ filename: fn, name: n });
     setEditingKey(`${fn}::${n}`);
   }, []);
@@ -64,16 +71,13 @@ function GroupsTable({ env, setLoading, setError }) {
   }, []);
 
   const canSubmit = React.useMemo(() => {
-    const lines = String(draft.membersText || "")
-      .split("\n")
-      .map((s) => safeTrim(s))
-      .filter(Boolean);
-    return isNonEmptyString(draft.name) && lines.length > 0;
+    const ms = Array.isArray(draft.members) ? draft.members.map((m) => safeTrim(m)).filter(Boolean) : [];
+    return isNonEmptyString(draft.name) && ms.length > 0;
   }, [draft]);
 
   const onCancelEdit = React.useCallback(() => {
     setEditingKey("");
-    setDraft({ filename: "groups.yaml", name: "", membersText: "", nameOverride: "" });
+    setDraft({ filename: "groups.yaml", name: "", members: [], nameOverride: "" });
     setOriginalRef({ filename: "groups.yaml", name: "" });
   }, []);
 
@@ -87,9 +91,8 @@ function GroupsTable({ env, setLoading, setError }) {
         .replace(/[^a-z0-9_-]/g, "");
 
       const filename = safeTrim(draft.filename) || "groups.yaml";
-      const members = String(draft.membersText || "")
-        .split("\n")
-        .map((s) => safeTrim(s))
+      const members = (Array.isArray(draft.members) ? draft.members : [])
+        .map((m) => safeTrim(m))
         .filter(Boolean);
       const nameOverride = safeTrim(draft.nameOverride);
 
@@ -140,6 +143,7 @@ function GroupsTable({ env, setLoading, setError }) {
         editingKey={editingKey}
         draft={draft}
         setDraft={setDraft}
+        memberOptions={memberOptions}
         canSubmit={canSubmit}
         onCancelEdit={onCancelEdit}
         onSave={onSave}

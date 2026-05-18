@@ -1,4 +1,4 @@
-function GroupsTableView({ env, rows, filters, setFilters, onAdd, onEdit, onDelete, editingKey, draft, setDraft, canSubmit, onCancelEdit, onSave }) {
+function GroupsTableView({ env, rows, filters, setFilters, onAdd, onEdit, onDelete, editingKey, draft, setDraft, memberOptions, canSubmit, onCancelEdit, onSave }) {
   function normalizeName(v) {
     return String(v || "")
       .toLowerCase()
@@ -91,13 +91,16 @@ function GroupsTableView({ env, rows, filters, setFilters, onAdd, onEdit, onDele
                 />
               </td>
               <td>
-                <textarea
-                  className="filterInput"
-                  value={draft.membersText}
-                  onChange={(e) => setDraft((p) => ({ ...p, membersText: e.target.value }))}
-                  placeholder="member1\nmember2"
-                  rows={3}
-                />
+                <div style={{ display: "flex", gap: 8, alignItems: "flex-start" }}>
+                  <MultiSelectPicker
+                    options={Array.isArray(memberOptions) ? memberOptions : []}
+                    values={Array.isArray(draft.members) ? draft.members : []}
+                    onChange={(next) => setDraft((p) => ({ ...p, members: next }))}
+                    placeholder="Add member..."
+                    inputTestId="groups-new-members"
+                    onEnter={onSave}
+                  />
+                </div>
               </td>
               <td>
                 <input
@@ -146,7 +149,16 @@ function GroupsTableView({ env, rows, filters, setFilters, onAdd, onEdit, onDele
                       />
                     </td>
                     <td>
-                      <textarea className="filterInput" value={draft.membersText} onChange={(e) => setDraft((p) => ({ ...p, membersText: e.target.value }))} rows={3} />
+                      <div style={{ display: "flex", gap: 8, alignItems: "flex-start" }}>
+                        <MultiSelectPicker
+                          options={Array.isArray(memberOptions) ? memberOptions : []}
+                          values={Array.isArray(draft.members) ? draft.members : []}
+                          onChange={(next) => setDraft((p) => ({ ...p, members: next }))}
+                          placeholder="Add member..."
+                          inputTestId={`groups-edit-members-${rowKey}`}
+                          onEnter={onSave}
+                        />
+                      </div>
                     </td>
                     <td>
                       <input className="filterInput" value={draft.nameOverride} onChange={(e) => setDraft((p) => ({ ...p, nameOverride: e.target.value }))} />
