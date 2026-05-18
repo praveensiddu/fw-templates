@@ -10,9 +10,16 @@ function App() {
 
   const initialProductSubTab = (() => {
     const p = String(initialPathname || "/").trim();
-    const pm = p.match(/^\/products\/[^/]+\/(rule-templates|port-protocol|business-purpose|components|keywords|rule-files)(?:\/.*)?$/);
+    const pm = p.match(/^\/products\/[^/]+\/(rule-templates|port-protocol|business-purpose|components|keywords|rule-files|groups|addrs)(?:\/.*)?$/);
     if (pm) return safeTrim(pm[1]) || "rule-templates";
     return "rule-templates";
+  })();
+
+  const initialProductEnv = (() => {
+    const p = String(initialPathname || "/").trim();
+    const m = p.match(/^\/products\/[^/]+\/(groups|addrs)\/([^/]+)(?:\/.*)?$/);
+    if (m) return safeTrim(m[2]) || "";
+    return "";
   })();
 
   const initialInfraSubTab = (() => {
@@ -37,12 +44,21 @@ function App() {
     return m ? safeTrim(m[1]) : "";
   }, []);
 
+  const getProductEnvFromPath = React.useCallback((pathname) => {
+    const p = String(pathname || "");
+    const m = p.match(/^\/products\/[^/]+\/(groups|addrs)\/([^/]+)(?:\/|$)/);
+    return m ? safeTrim(m[2]) : "";
+  }, []);
+
   const [activeTab, setActiveTab] = React.useState(initialTopTab);
   const [infraSubTab, setInfraSubTab] = React.useState(initialInfraSubTab);
   const [productSubTab, setProductSubTab] = React.useState(initialProductSubTab);
+  const [productEnv, setProductEnv] = React.useState(initialProductEnv);
   const [routeVersion, setRouteVersion] = React.useState(0);
   const [loading, setLoading] = React.useState(false);
   const [error, setError] = React.useState("");
+
+  const [infraEnvItems, setInfraEnvItems] = React.useState([]);
 
   const [navConfirm, setNavConfirm] = React.useState({
     show: false,
@@ -172,10 +188,16 @@ function App() {
         window.history.replaceState({}, "", "/infra/env");
       }
 
-      const pm = p.match(/^\/products\/[^/]+\/(rule-templates|port-protocol|business-purpose|components|keywords|rule-files)(?:\/.*)?$/);
+      const pm = p.match(/^\/products\/[^/]+\/(rule-templates|port-protocol|business-purpose|components|keywords|rule-files|groups|addrs)(?:\/.*)?$/);
       if (pm) {
         setProductSubTab(safeTrim(pm[1]) || "rule-templates");
         setActiveTab("products");
+        const envMatch = p.match(/^\/products\/[^/]+\/(groups|addrs)\/([^/]+)(?:\/.*)?$/);
+        if (envMatch) {
+          setProductEnv(safeTrim(envMatch[2]) || "");
+        } else {
+          setProductEnv("");
+        }
       } else if (p === "/products" || p.startsWith("/products/")) {
         setActiveTab("products");
       } else if (p === "/env" || p === "/infra" || p.startsWith("/infra/")) {
@@ -187,6 +209,42 @@ function App() {
     window.addEventListener("popstate", onPop);
     return () => window.removeEventListener("popstate", onPop);
   }, [canNavigateAway, setError]);
+
+  React.useEffect(() => {
+    const loadEnv = async () => {
+      try {
+        const resp = await listFwConfigItems("env");
+        setInfraEnvItems(resp?.items || []);
+      } catch (e) {
+        // Ignore env load errors here; feature pages will surface errors on use.
+      }
+    };
+    loadEnv();
+  }, []);
+
+  React.useEffect(() => {
+    if (activeTab !== "products") return;
+    if (productSubTab !== "groups" && productSubTab !== "addrs") return;
+
+    const currentProduct = safeTrim(window.__fwCurrentProduct) || getProductFromPath(window.location.pathname);
+    if (!isNonEmptyString(currentProduct)) return;
+
+    const envFromPath = getProductEnvFromPath(window.location.pathname);
+    const envNames = (infraEnvItems || [])
+      .map((x) => safeTrim(x?.name))
+      .filter(Boolean);
+
+    const preferred = safeTrim(envFromPath) || safeTrim(productEnv) || (envNames.length ? envNames[0] : "default");
+    if (!safeTrim(productEnv) || safeTrim(productEnv) !== preferred) {
+      setProductEnv(preferred);
+    }
+
+    const expected = `/products/${encodeURIComponent(currentProduct)}/${encodeURIComponent(productSubTab)}/${encodeURIComponent(preferred)}`;
+    if (`${window.location.pathname}${window.location.search}` !== expected) {
+      window.history.replaceState({}, "", expected);
+      setRouteVersion((v) => v + 1);
+    }
+  }, [activeTab, productSubTab, productEnv, infraEnvItems, getProductFromPath, getProductEnvFromPath]);
 
   const content = React.useMemo(() => {
     if (activeTab === "products") {
@@ -289,12 +347,74 @@ function App() {
                     window.history.pushState({}, "", nextPath);
                   }
                   setProductSubTab("rule-files");
+                  setProductEnv("");
                 }}
               >
                 rule-files
               </button>
+
+              <button
+                className={`tab ${productSubTab === "groups" ? "active" : ""}`}
+                onClick={() => {
+                  const envNames = (infraEnvItems || [])
+                    .map((x) => safeTrim(x?.name))
+                    .filter(Boolean);
+                  const nextEnv = safeTrim(productEnv) || getProductEnvFromPath(window.location.pathname) || (envNames.length ? envNames[0] : "default");
+                  const nextPath = `/products/${encodeURIComponent(currentProduct)}/groups/${encodeURIComponent(nextEnv)}`;
+                  if (`${window.location.pathname}${window.location.search}` !== nextPath) {
+                    window.history.pushState({}, "", nextPath);
+                  }
+                  setProductSubTab("groups");
+                  setProductEnv(nextEnv);
+                }}
+              >
+                groups
+              </button>
+
+              <button
+                className={`tab ${productSubTab === "addrs" ? "active" : ""}`}
+                onClick={() => {
+                  const envNames = (infraEnvItems || [])
+                    .map((x) => safeTrim(x?.name))
+                    .filter(Boolean);
+                  const nextEnv = safeTrim(productEnv) || getProductEnvFromPath(window.location.pathname) || (envNames.length ? envNames[0] : "default");
+                  const nextPath = `/products/${encodeURIComponent(currentProduct)}/addrs/${encodeURIComponent(nextEnv)}`;
+                  if (`${window.location.pathname}${window.location.search}` !== nextPath) {
+                    window.history.pushState({}, "", nextPath);
+                  }
+                  setProductSubTab("addrs");
+                  setProductEnv(nextEnv);
+                }}
+              >
+                addrs
+              </button>
             </div>
           </div>
+
+          {productSubTab === "groups" || productSubTab === "addrs" ? (
+            <div className="actions" style={{ marginTop: 10, justifyContent: "flex-start" }}>
+              <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
+                {(infraEnvItems || [])
+                  .map((x) => safeTrim(x?.name))
+                  .filter(Boolean)
+                  .map((envName) => (
+                    <button
+                      key={envName}
+                      className={`tab ${safeTrim(productEnv) === envName ? "active" : ""}`}
+                      onClick={() => {
+                        const nextPath = `/products/${encodeURIComponent(currentProduct)}/${encodeURIComponent(productSubTab)}/${encodeURIComponent(envName)}`;
+                        if (`${window.location.pathname}${window.location.search}` !== nextPath) {
+                          window.history.pushState({}, "", nextPath);
+                        }
+                        setProductEnv(envName);
+                      }}
+                    >
+                      {envName}
+                    </button>
+                  ))}
+              </div>
+            </div>
+          ) : null}
         </div>
       );
 
@@ -304,6 +424,8 @@ function App() {
         if (productSubTab === "components") return <ComponentsTable setLoading={setLoading} setError={setError} />;
         if (productSubTab === "keywords") return <KeywordsTable setLoading={setLoading} setError={setError} />;
         if (productSubTab === "rule-files") return <RuleFilesTable setLoading={setLoading} setError={setError} />;
+        if (productSubTab === "groups") return <GroupsTable env={safeTrim(productEnv) || "default"} setLoading={setLoading} setError={setError} />;
+        if (productSubTab === "addrs") return <AddrsTable env={safeTrim(productEnv) || "default"} setLoading={setLoading} setError={setError} />;
         return <FwRulesTable setLoading={setLoading} setError={setError} />;
       })();
 
@@ -363,7 +485,7 @@ function App() {
       );
     }
     return <FwRulesTable setLoading={setLoading} setError={setError} />;
-  }, [activeTab, infraSubTab, productSubTab, getProductFromPath, routeVersion]);
+  }, [activeTab, infraSubTab, productSubTab, productEnv, infraEnvItems, getProductFromPath, getProductEnvFromPath, routeVersion]);
 
   return (
     <>
@@ -386,7 +508,15 @@ function App() {
             const currentProduct = safeTrim(window.__fwCurrentProduct) || getProductFromPath(window.location.pathname);
             if (isNonEmptyString(currentProduct)) {
               const sub = safeTrim(productSubTab) || "rule-templates";
-              nextPath = `/products/${encodeURIComponent(currentProduct)}/${encodeURIComponent(sub)}`;
+              if (sub === "groups" || sub === "addrs") {
+                const envNames = (infraEnvItems || [])
+                  .map((x) => safeTrim(x?.name))
+                  .filter(Boolean);
+                const nextEnv = safeTrim(productEnv) || (envNames.length ? envNames[0] : "default");
+                nextPath = `/products/${encodeURIComponent(currentProduct)}/${encodeURIComponent(sub)}/${encodeURIComponent(nextEnv)}`;
+              } else {
+                nextPath = `/products/${encodeURIComponent(currentProduct)}/${encodeURIComponent(sub)}`;
+              }
             } else {
               nextPath = "/products";
             }

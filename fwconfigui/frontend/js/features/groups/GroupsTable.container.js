@@ -1,0 +1,158 @@
+function GroupsTable({ env, setLoading, setError }) {
+  const [items, setItems] = React.useState([]);
+  const [editingKey, setEditingKey] = React.useState("");
+  const [draft, setDraft] = React.useState({ filename: "groups.yaml", name: "", membersText: "", nameOverride: "" });
+  const [originalRef, setOriginalRef] = React.useState({ filename: "groups.yaml", name: "" });
+  const [confirmDelete, setConfirmDelete] = React.useState({ show: false, row: null });
+
+  const load = React.useCallback(async () => {
+    try {
+      setLoading(true);
+      setError("");
+      const resp = await listGroups(env);
+      setItems(resp?.items || []);
+    } catch (e) {
+      setError(formatError(e));
+    } finally {
+      setLoading(false);
+    }
+  }, [env, setLoading, setError]);
+
+  React.useEffect(() => {
+    setEditingKey("");
+    setDraft({ filename: "groups.yaml", name: "", membersText: "", nameOverride: "" });
+    setOriginalRef({ filename: "groups.yaml", name: "" });
+    setConfirmDelete({ show: false, row: null });
+    load();
+  }, [env, load]);
+
+  const rows = React.useMemo(() => {
+    return (items || []).map((it) => ({ ...it }));
+  }, [items]);
+
+  const { sortedRows, filters, setFilters } = useTableFilter({
+    rows,
+    initialFilters: { name: "", filename: "", members: "", nameOverride: "" },
+    fieldMapping: (row) => ({
+      name: safeTrim(row.name),
+      filename: safeTrim(row.filename),
+      members: Array.isArray(row?.data?.members) ? row.data.members.map((m) => safeTrim(m)).filter(Boolean).join("\n") : "",
+      nameOverride: safeTrim(row?.data?.["name-override"]),
+    }),
+    sortBy: (a, b) => safeTrim(a?.name).localeCompare(safeTrim(b?.name)),
+  });
+
+  const onAdd = React.useCallback(() => {
+    setDraft({ filename: "groups.yaml", name: "", membersText: "", nameOverride: "" });
+    setOriginalRef({ filename: "groups.yaml", name: "" });
+    setEditingKey("__new__");
+  }, []);
+
+  const onEdit = React.useCallback((row) => {
+    const n = safeTrim(row.name);
+    const fn = safeTrim(row.filename) || "groups.yaml";
+    const members = Array.isArray(row?.data?.members) ? row.data.members : [];
+    const membersText = (members || []).map((m) => safeTrim(m)).filter(Boolean).join("\n");
+    const no = safeTrim(row?.data?.["name-override"]);
+    setDraft({ filename: fn, name: n, membersText, nameOverride: no });
+    setOriginalRef({ filename: fn, name: n });
+    setEditingKey(`${fn}::${n}`);
+  }, []);
+
+  const onDelete = React.useCallback((row) => {
+    setConfirmDelete({ show: true, row });
+  }, []);
+
+  const canSubmit = React.useMemo(() => {
+    const lines = String(draft.membersText || "")
+      .split("\n")
+      .map((s) => safeTrim(s))
+      .filter(Boolean);
+    return isNonEmptyString(draft.name) && lines.length > 0;
+  }, [draft]);
+
+  const onCancelEdit = React.useCallback(() => {
+    setEditingKey("");
+    setDraft({ filename: "groups.yaml", name: "", membersText: "", nameOverride: "" });
+    setOriginalRef({ filename: "groups.yaml", name: "" });
+  }, []);
+
+  const onSave = React.useCallback(async () => {
+    try {
+      setLoading(true);
+      setError("");
+
+      const nextName = safeTrim(draft.name)
+        .toLowerCase()
+        .replace(/[^a-z0-9_-]/g, "");
+
+      const filename = safeTrim(draft.filename) || "groups.yaml";
+      const members = String(draft.membersText || "")
+        .split("\n")
+        .map((s) => safeTrim(s))
+        .filter(Boolean);
+      const nameOverride = safeTrim(draft.nameOverride);
+
+      await saveGroup(env, {
+        filename,
+        name: nextName,
+        original_name: safeTrim(originalRef.name) || undefined,
+        data: {
+          members,
+          ...(isNonEmptyString(nameOverride) ? { "name-override": nameOverride } : {}),
+        },
+      });
+
+      onCancelEdit();
+      await load();
+    } catch (e) {
+      setError(formatError(e));
+    } finally {
+      setLoading(false);
+    }
+  }, [env, draft, originalRef, setLoading, setError, load, onCancelEdit]);
+
+  const onConfirmDelete = React.useCallback(async () => {
+    const row = confirmDelete.row;
+    try {
+      setLoading(true);
+      setError("");
+      await deleteGroup(env, row?.name, row?.filename);
+      setConfirmDelete({ show: false, row: null });
+      await load();
+    } catch (e) {
+      setError(formatError(e));
+    } finally {
+      setLoading(false);
+    }
+  }, [env, confirmDelete, setLoading, setError, load]);
+
+  return (
+    <>
+      <GroupsTableView
+        env={env}
+        rows={sortedRows}
+        filters={filters}
+        setFilters={setFilters}
+        onAdd={onAdd}
+        onEdit={onEdit}
+        onDelete={onDelete}
+        editingKey={editingKey}
+        draft={draft}
+        setDraft={setDraft}
+        canSubmit={canSubmit}
+        onCancelEdit={onCancelEdit}
+        onSave={onSave}
+      />
+
+      <ConfirmationModal
+        show={confirmDelete.show}
+        title="Delete item"
+        message={confirmDelete.row ? `Delete '${confirmDelete.row.name}' from '${safeTrim(confirmDelete.row.filename) || "groups.yaml"}'?` : ""}
+        onClose={() => setConfirmDelete({ show: false, row: null })}
+        onConfirm={onConfirmDelete}
+        confirmText="Delete"
+      />
+    </>
+  );
+}

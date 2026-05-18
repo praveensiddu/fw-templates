@@ -28,7 +28,9 @@ function isProductScopedType(type) {
     t === "components" ||
     t === "port-protocol" ||
     t === "business-purpose" ||
-    t === "fw-rules"
+    t === "fw-rules" ||
+    t === "groups" ||
+    t === "addrs"
   );
 }
 
@@ -131,4 +133,82 @@ async function deleteFwConfigItem(type, payload) {
   const url = base ? base : `/api/v1/fwconfig/items?type=${encodeURIComponent(t)}`;
   const sep = url.includes("?") ? "&" : "?";
   return await deleteJson(`${url}${sep}name=${encodeURIComponent(name)}`);
+}
+
+function requireEnv(env) {
+  const e = safeTrim(env);
+  if (!e) throw new Error("env is required");
+  return e;
+}
+
+async function listGroups(env) {
+  const product = getCurrentProduct();
+  if (!isNonEmptyString(product)) throw new Error("Select a product first");
+  const e = requireEnv(env);
+  return await fetchJson(`/api/v1/products/${encodeURIComponent(product)}/groups/${encodeURIComponent(e)}`);
+}
+
+async function saveGroup(env, payload) {
+  const product = getCurrentProduct();
+  if (!isNonEmptyString(product)) throw new Error("Select a product first");
+  const e = requireEnv(env);
+  const name = safeTrim(payload?.name);
+  const originalName = safeTrim(payload?.original_name);
+  const filename = safeTrim(payload?.filename) || "groups.yaml";
+  if (!name) throw new Error("name is required");
+
+  const body = {
+    name,
+    original_name: originalName || undefined,
+    ...(payload?.data ? { data: payload.data } : {}),
+  };
+  const url = `/api/v1/products/${encodeURIComponent(product)}/groups/${encodeURIComponent(e)}?filename=${encodeURIComponent(filename)}`;
+  return isNonEmptyString(originalName) ? await putJson(url, body) : await postJson(url, body);
+}
+
+async function deleteGroup(env, name, filename) {
+  const product = getCurrentProduct();
+  if (!isNonEmptyString(product)) throw new Error("Select a product first");
+  const e = requireEnv(env);
+  const n = safeTrim(name);
+  if (!n) throw new Error("name is required");
+  const fn = safeTrim(filename) || "groups.yaml";
+  const url = `/api/v1/products/${encodeURIComponent(product)}/groups/${encodeURIComponent(e)}?filename=${encodeURIComponent(fn)}&name=${encodeURIComponent(n)}`;
+  return await deleteJson(url);
+}
+
+async function listAddrs(env) {
+  const product = getCurrentProduct();
+  if (!isNonEmptyString(product)) throw new Error("Select a product first");
+  const e = requireEnv(env);
+  return await fetchJson(`/api/v1/products/${encodeURIComponent(product)}/addrs/${encodeURIComponent(e)}`);
+}
+
+async function saveAddr(env, payload) {
+  const product = getCurrentProduct();
+  if (!isNonEmptyString(product)) throw new Error("Select a product first");
+  const e = requireEnv(env);
+  const name = safeTrim(payload?.name);
+  const originalName = safeTrim(payload?.original_name);
+  const filename = safeTrim(payload?.filename) || "addresses.yaml";
+  if (!name) throw new Error("name is required");
+
+  const body = {
+    name,
+    original_name: originalName || undefined,
+    ...(payload?.data ? { data: payload.data } : {}),
+  };
+  const url = `/api/v1/products/${encodeURIComponent(product)}/addrs/${encodeURIComponent(e)}?filename=${encodeURIComponent(filename)}`;
+  return isNonEmptyString(originalName) ? await putJson(url, body) : await postJson(url, body);
+}
+
+async function deleteAddr(env, name, filename) {
+  const product = getCurrentProduct();
+  if (!isNonEmptyString(product)) throw new Error("Select a product first");
+  const e = requireEnv(env);
+  const n = safeTrim(name);
+  if (!n) throw new Error("name is required");
+  const fn = safeTrim(filename) || "addresses.yaml";
+  const url = `/api/v1/products/${encodeURIComponent(product)}/addrs/${encodeURIComponent(e)}?filename=${encodeURIComponent(fn)}&name=${encodeURIComponent(n)}`;
+  return await deleteJson(url);
 }
