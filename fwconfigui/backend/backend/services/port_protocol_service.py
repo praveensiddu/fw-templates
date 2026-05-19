@@ -1,8 +1,9 @@
 import re
 from pathlib import Path
-from typing import Any, Dict, List, Optional
+from typing import Any, Dict, List, Optional, Tuple
 
 from backend.exceptions.custom import ValidationError
+from backend.utils.yaml_utils import list_yaml_files
 from backend.utils.workspace import get_fwconfigfiles_root
 from backend.utils.yaml_utils import read_yaml_dict, write_yaml_dict
 
@@ -75,3 +76,66 @@ class PortProtocolService:
         key = self._normalize_name(name)
         raw.pop(key, None)
         write_yaml_dict(path, raw, sort_keys=True)
+
+    def dedupe_item(self, *, duplicate_name: str, original_name: str) -> Tuple[int, int]:
+        dup = self._normalize_name(duplicate_name)
+        orig = self._normalize_name(original_name)
+        if dup == orig:
+            raise ValidationError("original_name", "must be different from duplicate_name")
+
+        pp_path = self._path()
+        raw = read_yaml_dict(pp_path)
+        if not isinstance(raw, dict):
+            raw = {}
+
+        existing_keys = {self._normalize_name(k) for k in raw.keys()}
+        if dup not in existing_keys:
+            raise ValidationError("duplicate_name", "does not exist")
+        if orig not in existing_keys:
+            raise ValidationError("original_name", "does not exist")
+
+        updated_files = 0
+        updated_refs = 0
+
+        fw_rules_root = get_fwconfigfiles_root(self._product) / "fw-rules"
+        fw_rules_root.mkdir(parents=True, exist_ok=True)
+
+        for path in list_yaml_files(fw_rules_root):
+            doc = read_yaml_dict(path)
+            if not isinstance(doc, dict):
+                continue
+            flowtemplates = doc.get("flowtemplates")
+            if not isinstance(flowtemplates, list):
+                continue
+
+            file_changed = False
+            for entry in flowtemplates:
+                if not isinstance(entry, dict):
+                    continue
+                refs = entry.get("protocol-port-reference")
+                if not isinstance(refs, list):
+                    continue
+
+                next_refs: List[str] = []
+                replaced_here = 0
+                for r in refs:
+                    n = self._normalize_name(r)
+                    if n == dup:
+                        n = orig
+                        replaced_here += 1
+                    if n and n not in next_refs:
+                        next_refs.append(n)
+
+                if replaced_here:
+                    entry["protocol-port-reference"] = sorted(next_refs, key=lambda s: s.lower())
+                    updated_refs += replaced_here
+                    file_changed = True
+
+            if file_changed:
+                write_yaml_dict(path, doc, sort_keys=True)
+                updated_files += 1
+
+        raw.pop(dup, None)
+        write_yaml_dict(pp_path, raw, sort_keys=True)
+
+        return (updated_files, updated_refs)

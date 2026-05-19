@@ -4,6 +4,7 @@ function PortProtocolTable({ setLoading, setError }) {
   const [draft, setDraft] = React.useState({ name: "", port: "", service: "" });
   const [originalRef, setOriginalRef] = React.useState({ name: "" });
   const [confirmDelete, setConfirmDelete] = React.useState({ show: false, row: null });
+  const [dedupePanel, setDedupePanel] = React.useState({ show: false, duplicateName: "", originalName: "" });
 
   const load = React.useCallback(async () => {
     try {
@@ -32,6 +33,13 @@ function PortProtocolTable({ setLoading, setError }) {
       };
     });
   }, [items]);
+
+  const portProtocolNames = React.useMemo(() => {
+    return (rows || [])
+      .map((r) => safeTrim(r?.name))
+      .filter(Boolean)
+      .sort((a, b) => a.toLowerCase().localeCompare(b.toLowerCase()));
+  }, [rows]);
 
   const { sortedRows, filters, setFilters } = useTableFilter({
     rows,
@@ -80,6 +88,15 @@ function PortProtocolTable({ setLoading, setError }) {
   const onDelete = React.useCallback((row) => {
     setConfirmDelete({ show: true, row });
   }, []);
+
+  const onDedupe = React.useCallback(
+    (row) => {
+      const dup = safeTrim(row?.name);
+      const opts = portProtocolNames.filter((n) => n && n !== dup);
+      setDedupePanel({ show: true, duplicateName: dup, originalName: opts.length ? opts[0] : "" });
+    },
+    [portProtocolNames]
+  );
 
   function generateUniqueCopyName(existingNames, baseName) {
     const existing = new Set((existingNames || []).map((x) => String(x || "").trim()));
@@ -195,6 +212,20 @@ function PortProtocolTable({ setLoading, setError }) {
     }
   }, [confirmDelete, setLoading, setError, load]);
 
+  const onConfirmDedupe = React.useCallback(async () => {
+    try {
+      setLoading(true);
+      setError("");
+      await dedupePortProtocol(dedupePanel.duplicateName, dedupePanel.originalName);
+      setDedupePanel({ show: false, duplicateName: "", originalName: "" });
+      await load();
+    } catch (e) {
+      setError(formatError(e));
+    } finally {
+      setLoading(false);
+    }
+  }, [dedupePanel, setLoading, setError, load]);
+
   return (
     <>
       <PortProtocolTableView
@@ -204,6 +235,7 @@ function PortProtocolTable({ setLoading, setError }) {
         onAdd={onAdd}
         onEdit={onEdit}
         onCopy={onCopy}
+        onDedupe={onDedupe}
         onDelete={onDelete}
         editingKey={editingKey}
         draft={draft}
@@ -221,6 +253,51 @@ function PortProtocolTable({ setLoading, setError }) {
         onConfirm={onConfirmDelete}
         confirmText="Delete"
       />
+
+      {dedupePanel.show ? (
+        <div
+          className="modalOverlay"
+          onClick={(e) => {
+            if (e.target === e.currentTarget) setDedupePanel({ show: false, duplicateName: "", originalName: "" });
+          }}
+        >
+          <div className="modalCard">
+            <div className="modalHeader">
+              <h3 style={{ margin: 0 }}>Remove duplicate</h3>
+              <button className="btn" onClick={() => setDedupePanel({ show: false, duplicateName: "", originalName: "" })}>
+                Close
+              </button>
+            </div>
+            <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+              <div style={{ fontWeight: 650 }}>{dedupePanel.duplicateName}</div>
+              <div className="muted">is a duplicate of</div>
+              <select
+                className="filterInput"
+                value={dedupePanel.originalName}
+                onChange={(e) => setDedupePanel((p) => ({ ...p, originalName: e.target.value }))}
+              >
+                {portProtocolNames
+                  .filter((n) => n && n !== dedupePanel.duplicateName)
+                  .map((n) => (
+                    <option key={n} value={n}>
+                      {n}
+                    </option>
+                  ))}
+              </select>
+              <p>Please delete and remap all references.</p>
+            
+            </div>
+            <div className="modalActions">
+              <button className="btn" onClick={() => setDedupePanel({ show: false, duplicateName: "", originalName: "" })}>
+                Cancel
+              </button>
+              <button className="btn btn-primary" disabled={!isNonEmptyString(dedupePanel.originalName)} onClick={onConfirmDedupe}>
+                Submit
+              </button>
+            </div>
+          </div>
+        </div>
+      ) : null}
     </>
   );
 }

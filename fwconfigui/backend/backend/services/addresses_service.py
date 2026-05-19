@@ -45,9 +45,8 @@ class AddressesService:
         raw = read_yaml_dict(env_path)
         if not isinstance(raw, dict) or not raw:
             return
-        valid = {str(k or "").strip().lower() for k in raw.keys() if str(k or "").strip()}
-        if valid and e not in valid:
-            raise ValidationError("env", f"unknown env '{e}'")
+        if e not in raw:
+            raise ValidationError("env", f" address validation unknown env '{e}'")
 
     def _env_addrs_dir(self, env: str) -> Path:
         e = self._normalize_env(env)

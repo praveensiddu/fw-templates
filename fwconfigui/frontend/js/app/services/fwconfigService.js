@@ -212,3 +212,25 @@ async function deleteAddr(env, name, filename) {
   const url = `/api/v1/products/${encodeURIComponent(product)}/addrs/${encodeURIComponent(e)}?filename=${encodeURIComponent(fn)}&name=${encodeURIComponent(n)}`;
   return await deleteJson(url);
 }
+
+async function dedupePortProtocol(duplicateName, originalName) {
+  const product = getCurrentProduct();
+  if (!isNonEmptyString(product)) throw new Error("Select a product first");
+  const dup = safeTrim(duplicateName);
+  const orig = safeTrim(originalName);
+  if (!dup) throw new Error("duplicateName is required");
+  if (!orig) throw new Error("originalName is required");
+  const url = `/api/v1/products/${encodeURIComponent(product)}/port-protocol/dedupe`;
+  return await postJson(url, { duplicate_name: dup, original_name: orig });
+}
+
+async function dedupeBusinessPurpose(duplicateName, originalName) {
+  const product = getCurrentProduct();
+  if (!isNonEmptyString(product)) throw new Error("Select a product first");
+  const dup = safeTrim(duplicateName);
+  const orig = safeTrim(originalName);
+  if (!dup) throw new Error("duplicateName is required");
+  if (!orig) throw new Error("originalName is required");
+  const url = `/api/v1/products/${encodeURIComponent(product)}/business-purpose/dedupe`;
+  return await postJson(url, { duplicate_name: dup, original_name: orig });
+}

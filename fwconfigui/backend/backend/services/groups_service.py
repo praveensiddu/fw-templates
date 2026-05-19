@@ -80,7 +80,7 @@ class GroupsService:
             return
         valid = {str(k or "").strip().lower() for k in raw.keys() if str(k or "").strip()}
         if valid and e not in valid:
-            raise ValidationError("env", f"unknown env '{e}'")
+            raise ValidationError("env", f"groups validation unknown env '{e}'")
 
     def list_items(self, *, env: str) -> List[Dict[str, Any]]:
         self._validate_env_exists(env)

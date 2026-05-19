@@ -6,6 +6,10 @@ from typing import Any, Dict, List, Optional, Tuple
 
 from backend.exceptions.custom import AlreadyExistsError, ResourceInUseError, ValidationError
 from backend.repositories.fwconfig_repository import FwConfigRepository
+from backend.services.business_purpose_service import BusinessPurposeService
+from backend.services.env_service import EnvService
+from backend.services.keywords_service import KeywordsService
+from backend.services.port_protocol_service import PortProtocolService
 
 logger = logging.getLogger("uvicorn.error")
 
@@ -14,6 +18,7 @@ class FwConfigService:
     """Business logic for fwconfig YAML entities."""
 
     def __init__(self, product: Optional[str] = None):
+        self._product = product
         self.repo = FwConfigRepository(product)
 
     def list_files(self, yaml_type: str) -> List[str]:
@@ -272,10 +277,10 @@ class FwConfigService:
     def _validate_fw_rule_references(self, payload: Dict[str, Any]) -> None:
         next_payload = dict(payload or {})
 
-        pp_names = {str(x.get("name", "") or "").strip().lower() for x in self.list_items("port-protocol")}
-        bp_names = {str(x.get("name", "") or "").strip().lower() for x in self.list_items("business-purpose")}
-        env_names = {str(x.get("name", "") or "").strip().lower() for x in self.list_items("env")}
-        kw_names = {str(x.get("name", "") or "").strip().upper() for x in self.list_items("keywords")}
+        pp_names = {str(x.get("name", "") or "").strip().lower() for x in PortProtocolService(self._product).list_items()}
+        bp_names = {str(x.get("name", "") or "").strip().lower() for x in BusinessPurposeService(self._product).list_items()}
+        env_names = {str(x.get("name", "") or "").strip().lower() for x in EnvService().list_items()}
+        kw_names = {str(x.get("name", "") or "").strip().upper() for x in KeywordsService(self._product).list_items()}
 
         refs = next_payload.get("protocol-port-reference")
         if isinstance(refs, list):
@@ -300,7 +305,7 @@ class FwConfigService:
             for e in envs:
                 n = str(e or "").strip().lower()
                 if n and n not in env_names:
-                    raise ValidationError("envs", f"unknown env '{e}'")
+                    raise ValidationError("envs", f"unknown env '{e}' valid envs: {env_names}")
 
     def validate_fw_rules_commit(self) -> List[str]:
         """Validate fw-rules across all files.
@@ -311,10 +316,10 @@ class FwConfigService:
 
         errors: List[str] = []
 
-        env_names = {str(x.get("name", "") or "").strip().lower() for x in self.list_items("env")}
-        kw_names = {str(x.get("name", "") or "").strip().upper() for x in self.list_items("keywords")}
-        bp_names = {str(x.get("name", "") or "").strip().lower() for x in self.list_items("business-purpose")}
-        pp_names = {str(x.get("name", "") or "").strip().lower() for x in self.list_items("port-protocol")}
+        env_names = {str(x.get("name", "") or "").strip().lower() for x in EnvService().list_items()}
+        kw_names = {str(x.get("name", "") or "").strip().upper() for x in KeywordsService(self._product).list_items()}
+        bp_names = {str(x.get("name", "") or "").strip().lower() for x in BusinessPurposeService(self._product).list_items()}
+        pp_names = {str(x.get("name", "") or "").strip().lower() for x in PortProtocolService(self._product).list_items()}
 
         all_entries: List[Dict[str, Any]] = []
         for filename, entry in self.repo.read_items("fw-rules"):

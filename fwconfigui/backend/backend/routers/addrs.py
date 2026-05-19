@@ -1,6 +1,6 @@
 """API routes for product-scoped addresses."""
 
-from typing import Any, Dict
+from typing import Any, Dict, Optional
 
 from fastapi import APIRouter, Depends, Request
 
@@ -26,7 +26,7 @@ def save_item(
     product: str,
     env: str,
     payload: SaveItemRequest,
-    filename: str | None = None,
+    filename: Optional[str] = None,
     service: AddressesService = Depends(get_service),
 ) -> Dict[str, Any]:
     service.save_item(env=env, filename=filename, name=payload.name, data=dict(payload.data or {}), original_name=payload.original_name)
@@ -39,7 +39,7 @@ def update_item(
     product: str,
     env: str,
     payload: SaveItemRequest,
-    filename: str | None = None,
+    filename: Optional[str] = None,
     service: AddressesService = Depends(get_service),
 ) -> Dict[str, Any]:
     service.save_item(env=env, filename=filename, name=payload.name, data=dict(payload.data or {}), original_name=payload.original_name)
@@ -52,7 +52,7 @@ def delete_item(
     product: str,
     env: str,
     name: str,
-    filename: str | None = None,
+    filename: Optional[str] = None,
     service: AddressesService = Depends(get_service),
 ) -> Dict[str, Any]:
     service.delete_item(env=env, filename=filename, name=name)

@@ -30,6 +30,16 @@ class SaveItemRequest(BaseModel):
     original_name: Optional[str] = None
     data: Optional[Dict[str, Any]] = None
 
+
+class DedupePortProtocolRequest(BaseModel):
+    duplicate_name: str
+    original_name: str
+
+
+class DedupeBusinessPurposeRequest(BaseModel):
+    duplicate_name: str
+    original_name: str
+
 class UpdateFwRuleFieldsRequest(BaseModel):
     appflowid: str
     protocol_port_reference: Optional[List[str]] = None

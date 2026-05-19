@@ -4,6 +4,8 @@ import logging
 import os
 from pathlib import Path
 
+from typing import Optional
+
 from backend.exceptions.custom import NotInitializedError
 
 logger = logging.getLogger("uvicorn.error")
@@ -26,7 +28,7 @@ def _normalize_product_name(product: str) -> str:
     return v
 
 
-def get_fwconfigfiles_root(product: str | None = None) -> Path:
+def get_fwconfigfiles_root(product: Optional[str] = None) -> Path:
     """Get the root directory where fwconfig yaml files are stored.
 
     Root is always under: <WORKSPACE>/fwconfigfiles

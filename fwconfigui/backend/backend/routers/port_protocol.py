@@ -4,7 +4,7 @@ from typing import Any, Dict
 
 from fastapi import APIRouter, Depends, Request
 
-from backend.models import SaveItemRequest
+from backend.models import DedupePortProtocolRequest, SaveItemRequest
 from backend.services.port_protocol_service import PortProtocolService
 
 router = APIRouter(prefix="/api/v1/products/{product}/port-protocol", tags=["port-protocol"])
@@ -61,3 +61,14 @@ def delete_item(
 ) -> Dict[str, Any]:
     service.delete_item(name=name)
     return {"ok": True}
+
+
+@router.post("/dedupe")
+def dedupe_item(
+    request: Request,
+    product: str,
+    payload: DedupePortProtocolRequest,
+    service: PortProtocolService = Depends(get_service),
+) -> Dict[str, Any]:
+    updated_files, updated_refs = service.dedupe_item(duplicate_name=payload.duplicate_name, original_name=payload.original_name)
+    return {"ok": True, "updated_fw_rules_files": updated_files, "updated_fw_rules_references": updated_refs}

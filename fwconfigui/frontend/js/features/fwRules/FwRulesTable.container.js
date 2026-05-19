@@ -309,6 +309,38 @@ function FwRulesTable({ setLoading, setError }) {
     return list.map((x) => safeTrim(x)).filter(Boolean);
   }, [form?.envs]);
 
+  const canSubmit = React.useMemo(() => {
+    const filename = safeTrim(form?.filename);
+    const appflowid = safeTrim(form?.appflowid)
+      .toUpperCase()
+      .replace(/[^A-Z0-9_-]/g, "");
+    const envs = Array.isArray(form?.envs) ? form.envs.map((x) => safeTrim(x)).filter(Boolean) : [];
+
+    const src = Array.isArray(form?.sourceItems) ? form.sourceItems : [];
+    const dst = Array.isArray(form?.destinationItems) ? form.destinationItems : [];
+
+    const hasValidEndpointList = (items) => {
+      if (!Array.isArray(items) || items.length === 0) return false;
+      for (const it of items) {
+        const group = safeTrim(it?.group);
+        const iEnvs = Array.isArray(it?.envs) ? it.envs.map((e) => safeTrim(e)).filter(Boolean) : [];
+        if (!group) return false;
+        if (iEnvs.length === 0) return false;
+      }
+      return true;
+    };
+
+    if (!filename) return false;
+    if (!appflowid) return false;
+    if (envs.length === 0) return false;
+    if (!hasValidEndpointList(src)) return false;
+    if (!hasValidEndpointList(dst)) return false;
+    if (isEditingSource) return false;
+    if (isEditingDestination) return false;
+
+    return true;
+  }, [form, isEditingSource, isEditingDestination]);
+
   const hasUnsavedDetailsChanges = React.useCallback(() => {
     if (activePage !== "details") return false;
     const snap = initialDetailsSnapshotRef.current;
