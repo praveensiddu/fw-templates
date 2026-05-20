@@ -17,6 +17,7 @@ from pydantic import BaseModel
 
 from backend.exceptions.custom import AlreadyExistsError, ValidationError
 from backend.models import ListItemsResponse, SaveItemRequest
+from backend.services.env_service import EnvService
 from backend.utils.workspace import get_fwconfigfiles_root
 from backend.utils.yaml_utils import read_yaml_dict, write_yaml_dict
 
@@ -31,9 +32,12 @@ def _path() -> Path:
 
 def _normalize_name(name: str) -> str:
     v = str(name or "").strip().upper()
-    v = re.sub(r"[^A-Z0-9_-]", "", v)
+    v = re.sub(r"\s+", "", v)
+    v = re.sub(r"[^A-Z0-9]", "", v)
     if not v:
         raise ValidationError("name", "is required")
+    if len(v) < 2:
+        raise ValidationError("name", "must be at least 2 characters")
     return v
 
 
@@ -108,8 +112,21 @@ def save_item(
 
     data = dict(payload.data or {})
     envs = _normalize_envs(data.get("envs"))
+    if len(envs) == 0:
+        raise ValidationError("envs", "must not be empty")
+
+    known_envs = {str(x.get("name", "") or "").strip().lower() for x in EnvService().list_items()}
+    for e in envs:
+        if e not in known_envs:
+            raise ValidationError("envs", f"unknown env '{e}'")
+
     description = _normalize_description(data.get("description"))
+    if not description:
+        raise ValidationError("description", "must not be empty")
+
     components_prefix_list = _normalize_components_prefix_list(data.get("components_prefix_list"))
+    if len(components_prefix_list) == 0:
+        raise ValidationError("components_prefix_list", "must not be empty")
     components_exclude_list = _normalize_components_exclude_list(data.get("components_exclude_list"))
 
     path = _path()
@@ -145,8 +162,21 @@ def update_item(
 
     data = dict(payload.data or {})
     envs = _normalize_envs(data.get("envs"))
+    if len(envs) == 0:
+        raise ValidationError("envs", "must not be empty")
+
+    known_envs = {str(x.get("name", "") or "").strip().lower() for x in EnvService().list_items()}
+    for e in envs:
+        if e not in known_envs:
+            raise ValidationError("envs", f"unknown env '{e}'")
+
     description = _normalize_description(data.get("description"))
+    if not description:
+        raise ValidationError("description", "must not be empty")
+
     components_prefix_list = _normalize_components_prefix_list(data.get("components_prefix_list"))
+    if len(components_prefix_list) == 0:
+        raise ValidationError("components_prefix_list", "must not be empty")
     components_exclude_list = _normalize_components_exclude_list(data.get("components_exclude_list"))
 
     path = _path()

@@ -62,6 +62,46 @@ class PortProtocolService:
         prev = self._normalize_name(original_name) if original_name is not None else ""
 
         if prev and prev != key:
+            existing_keys = {self._normalize_name(k) for k in raw.keys()}
+            if prev not in existing_keys:
+                raise ValidationError("original_name", "does not exist")
+
+            fw_rules_root = get_fwconfigfiles_root(self._product) / "fw-rules"
+            fw_rules_root.mkdir(parents=True, exist_ok=True)
+
+            for fpath in list_yaml_files(fw_rules_root):
+                doc = read_yaml_dict(fpath)
+                if not isinstance(doc, dict):
+                    continue
+                flowtemplates = doc.get("flowtemplates")
+                if not isinstance(flowtemplates, list):
+                    continue
+
+                file_changed = False
+                for entry in flowtemplates:
+                    if not isinstance(entry, dict):
+                        continue
+                    refs = entry.get("protocol-port-reference")
+                    if not isinstance(refs, list):
+                        continue
+
+                    next_refs: List[str] = []
+                    replaced_here = 0
+                    for r in refs:
+                        n = self._normalize_name(r)
+                        if n == prev:
+                            n = key
+                            replaced_here += 1
+                        if n and n not in next_refs:
+                            next_refs.append(n)
+
+                    if replaced_here:
+                        entry["protocol-port-reference"] = sorted(next_refs, key=lambda s: s.lower())
+                        file_changed = True
+
+                if file_changed:
+                    write_yaml_dict(fpath, doc, sort_keys=True)
+
             raw.pop(prev, None)
 
         raw[key] = self._normalize_port_protocol(port_protocol)

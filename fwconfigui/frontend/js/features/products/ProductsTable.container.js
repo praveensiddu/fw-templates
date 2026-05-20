@@ -2,11 +2,11 @@ function ProductsTable({ setLoading, setError }) {
   const FIXED_FILENAME = "products.yaml";
   const [items, setItems] = React.useState([]);
   const [envNames, setEnvNames] = React.useState([]);
-  const [editingKey, setEditingKey] = React.useState("");
-  const [draft, setDraft] = React.useState({ name: "", envs: [], description: "", componentsPrefixListText: "", componentsExcludeListText: "" });
   const [confirmDelete, setConfirmDelete] = React.useState({ show: false, row: null });
-
-  const [cellEdit, setCellEdit] = React.useState({ key: "", row: null, field: "", envs: [], description: "", componentsPrefixListText: "", componentsExcludeListText: "" });
+  const [activePage, setActivePage] = React.useState("list");
+  const [detailsMode, setDetailsMode] = React.useState("add");
+  const [originalName, setOriginalName] = React.useState("");
+  const [form, setForm] = React.useState({ name: "", envs: [], description: "", componentsPrefixListText: "", componentsExcludeListText: "" });
 
   const rows = React.useMemo(() => {
     return (items || []).map((it) => {
@@ -65,8 +65,29 @@ function ProductsTable({ setLoading, setError }) {
   }, [load]);
 
   const onAdd = React.useCallback(() => {
-    setDraft({ name: "", envs: ["pac", "prd"], description: "", componentsPrefixListText: "", componentsExcludeListText: "" });
-    setEditingKey("__new__");
+    setDetailsMode("add");
+    setOriginalName("");
+    setForm({ name: "", envs: ["pac", "prd"], description: "", componentsPrefixListText: "", componentsExcludeListText: "" });
+    setActivePage("details");
+  }, []);
+
+  const onEdit = React.useCallback((row) => {
+    const name = safeTrim(row?.name);
+    const envs = Array.isArray(row?.envs) ? row.envs : [];
+    const desc = safeTrim(row?.description);
+    const prefixList = Array.isArray(row?.componentsPrefixList) ? row.componentsPrefixList : [];
+    const excludeList = Array.isArray(row?.componentsExcludeList) ? row.componentsExcludeList : [];
+
+    setDetailsMode("edit");
+    setOriginalName(name);
+    setForm({
+      name,
+      envs,
+      description: desc,
+      componentsPrefixListText: prefixList.join(", "),
+      componentsExcludeListText: excludeList.join(", "),
+    });
+    setActivePage("details");
   }, []);
 
   const onDelete = React.useCallback((row) => {
@@ -74,116 +95,53 @@ function ProductsTable({ setLoading, setError }) {
   }, []);
 
   const canSubmit = React.useMemo(() => {
-    return isNonEmptyString(draft.name);
-  }, [draft]);
+    const name = safeTrim(form?.name);
+    const envs = Array.isArray(form?.envs) ? form.envs.map((x) => safeTrim(x)).filter(Boolean) : [];
+    const description = safeTrim(form?.description);
+    const prefixList = safeTrim(form?.componentsPrefixListText)
+      ? safeTrim(form.componentsPrefixListText)
+          .split(",")
+          .map((x) => safeTrim(x))
+          .filter(Boolean)
+      : [];
 
-  const onCancelEdit = React.useCallback(() => {
-    setEditingKey("");
-    setDraft({ name: "", envs: [], description: "", componentsPrefixListText: "", componentsExcludeListText: "" });
+    if (!name) return false;
+    if (name.length < 2) return false;
+    if (!/^[A-Z0-9]+$/.test(name)) return false;
+    if (envs.length === 0) return false;
+    if (!description) return false;
+    if (prefixList.length === 0) return false;
+    return true;
+  }, [form]);
+
+  const onBack = React.useCallback(() => {
+    setActivePage("list");
+    setDetailsMode("add");
+    setOriginalName("");
+    setForm({ name: "", envs: [], description: "", componentsPrefixListText: "", componentsExcludeListText: "" });
   }, []);
-
-  const getRowKey = React.useCallback((row) => {
-    return safeTrim(row?.name);
-  }, []);
-
-  const onStartCellEdit = React.useCallback(
-    (row, field) => {
-      const key = getRowKey(row);
-      if (!key) return;
-
-      const data = row?.data || {};
-      const envs = Array.isArray(data?.envs) ? data.envs : [];
-      const prefixList = Array.isArray(data?.components_prefix_list) ? data.components_prefix_list : [];
-      const excludeList = Array.isArray(data?.components_exclude_list) ? data.components_exclude_list : [];
-
-      setCellEdit({
-        key,
-        row,
-        field: safeTrim(field),
-        envs,
-        description: safeTrim(data?.description),
-        componentsPrefixListText: (prefixList || []).join(", "),
-        componentsExcludeListText: (excludeList || []).join(", "),
-      });
-    },
-    [getRowKey]
-  );
-
-  const onCancelCellEdit = React.useCallback(() => {
-    setCellEdit({ key: "", row: null, field: "", envs: [], description: "", componentsPrefixListText: "", componentsExcludeListText: "" });
-  }, []);
-
-  const onSaveCellEdit = React.useCallback(async () => {
-    const row = cellEdit.row;
-    if (!row) return;
-    const name = safeTrim(row?.name);
-    if (!name) return;
-
-    try {
-      setLoading(true);
-      setError("");
-
-      const baseData = row?.data || {};
-      const prevEnvs = Array.isArray(baseData?.envs) ? baseData.envs : [];
-      const prevPrefixList = Array.isArray(baseData?.components_prefix_list) ? baseData.components_prefix_list : [];
-      const prevExcludeList = Array.isArray(baseData?.components_exclude_list) ? baseData.components_exclude_list : [];
-
-      const nextEnvs = Array.isArray(cellEdit.envs) ? cellEdit.envs : prevEnvs;
-      const nextDescription = safeTrim(cellEdit.description) || safeTrim(baseData?.description);
-      const nextPrefixList = safeTrim(cellEdit.componentsPrefixListText)
-        ? safeTrim(cellEdit.componentsPrefixListText)
-            .split(",")
-            .map((x) => safeTrim(x))
-            .filter((x) => x)
-        : prevPrefixList;
-      const nextExcludeList = safeTrim(cellEdit.componentsExcludeListText)
-        ? safeTrim(cellEdit.componentsExcludeListText)
-            .split(",")
-            .map((x) => safeTrim(x))
-            .filter((x) => x)
-        : prevExcludeList;
-
-      await saveFwConfigItem("products", {
-        name,
-        original_name: name,
-        data: {
-          name,
-          envs: nextEnvs,
-          description: nextDescription,
-          components_prefix_list: nextPrefixList,
-          components_exclude_list: nextExcludeList,
-        },
-      });
-
-      onCancelCellEdit();
-      await load();
-    } catch (e) {
-      setError(formatError(e));
-    } finally {
-      setLoading(false);
-    }
-  }, [cellEdit, setLoading, setError, load, onCancelCellEdit]);
 
   const onSave = React.useCallback(async () => {
     try {
       setLoading(true);
       setError("");
 
-      const nextName = safeTrim(draft.name)
+      const nextName = safeTrim(form.name)
         .toUpperCase()
-        .replace(/[^A-Z0-9_-]/g, "");
-      const nextEnvs = (Array.isArray(draft.envs) ? draft.envs : [])
+        .replace(/\s+/g, "")
+        .replace(/[^A-Z0-9]/g, "");
+      const nextEnvs = (Array.isArray(form.envs) ? form.envs : [])
         .map((x) => safeTrim(x).toLowerCase())
         .filter((x) => x);
-      const nextDescription = safeTrim(draft.description);
-      const nextComponentsPrefixList = safeTrim(draft.componentsPrefixListText)
-        ? safeTrim(draft.componentsPrefixListText)
+      const nextDescription = safeTrim(form.description);
+      const nextComponentsPrefixList = safeTrim(form.componentsPrefixListText)
+        ? safeTrim(form.componentsPrefixListText)
             .split(",")
             .map((x) => safeTrim(x))
             .filter((x) => x)
         : [];
-      const nextComponentsExcludeList = safeTrim(draft.componentsExcludeListText)
-        ? safeTrim(draft.componentsExcludeListText)
+      const nextComponentsExcludeList = safeTrim(form.componentsExcludeListText)
+        ? safeTrim(form.componentsExcludeListText)
             .split(",")
             .map((x) => safeTrim(x))
             .filter((x) => x)
@@ -191,6 +149,7 @@ function ProductsTable({ setLoading, setError }) {
 
       await saveFwConfigItem("products", {
         name: nextName,
+        original_name: detailsMode === "edit" ? safeTrim(originalName) || undefined : undefined,
         data: {
           name: nextName,
           envs: nextEnvs,
@@ -200,14 +159,14 @@ function ProductsTable({ setLoading, setError }) {
         },
       });
 
-      onCancelEdit();
+      onBack();
       await load();
     } catch (e) {
       setError(formatError(e));
     } finally {
       setLoading(false);
     }
-  }, [draft, setLoading, setError, load, onCancelEdit]);
+  }, [form, detailsMode, originalName, setLoading, setError, load, onBack]);
 
   const onImport = React.useCallback(
     async (row) => {
@@ -255,27 +214,28 @@ function ProductsTable({ setLoading, setError }) {
 
   return (
     <>
-      <ProductsTableView
-        rows={sortedRows}
-        filters={filters}
-        setFilters={setFilters}
-        onAdd={onAdd}
-        onOpenProduct={onOpenProduct}
-        onDelete={onDelete}
-        onImport={onImport}
-        editingKey={editingKey}
-        draft={draft}
-        setDraft={setDraft}
-        canSubmit={canSubmit}
-        onCancelEdit={onCancelEdit}
-        onSave={onSave}
-        envNames={envNames}
-        cellEdit={cellEdit}
-        setCellEdit={setCellEdit}
-        onStartCellEdit={onStartCellEdit}
-        onCancelCellEdit={onCancelCellEdit}
-        onSaveCellEdit={onSaveCellEdit}
-      />
+      {activePage === "details" ? (
+        <ProductsDetailsView
+          mode={detailsMode}
+          form={form}
+          setForm={setForm}
+          canSubmit={canSubmit}
+          onBack={onBack}
+          onSave={onSave}
+          envNames={envNames}
+        />
+      ) : (
+        <ProductsTableView
+          rows={sortedRows}
+          filters={filters}
+          setFilters={setFilters}
+          onAdd={onAdd}
+          onEdit={onEdit}
+          onOpenProduct={onOpenProduct}
+          onDelete={onDelete}
+          onImport={onImport}
+        />
+      )}
 
       <ConfirmationModal
         show={confirmDelete.show}

@@ -92,7 +92,7 @@ function PortProtocolTableView({
                   autoFocus
                   value={draft.name}
                   onChange={(e) => setDraft((p) => ({ ...p, name: normalizePortProtocolName(e.target.value) }))}
-                  placeholder="name"
+                  placeholder="name to refer in the flow template (e.g., api-server)"
                 />
               </td>
               <td>
@@ -100,7 +100,7 @@ function PortProtocolTableView({
                   className="filterInput"
                   value={draft.port}
                   onChange={(e) => setDraft((p) => ({ ...p, port: e.target.value }))}
-                  placeholder="port"
+                  placeholder="TCP or UDP port number. Example TCP-6443  UDP-53"
                 />
               </td>
               <td>
@@ -108,7 +108,7 @@ function PortProtocolTableView({
                   className="filterInput"
                   value={draft.service}
                   onChange={(e) => setDraft((p) => ({ ...p, service: e.target.value }))}
-                  placeholder="service"
+                  placeholder="The server/service offered on this port"
                 />
               </td>
               <td>

@@ -78,7 +78,7 @@ function BusinessPurposeTableView({
                   autoFocus
                   value={draft.name}
                   onChange={(e) => setDraft((p) => ({ ...p, name: normalizeBusinessPurposeName(e.target.value) }))}
-                  placeholder="name"
+                  placeholder="name to refer to in flow template. Example ocp-vcenter"
                 />
               </td>
               <td>
@@ -86,7 +86,7 @@ function BusinessPurposeTableView({
                   className="filterInput"
                   value={draft.bp}
                   onChange={(e) => setDraft((p) => ({ ...p, bp: e.target.value }))}
-                  placeholder="business purpose"
+                  placeholder="Detailed description of the business purpose. Example ocp needs to access vcenter for cluster management"
                 />
               </td>
               <td>

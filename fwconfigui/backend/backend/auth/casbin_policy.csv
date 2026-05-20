@@ -1,0 +1,67 @@
+# Casbin policy CSV
+# Format (5 columns): ptype, sub, obj, act, cond
+# - ptype: policy type (e.g. 'p')
+# - sub: subject (role name in this demo, e.g. admin/viewall/user/viewer/manager)
+# - obj: object/resource path pattern (e.g. /products/*)
+# - act: action/method regex (e.g. GET or (GET|POST))
+# - cond: Python expression evaluated by Casbin (simpleeval); use True/False (not true/false)
+
+p, platform_admin, /products, POST, True
+p, platform_admin, /products, GET, True
+p, platform_admin, /products/*, (GET|POST|PUT|DELETE), True
+p, platform_admin, /products/*/rule-templates, (GET|POST|PUT|DELETE), True
+p, platform_admin, /products/*/port-protocol, (GET|POST|PUT|DELETE), True
+p, platform_admin, /products/*/business-purpose, (GET|POST|PUT|DELETE), True
+p, platform_admin, /products/*/components, (GET|POST|PUT|DELETE), True
+p, platform_admin, /products/*/keywords, (GET|POST|PUT|DELETE), True
+p, platform_admin, /products/*/rule-files, (GET|POST|PUT|DELETE), True
+p, platform_admin, /products/*/groups, (GET|POST|PUT|DELETE), True
+p, platform_admin, /products/*/addrs, (GET|POST|PUT|DELETE), True
+p, platform_admin, /settings/enforcement, (GET|PUT), True
+p, platform_admin, /access_requests, GET, True
+p, platform_admin, /infra/env, (GET|POST|PUT|DELETE), True
+p, platform_admin, /infra/networkarea, (GET|POST|PUT|DELETE), True
+p, platform_admin, /infra/site, (GET|POST|PUT|DELETE), True
+
+
+p, role_mgmt_admin, /role-management/*, (GET|POST|PUT|DELETE), True
+p, role_mgmt_admin, /role-management/product/*, (GET|POST|PUT|DELETE), True
+p, role_mgmt_admin, /role-management/groupglobal/*, (GET|POST|PUT|DELETE), True
+p, role_mgmt_admin, /role-management/userglobal/*, (GET|POST|PUT|DELETE), True
+p, role_mgmt_admin, /settings/enforcement, (GET|PUT), True
+p, role_mgmt_admin, /access_requests, GET, True
+
+p, viewall, /products, GET, True
+p, viewall, /products/*, GET, True
+
+
+p, manager, /products, GET, True
+p, manager, /products/*/rule-templates, (GET|POST|PUT|DELETE), True
+p, manager, /products/*/port-protocol, (GET|POST|PUT|DELETE), True
+p, manager, /products/*/business-purpose, (GET|POST|PUT|DELETE), True
+p, manager, /products/*/components, (GET|POST|PUT|DELETE), True
+p, manager, /products/*/keywords, (GET|POST|PUT|DELETE), True
+p, manager, /products/*/rule-files, (GET|POST|PUT|DELETE), True
+p, manager, /products/*/groups, (GET|POST|PUT|DELETE), True
+p, manager, /products/*/addrs, (GET|POST|PUT|DELETE), True
+p, manager, /settings/enforcement, (GET|PUT), True
+p, manager, /access_requests, GET, True
+p, manager, /infra/env, (GET), True
+p, manager, /infra/networkarea, (GET), True
+p, manager, /infra/site, (GET), True
+
+
+p, viewer, /products, GET, True
+p, viewer, /products/*/rule-templates, (GET), True
+p, viewer, /products/*/port-protocol, (GET), True
+p, viewer, /products/*/business-purpose, (GET), True
+p, viewer, /products/*/components, (GET), True
+p, viewer, /products/*/keywords, (GET), True
+p, viewer, /products/*/rule-files, (GET), True
+p, viewer, /products/*/groups, (GET), True
+p, viewer, /products/*/addrs, (GET), True
+p, viewer, /access_requests, GET, True
+p, viewer, /infra/env, (GET), True
+p, viewer, /infra/networkarea, (GET), True
+p, viewer, /infra/site, (GET), True
+
