@@ -33,6 +33,8 @@ from backend.routers.products import router as products_router
 from backend.routers.rule_files import router as rule_files_router
 from backend.routers.sicg import router as sicg_router
 from backend.routers.sites import router as sites_router
+from backend.routers.role_mgmt_api import create_rolemgmt_router
+from backend.auth.rbac import enforce_request, get_current_user_context
 from backend.utils.workspace import ensure_fwconfigfiles_root
 
 logger = logging.getLogger("uvicorn.error")
@@ -88,6 +90,10 @@ app.include_router(networkareas_router)
 app.include_router(sites_router)
 app.include_router(products_router)
 app.include_router(sicg_router)
+app.include_router(
+    create_rolemgmt_router(enforce=enforce_request, get_current_user_context=get_current_user_context),
+    prefix="/api/v1",
+)
 
 app.mount(
     "/static",

@@ -5,6 +5,7 @@ function App() {
     if (p === "/products" || p === "/infra/products") return "products";
     if (p.startsWith("/products/")) return "products";
     if (p === "/env" || p === "/infra" || p.startsWith("/infra/")) return "infra";
+    if (p === "/role-management" || p.startsWith("/role-management/")) return "role-mgmt";
     return "products";
   })();
 
@@ -34,6 +35,7 @@ function App() {
     () => ({
       products: "/products",
       infra: "/infra",
+      "role-mgmt": "/role-management",
     }),
     []
   );
@@ -156,6 +158,8 @@ function App() {
       setActiveTab("products");
     } else if (p === "/env" || p === "/infra" || p.startsWith("/infra/")) {
       setActiveTab("infra");
+    } else if (p === "/role-management" || p.startsWith("/role-management/")) {
+      setActiveTab("role-mgmt");
     } else {
       setActiveTab("products");
     }
@@ -202,6 +206,8 @@ function App() {
         setActiveTab("products");
       } else if (p === "/env" || p === "/infra" || p.startsWith("/infra/")) {
         setActiveTab("infra");
+      } else if (p === "/role-management" || p.startsWith("/role-management/")) {
+        setActiveTab("role-mgmt");
       } else {
         setActiveTab("products");
       }
@@ -484,6 +490,9 @@ function App() {
         </>
       );
     }
+    if (activeTab === "role-mgmt") {
+      return <RoleMgmt setLoading={setLoading} setError={setError} />;
+    }
     return <FwRulesTable setLoading={setLoading} setError={setError} />;
   }, [activeTab, infraSubTab, productSubTab, productEnv, infraEnvItems, getProductFromPath, getProductEnvFromPath, routeVersion]);
 
@@ -502,6 +511,10 @@ function App() {
           if (t === "infra") {
             setInfraSubTab("env");
             nextPath = "/infra/env";
+          }
+
+          if (t === "role-mgmt") {
+            nextPath = "/role-management";
           }
 
           if (t === "products") {

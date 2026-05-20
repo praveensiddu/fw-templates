@@ -110,6 +110,18 @@ def create_rolemgmt_router(
         }
 
 
+    @router.get("/role-management/users")
+    def list_users_and_roles(
+        user_context: dict[str, Any] = Depends(get_current_user_context),
+    ) -> dict[str, Any]:
+        enforce(user_context, "/role-management/users", "GET", {})
+
+        users = rolemgmtimpl.list_all_users()
+        rows = [rolemgmtimpl.get_user_roles_snapshot(u) for u in users]
+        rows.sort(key=lambda r: str(r.get("userid") or "").lower())
+        return {"rows": rows}
+
+
     @router.post("/role-management/product/assign")
     def assign_role(payload: RoleAssignmentRequest,
                     grantor: str | None = Depends(get_grantor),

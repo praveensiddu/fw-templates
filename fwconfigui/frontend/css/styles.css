@@ -220,6 +220,17 @@ tbody tr:hover td {
   color: var(--muted);
 }
 
+.pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 3px 8px;
+  border-radius: 999px;
+  border: 1px solid rgba(0, 0, 0, 0.12);
+  background: rgba(0, 0, 0, 0.03);
+  font-size: 12px;
+}
+
 table th {
   vertical-align: top;
 }

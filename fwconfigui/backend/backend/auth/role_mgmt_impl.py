@@ -7,7 +7,15 @@ from typing import Any, Dict, List
 
 import yaml
 
-from backend.config.settings import is_demo_mode
+
+def is_demo_mode() -> bool:
+    return str(os.getenv("DEMO_MODE", os.getenv("IS_DEMO_MODE", "")) or "").strip().lower() in {
+        "1",
+        "true",
+        "yes",
+        "y",
+        "on",
+    }
 
 
 class RoleMgmtImpl:
@@ -170,7 +178,7 @@ class RoleMgmtImpl:
             amap = gmap.setdefault(group, {})
             roles = amap.setdefault(product, [])
             if role not in roles:
-                roles.productend(role)
+                roles.append(role)
             self._flush()
 
     def del_grp2products2roles(self, grantor: str | None, group: str, product: str, role: str) -> None:
@@ -368,3 +376,53 @@ class RoleMgmtImpl:
                 seen.add(v)
                 out.append(v)
         return out
+
+    def list_all_users(self) -> List[str]:
+        """List all known users from RBAC stores.
+
+        This is used to power the Role Management UI.
+        """
+        users: List[str] = []
+
+        with self._lock:
+            # From explicit user->* maps
+            ug = self._data.get("user_groups") or {}
+            if isinstance(ug, dict):
+                users.extend([self._norm(str(u)) for u in ug.keys() if self._norm(str(u))])
+
+            uglob = self._data.get("user_global_roles") or {}
+            if isinstance(uglob, dict):
+                users.extend([self._norm(str(u)) for u in uglob.keys() if self._norm(str(u))])
+
+            uprod = self._data.get("user_product_roles") or {}
+            if isinstance(uprod, dict):
+                users.extend([self._norm(str(u)) for u in uprod.keys() if self._norm(str(u))])
+
+            # Also include demo users file if present
+            try:
+                if self._demo_users_path.exists() and self._demo_users_path.is_file():
+                    raw = yaml.safe_load(self._demo_users_path.read_text())
+                    if isinstance(raw, dict):
+                        users.extend([self._norm(str(u)) for u in raw.keys() if self._norm(str(u))])
+            except Exception:
+                pass
+
+        # de-dupe preserving order
+        seen = set()
+        out: List[str] = []
+        for u in users:
+            if u and u not in seen:
+                seen.add(u)
+                out.append(u)
+        return out
+
+    def get_user_roles_snapshot(self, user_id: str) -> Dict[str, Any]:
+        """Return global + product role snapshot for a user."""
+        uid = self._norm(user_id)
+        groups = self.get_user_groups(uid)
+        return {
+            "userid": uid,
+            "groups": groups,
+            "global_roles": self.get_user_roles(uid, groups),
+            "product_roles": self.get_product_roles(groups, uid),
+        }

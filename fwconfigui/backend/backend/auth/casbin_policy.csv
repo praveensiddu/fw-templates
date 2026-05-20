@@ -28,11 +28,24 @@ p, role_mgmt_admin, /role-management/*, (GET|POST|PUT|DELETE), True
 p, role_mgmt_admin, /role-management/product/*, (GET|POST|PUT|DELETE), True
 p, role_mgmt_admin, /role-management/groupglobal/*, (GET|POST|PUT|DELETE), True
 p, role_mgmt_admin, /role-management/userglobal/*, (GET|POST|PUT|DELETE), True
+p, role_mgmt_admin, /role-management/users, GET, True
 p, role_mgmt_admin, /settings/enforcement, (GET|PUT), True
 p, role_mgmt_admin, /access_requests, GET, True
 
 p, viewall, /products, GET, True
 p, viewall, /products/*, GET, True
+p, viewall, /products/*/rule-templates, GET, True
+p, viewall, /products/*/port-protocol, GET, True
+p, viewall, /products/*/business-purpose, GET, True
+p, viewall, /products/*/components, GET, True
+p, viewall, /products/*/keywords, GET, True
+p, viewall, /products/*/rule-files, GET, True
+p, viewall, /products/*/groups, GET, True
+p, viewall, /products/*/addrs, GET, True
+p, viewall, /access_requests, GET, True
+p, viewall, /infra/env, GET, True
+p, viewall, /infra/networkarea, GET, True
+p, viewall, /infra/site, GET, True
 
 
 p, manager, /products, GET, True
