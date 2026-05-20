@@ -317,8 +317,8 @@ def create_rolemgmt_router(
     @router.post("/role-management/userglobal/assign",
                  summary="Assign roles for users ",
                  description="""{
-      "user": "asingh",
-      "role": "viewall", "role_mgmt_admin", "bastion_view", "bastion_review", "bastion_recertify", "bastion_upload"
+      "user": "user1",
+      "role": "viewall", "role_mgmt_admin"
       ]
     }""")
     def assign_userglobal_role(payload: UserGlobalRoleAssignmentRequest,
@@ -334,7 +334,7 @@ def create_rolemgmt_router(
     @router.post("/role-management/userglobal/unassign",
                  summary="Unassign roles for users ",
                  description="""{
-      "user": "asingh",
+      "user": "user1",
       "role": "viewall", "role_mgmt_admin"
       ]
     }""")
