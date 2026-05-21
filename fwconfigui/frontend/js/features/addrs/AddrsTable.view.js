@@ -35,6 +35,7 @@ function AddrsTableView({ env, rows, filters, setFilters, onAdd, onEdit, onDelet
             </th>
             <th className="fwTableHeaderCell" style={{ width: 320 }}>value</th>
             <th className="fwTableHeaderCell" style={{ width: 220 }}>name-override</th>
+            <th className="fwTableHeaderCell" style={{ width: 160 }}>in-firewall</th>
             <th className="fwTableHeaderCell" style={{ width: 200 }}>
               <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 8 }}>
                 <span>File</span>
@@ -65,6 +66,14 @@ function AddrsTableView({ env, rows, filters, setFilters, onAdd, onEdit, onDelet
                 placeholder="Filter name-override..."
                 value={filters.nameOverride}
                 onChange={(e) => setFilters((p) => ({ ...p, nameOverride: e.target.value }))}
+              />
+            </th>
+            <th>
+              <input
+                className={`filterInput ${isNonEmptyString(filters.inFirewall) ? "filterInput-active" : ""}`}
+                placeholder="Filter in-firewall..."
+                value={filters.inFirewall}
+                onChange={(e) => setFilters((p) => ({ ...p, inFirewall: e.target.value }))}
               />
             </th>
             <th>
@@ -100,6 +109,14 @@ function AddrsTableView({ env, rows, filters, setFilters, onAdd, onEdit, onDelet
               </td>
               <td>
                 <input className="filterInput" value={draft.nameOverride} onChange={(e) => setDraft((p) => ({ ...p, nameOverride: e.target.value }))} placeholder="optional" />
+              </td>
+              <td>
+                <input
+                  className="filterInput"
+                  value={draft.inFirewall}
+                  onChange={(e) => setDraft((p) => ({ ...p, inFirewall: e.target.value }))}
+                  placeholder="empty/true/false"
+                />
               </td>
               <td>
                 <input
@@ -146,6 +163,9 @@ function AddrsTableView({ env, rows, filters, setFilters, onAdd, onEdit, onDelet
                       <input className="filterInput" value={draft.nameOverride} onChange={(e) => setDraft((p) => ({ ...p, nameOverride: e.target.value }))} />
                     </td>
                     <td>
+                      <input className="filterInput" value={draft.inFirewall} onChange={(e) => setDraft((p) => ({ ...p, inFirewall: e.target.value }))} />
+                    </td>
+                    <td>
                       <input
                         className="filterInput"
                         value={draft.filename}
@@ -168,11 +188,20 @@ function AddrsTableView({ env, rows, filters, setFilters, onAdd, onEdit, onDelet
                   </tr>
                 );
               }
+              const nameOverride = safeTrim(r?.data?.["name-override"]) || "empty";
+              const inFirewall = (() => {
+                const v = r?.data?.["in-firewall"];
+                if (v === true) return "true";
+                if (v === false) return "false";
+                const s = safeTrim(v).toLowerCase();
+                return s || "empty";
+              })();
               return (
                 <tr key={`${safeTrim(r.filename) || "addresses.yaml"}::${r.name || idx}`}>
                   <td>{r.name}</td>
                   <td className="muted">{safeTrim(r?.data?.ip) || safeTrim(r?.data?.range) || safeTrim(r?.data?.subnet)}</td>
-                  <td className="muted">{safeTrim(r?.data?.["name-override"])}</td>
+                  <td className="muted">{nameOverride}</td>
+                  <td className="muted">{inFirewall}</td>
                   <td className="muted">{safeTrim(r.filename) || "addresses.yaml"}</td>
                   <td>
                     <button className="iconBtn" title="Edit" onClick={() => onEdit(r)}>
@@ -197,7 +226,7 @@ function AddrsTableView({ env, rows, filters, setFilters, onAdd, onEdit, onDelet
           )}
           {rows.length === 0 ? (
             <tr>
-              <td colSpan={5} className="muted">
+              <td colSpan={6} className="muted">
                 No items
               </td>
             </tr>

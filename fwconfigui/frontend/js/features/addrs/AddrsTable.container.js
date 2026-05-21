@@ -6,6 +6,7 @@ function AddrsTable({ env, setLoading, setError }) {
     name: "",
     value: "",
     nameOverride: "",
+    inFirewall: "",
   });
   const [originalRef, setOriginalRef] = React.useState({ filename: "addresses.yaml", name: "" });
   const [confirmDelete, setConfirmDelete] = React.useState({ show: false, row: null });
@@ -25,7 +26,7 @@ function AddrsTable({ env, setLoading, setError }) {
 
   React.useEffect(() => {
     setEditingKey("");
-    setDraft({ filename: "addresses.yaml", name: "", value: "", nameOverride: "" });
+    setDraft({ filename: "addresses.yaml", name: "", value: "", nameOverride: "", inFirewall: "" });
     setOriginalRef({ filename: "addresses.yaml", name: "" });
     setConfirmDelete({ show: false, row: null });
     load();
@@ -37,12 +38,19 @@ function AddrsTable({ env, setLoading, setError }) {
 
   const { sortedRows, filters, setFilters } = useTableFilter({
     rows,
-    initialFilters: { filename: "", name: "", value: "", nameOverride: "" },
+    initialFilters: { filename: "", name: "", value: "", nameOverride: "", inFirewall: "" },
     fieldMapping: (row) => ({
       filename: safeTrim(row.filename),
       name: safeTrim(row.name),
       value: safeTrim(row?.data?.ip) || safeTrim(row?.data?.range) || safeTrim(row?.data?.subnet),
-      nameOverride: safeTrim(row?.data?.["name-override"]),
+      nameOverride: safeTrim(row?.data?.["name-override"]) || "empty",
+      inFirewall: (() => {
+        const v = row?.data?.["in-firewall"];
+        if (v === true) return "true";
+        if (v === false) return "false";
+        const s = safeTrim(v).toLowerCase();
+        return s || "empty";
+      })(),
     }),
     sortBy: (a, b) => {
       const af = safeTrim(a?.filename).toLowerCase();
@@ -53,7 +61,7 @@ function AddrsTable({ env, setLoading, setError }) {
   });
 
   const onAdd = React.useCallback(() => {
-    setDraft({ filename: "addresses.yaml", name: "", value: "", nameOverride: "" });
+    setDraft({ filename: "addresses.yaml", name: "", value: "", nameOverride: "", inFirewall: "" });
     setOriginalRef({ filename: "addresses.yaml", name: "" });
     setEditingKey("__new__");
   }, []);
@@ -63,11 +71,14 @@ function AddrsTable({ env, setLoading, setError }) {
     const fn = safeTrim(row.filename) || "addresses.yaml";
     const data = row?.data && typeof row.data === "object" ? row.data : {};
     const value = safeTrim(data.ip) || safeTrim(data.range) || safeTrim(data.subnet);
+    const rawInFirewall = data["in-firewall"];
+    const inFirewall = rawInFirewall === true ? "true" : rawInFirewall === false ? "false" : safeTrim(rawInFirewall);
     setDraft({
       filename: fn,
       name: n,
       value,
       nameOverride: safeTrim(data["name-override"]),
+      inFirewall,
     });
     setOriginalRef({ filename: fn, name: n });
     setEditingKey(`${fn}::${n}`);
@@ -85,7 +96,7 @@ function AddrsTable({ env, setLoading, setError }) {
 
   const onCancelEdit = React.useCallback(() => {
     setEditingKey("");
-    setDraft({ filename: "addresses.yaml", name: "", value: "", nameOverride: "" });
+    setDraft({ filename: "addresses.yaml", name: "", value: "", nameOverride: "", inFirewall: "" });
     setOriginalRef({ filename: "addresses.yaml", name: "" });
   }, []);
 
@@ -111,6 +122,10 @@ function AddrsTable({ env, setLoading, setError }) {
         ...inferred,
         ...(isNonEmptyString(safeTrim(draft.nameOverride)) ? { "name-override": safeTrim(draft.nameOverride) } : {}),
       };
+
+      const inFirewallRaw = safeTrim(draft.inFirewall).toLowerCase();
+      if (inFirewallRaw === "true") data["in-firewall"] = true;
+      if (inFirewallRaw === "false") data["in-firewall"] = false;
 
       await saveAddr(env, {
         filename: nextFilename,

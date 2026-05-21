@@ -113,6 +113,19 @@ class AddressesService:
             if no:
                 out["name-override"] = no
 
+        in_firewall = payload.get("in-firewall")
+        if in_firewall is not None:
+            if in_firewall is True:
+                out["in-firewall"] = True
+            elif in_firewall is False:
+                out["in-firewall"] = False
+            else:
+                s = str(in_firewall or "").strip().lower()
+                if s == "true":
+                    out["in-firewall"] = True
+                elif s == "false":
+                    out["in-firewall"] = False
+
         return out
 
     def _find_existing(self, *, env: str, name: str) -> Optional[Tuple[str, str]]:

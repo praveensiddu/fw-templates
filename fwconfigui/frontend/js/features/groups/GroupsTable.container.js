@@ -2,7 +2,7 @@ function GroupsTable({ env, setLoading, setError }) {
   const [items, setItems] = React.useState([]);
   const [memberOptions, setMemberOptions] = React.useState([]);
   const [editingKey, setEditingKey] = React.useState("");
-  const [draft, setDraft] = React.useState({ filename: "groups.yaml", name: "", members: [], nameOverride: "" });
+  const [draft, setDraft] = React.useState({ filename: "groups.yaml", name: "", members: [], nameOverride: "", inFirewall: "" });
   const [originalRef, setOriginalRef] = React.useState({ filename: "groups.yaml", name: "" });
   const [confirmDelete, setConfirmDelete] = React.useState({ show: false, row: null });
 
@@ -27,7 +27,7 @@ function GroupsTable({ env, setLoading, setError }) {
 
   React.useEffect(() => {
     setEditingKey("");
-    setDraft({ filename: "groups.yaml", name: "", members: [], nameOverride: "" });
+    setDraft({ filename: "groups.yaml", name: "", members: [], nameOverride: "", inFirewall: "" });
     setOriginalRef({ filename: "groups.yaml", name: "" });
     setConfirmDelete({ show: false, row: null });
     load();
@@ -39,18 +39,25 @@ function GroupsTable({ env, setLoading, setError }) {
 
   const { sortedRows, filters, setFilters } = useTableFilter({
     rows,
-    initialFilters: { name: "", filename: "", members: "", nameOverride: "" },
+    initialFilters: { name: "", filename: "", members: "", nameOverride: "", inFirewall: "" },
     fieldMapping: (row) => ({
       name: safeTrim(row.name),
       filename: safeTrim(row.filename),
       members: Array.isArray(row?.data?.members) ? row.data.members.map((m) => safeTrim(m)).filter(Boolean).join("\n") : "",
-      nameOverride: safeTrim(row?.data?.["name-override"]),
+      nameOverride: safeTrim(row?.data?.["name-override"]) || "empty",
+      inFirewall: (() => {
+        const v = row?.data?.["in-firewall"];
+        if (v === true) return "true";
+        if (v === false) return "false";
+        const s = safeTrim(v).toLowerCase();
+        return s || "empty";
+      })(),
     }),
     sortBy: (a, b) => safeTrim(a?.name).localeCompare(safeTrim(b?.name)),
   });
 
   const onAdd = React.useCallback(() => {
-    setDraft({ filename: "groups.yaml", name: "", members: [], nameOverride: "" });
+    setDraft({ filename: "groups.yaml", name: "", members: [], nameOverride: "", inFirewall: "" });
     setOriginalRef({ filename: "groups.yaml", name: "" });
     setEditingKey("__new__");
   }, []);
@@ -61,7 +68,9 @@ function GroupsTable({ env, setLoading, setError }) {
     const members = Array.isArray(row?.data?.members) ? row.data.members : [];
     const cleanedMembers = (members || []).map((m) => safeTrim(m)).filter(Boolean);
     const no = safeTrim(row?.data?.["name-override"]);
-    setDraft({ filename: fn, name: n, members: cleanedMembers, nameOverride: no });
+    const rawInFirewall = row?.data?.["in-firewall"];
+    const inFirewall = rawInFirewall === true ? "true" : rawInFirewall === false ? "false" : safeTrim(rawInFirewall);
+    setDraft({ filename: fn, name: n, members: cleanedMembers, nameOverride: no, inFirewall });
     setOriginalRef({ filename: fn, name: n });
     setEditingKey(`${fn}::${n}`);
   }, []);
@@ -77,7 +86,7 @@ function GroupsTable({ env, setLoading, setError }) {
 
   const onCancelEdit = React.useCallback(() => {
     setEditingKey("");
-    setDraft({ filename: "groups.yaml", name: "", members: [], nameOverride: "" });
+    setDraft({ filename: "groups.yaml", name: "", members: [], nameOverride: "", inFirewall: "" });
     setOriginalRef({ filename: "groups.yaml", name: "" });
   }, []);
 
@@ -95,6 +104,8 @@ function GroupsTable({ env, setLoading, setError }) {
         .map((m) => safeTrim(m))
         .filter(Boolean);
       const nameOverride = safeTrim(draft.nameOverride);
+      const inFirewallRaw = safeTrim(draft.inFirewall).toLowerCase();
+      const inFirewall = inFirewallRaw === "true" ? true : inFirewallRaw === "false" ? false : "";
 
       await saveGroup(env, {
         filename,
@@ -103,6 +114,7 @@ function GroupsTable({ env, setLoading, setError }) {
         data: {
           members,
           ...(isNonEmptyString(nameOverride) ? { "name-override": nameOverride } : {}),
+          ...(inFirewallRaw === "true" || inFirewallRaw === "false" ? { "in-firewall": inFirewall } : {}),
         },
       });
 
