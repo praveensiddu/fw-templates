@@ -3,7 +3,7 @@
 from datetime import datetime
 import logging
 from pathlib import Path
-from typing import Any, Callable
+from typing import Any, Callable, Dict, List, Optional, Tuple
 
 from fastapi import APIRouter, HTTPException, Depends, Request, status
 from pydantic import BaseModel
@@ -16,7 +16,7 @@ from backend.dependencies import get_current_user
 rolemgmtimpl = RoleMgmtImpl.get_instance()
 
 
-def execute_role_operation(operation: Callable[[], None], operation_name: str) -> dict[str, Any]:
+def execute_role_operation(operation: Callable[[], None], operation_name: str) -> Dict[str, Any]:
     """Execute a role management operation with standardized error handling.
 
     This helper handles common error patterns:
@@ -54,8 +54,8 @@ def execute_role_operation(operation: Callable[[], None], operation_name: str) -
 
 def create_rolemgmt_router(
     *,
-    enforce: Callable[[dict[str, Any], str, str, dict[str, Any] | None], None],
-    get_current_user_context: Callable[..., dict[str, Any]]
+    enforce: Callable[[Dict[str, Any], str, str, Optional[Dict[str, Any]]], None],
+    get_current_user_context: Callable[..., Dict[str, Any]]
 ) -> APIRouter:
 
     router = APIRouter(tags=["RoleManagement"])
@@ -64,8 +64,8 @@ def create_rolemgmt_router(
     class RoleAssignmentRequest(BaseModel):
         product: str
         role: str
-        userid: str | None = None
-        group: str | None = None
+        userid: Optional[str] = None
+        group: Optional[str] = None
 
 
     class GlobalRoleAssignmentRequest(BaseModel):
@@ -78,11 +78,11 @@ def create_rolemgmt_router(
         role: str
 
 
-    def get_grantor(request: Request) -> str | None:
+    def get_grantor(request: Request) -> Optional[str]:
         return get_current_user(request)
 
     @router.get("/role-management/rbac/refresh")
-    def refresh_rbac_roles() -> dict[str, Any]:
+    def refresh_rbac_roles() -> Dict[str, Any]:
         try:
             rolemgmtimpl.update_roles(force=True)
             return {
@@ -100,7 +100,7 @@ def create_rolemgmt_router(
             )
 
     @router.get("/role-management/product")
-    def list_product_roles() -> dict[str, Any]:
+    def list_product_roles() -> Dict[str, Any]:
         group_rows = rolemgmtimpl.get_grp2products2roles()
         user_rows = rolemgmtimpl.get_user2products2roles()
         return {
@@ -112,8 +112,8 @@ def create_rolemgmt_router(
 
     @router.get("/role-management/users")
     def list_users_and_roles(
-        user_context: dict[str, Any] = Depends(get_current_user_context),
-    ) -> dict[str, Any]:
+        user_context: Dict[str, Any] = Depends(get_current_user_context),
+    ) -> Dict[str, Any]:
         enforce(user_context, "/role-management/users", "GET", {})
 
         users = rolemgmtimpl.list_all_users()
@@ -124,8 +124,8 @@ def create_rolemgmt_router(
 
     @router.post("/role-management/product/assign")
     def assign_role(payload: RoleAssignmentRequest,
-                    grantor: str | None = Depends(get_grantor),
-                    user_context: dict[str, Any] = Depends(get_current_user_context)) -> dict[str, Any]:
+                    grantor: Optional[str] = Depends(get_grantor),
+                    user_context: Dict[str, Any] = Depends(get_current_user_context)) -> Dict[str, Any]:
         enforce(user_context, "/role-management/product/assign", "POST", {})
         userid = str(payload.userid or "").strip()
         group = str(payload.group or "").strip()
@@ -148,7 +148,7 @@ def create_rolemgmt_router(
                 if isinstance(loaded, dict):
                     raw = loaded
             if isinstance(raw, dict):
-                matches: list[tuple[str, dict[str, object]]] = []
+                matches: List[Tuple[str, Dict[str, object]]] = []
                 for k, v in raw.items():
                     if not isinstance(k, str) or not isinstance(v, dict):
                         continue
@@ -195,8 +195,8 @@ def create_rolemgmt_router(
 
     @router.post("/role-management/product/unassign")
     def unassign_role(payload: RoleAssignmentRequest,
-                      grantor: str | None = Depends(get_grantor),
-                    user_context: dict[str, Any] = Depends(get_current_user_context)) -> dict[str, Any]:
+                      grantor: Optional[str] = Depends(get_grantor),
+                    user_context: Dict[str, Any] = Depends(get_current_user_context)) -> Dict[str, Any]:
         enforce(user_context, "/role-management/product/unassign", "POST", {})
         userid = str(payload.userid or "").strip()
         group = str(payload.group or "").strip()
@@ -214,7 +214,7 @@ def create_rolemgmt_router(
 
 
     @router.get("/role-management/groupglobal")
-    def list_groupglobal_roles() -> dict[str, Any]:
+    def list_groupglobal_roles() -> Dict[str, Any]:
         rows = rolemgmtimpl.get_grps2globalroles()
         return {"rows": rows}
 
@@ -227,8 +227,8 @@ def create_rolemgmt_router(
       ]
     }""")
     def assign_groupglobal_role(payload: GlobalRoleAssignmentRequest,
-                                grantor: str | None = Depends(get_grantor),
-                    user_context: dict[str, Any] = Depends(get_current_user_context)) -> dict[str, Any]:
+                                grantor: Optional[str] = Depends(get_grantor),
+                    user_context: Dict[str, Any] = Depends(get_current_user_context)) -> Dict[str, Any]:
         enforce(user_context, "/role-management/groupglobal/assign", "POST", {})
         return execute_role_operation(
             lambda: rolemgmtimpl.add_grps2globalroles(grantor, payload.group, payload.role),
@@ -244,8 +244,8 @@ def create_rolemgmt_router(
       ]
     }""")
     def unassign_groupglobal_role(payload: GlobalRoleAssignmentRequest,
-                                  grantor: str | None = Depends(get_grantor),
-                    user_context: dict[str, Any] = Depends(get_current_user_context)) -> dict[str, Any]:
+                                  grantor: Optional[str] = Depends(get_grantor),
+                    user_context: Dict[str, Any] = Depends(get_current_user_context)) -> Dict[str, Any]:
         enforce(user_context, "/role-management/groupglobal/unassign", "POST", {})
         return execute_role_operation(
             lambda: rolemgmtimpl.del_grps2globalroles(grantor, payload.group, payload.role),
@@ -256,7 +256,7 @@ def create_rolemgmt_router(
     @router.get("/role-management/userglobal",
                  summary="Get the list of roles that govern user access across the portal",
                  description="""""")
-    def list_userglobal_roles() -> dict[str, Any]:
+    def list_userglobal_roles() -> Dict[str, Any]:
         rows = rolemgmtimpl.get_users2globalroles()
         return {"rows": rows}
 
@@ -264,8 +264,8 @@ def create_rolemgmt_router(
     @router.get("/role-management/user/roles")
     def lookup_user_roles(
         userid: str,
-        user_context: dict[str, Any] = Depends(get_current_user_context),
-    ) -> dict[str, Any]:
+        user_context: Dict[str, Any] = Depends(get_current_user_context),
+    ) -> Dict[str, Any]:
         enforce(user_context, "/role-management/user/roles", "GET", {})
 
         user_id = str(userid or "").strip()
@@ -286,7 +286,7 @@ def create_rolemgmt_router(
         if not isinstance(user_global_roles, list):
             user_global_roles = []
 
-        group_global_roles: dict[str, list[str]] = {}
+        group_global_roles: Dict[str, List[str]] = {}
         if isinstance(group_global_map, dict):
             for g in groups:
                 roles = group_global_map.get(g)
@@ -297,13 +297,13 @@ def create_rolemgmt_router(
         if not isinstance(user_product_roles, dict):
             user_product_roles = {}
 
-        group_product_roles: dict[str, dict[str, list[str]]] = {}
+        group_product_roles: Dict[str, Dict[str, List[str]]] = {}
         if isinstance(group_product_map, dict):
             for g in groups:
                 amap = group_product_map.get(g)
                 if not isinstance(amap, dict):
                     continue
-                next_amap: dict[str, list[str]] = {}
+                next_amap: Dict[str, List[str]] = {}
                 for product, roles in amap.items():
                     if not isinstance(roles, list):
                         continue
@@ -334,8 +334,8 @@ def create_rolemgmt_router(
       ]
     }""")
     def assign_userglobal_role(payload: UserGlobalRoleAssignmentRequest,
-                               grantor: str | None = Depends(get_grantor),
-                    user_context: dict[str, Any] = Depends(get_current_user_context)) -> dict[str, Any]:
+                               grantor: Optional[str] = Depends(get_grantor),
+                    user_context: Dict[str, Any] = Depends(get_current_user_context)) -> Dict[str, Any]:
         enforce(user_context, "/role-management/userglobal/assign", "POST", {})
         return execute_role_operation(
             lambda: rolemgmtimpl.add_users2globalroles(grantor, payload.user, payload.role),
@@ -351,8 +351,8 @@ def create_rolemgmt_router(
       ]
     }""")
     def unassign_userglobal_role(payload: UserGlobalRoleAssignmentRequest,
-                                 grantor: str | None = Depends(get_grantor),
-                    user_context: dict[str, Any] = Depends(get_current_user_context)) -> dict[str, Any]:
+                                 grantor: Optional[str] = Depends(get_grantor),
+                    user_context: Dict[str, Any] = Depends(get_current_user_context)) -> Dict[str, Any]:
         enforce(user_context, "/role-management/userglobal/unassign", "POST", {})
         return execute_role_operation(
             lambda: rolemgmtimpl.del_users2globalroles(grantor, payload.user, payload.role),

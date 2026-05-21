@@ -22,7 +22,7 @@ def require_yaml_type(yaml_type: Optional[str]) -> str:
     return normalized
 
 
-def get_current_user(request: Request) -> str | None:
+def get_current_user(request: Request) -> Optional[str]:
     deployment_type = str(os.getenv("DEPLOYMENT_TYPE", "") or "").strip().lower()
     if deployment_type == "test":
         return str(os.getenv("CURRENT_USER", "") or "").strip() or None

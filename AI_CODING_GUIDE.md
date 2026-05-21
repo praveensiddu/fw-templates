@@ -8,6 +8,7 @@
 2. **DO NOT run tests or verify functionality** - the user will test manually and ask if needed
 3. **DO NOT ask for confirmation** before making changes - just implement them
 4. **Focus on code changes only** - no documentation generation unless explicitly requested
+5. **Python compatibility**: Assume older Python in backend (avoid `X | Y`, `dict[str, ...]`, `list[str]`). Use `Optional[...]`, `Union[...]`, `Dict[...]`, `List[...]` from `typing`.
 
 ---
 
