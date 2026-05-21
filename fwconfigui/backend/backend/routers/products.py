@@ -63,6 +63,18 @@ def _normalize_envs(v: Any) -> list[str]:
     return sorted(list(dict.fromkeys(out)))
 
 
+def _normalize_flowids(v: Any) -> list[str]:
+    xs = v if isinstance(v, list) else []
+    out = []
+    for x in xs:
+        s = str(x or "").strip().upper()
+        s = re.sub(r"[^A-Z0-9_-]", "", s)
+        if not s:
+            continue
+        out.append(s)
+    return sorted(list(dict.fromkeys(out)))
+
+
 class ImportProductRequest(BaseModel):
     name: str
 
@@ -90,6 +102,8 @@ def list_items(request: Request):
                     "description": _normalize_description(data.get("description")),
                     "components_prefix_list": _normalize_components_prefix_list(data.get("components_prefix_list")),
                     "components_exclude_list": _normalize_components_exclude_list(data.get("components_exclude_list")),
+                    "include_flowids": _normalize_flowids(data.get("include_flowids")),
+                    "exclude_flowids": _normalize_flowids(data.get("exclude_flowids")),
                 },
             }
         )
@@ -129,6 +143,9 @@ def save_item(
         raise ValidationError("components_prefix_list", "must not be empty")
     components_exclude_list = _normalize_components_exclude_list(data.get("components_exclude_list"))
 
+    include_flowids = _normalize_flowids(data.get("include_flowids"))
+    exclude_flowids = _normalize_flowids(data.get("exclude_flowids"))
+
     path = _path()
     raw = read_yaml_dict(path)
     if not isinstance(raw, dict):
@@ -142,6 +159,8 @@ def save_item(
         "description": description,
         "components_prefix_list": components_prefix_list,
         "components_exclude_list": components_exclude_list,
+        "include_flowids": include_flowids,
+        "exclude_flowids": exclude_flowids,
     }
     write_yaml_dict(path, raw, sort_keys=True)
     return {"ok": True}
@@ -194,6 +213,8 @@ def update_item(
         "description": description,
         "components_prefix_list": components_prefix_list,
         "components_exclude_list": components_exclude_list,
+        "include_flowids": include_flowids,
+        "exclude_flowids": exclude_flowids,
     }
     write_yaml_dict(path, raw, sort_keys=True)
     return {"ok": True}

@@ -32,6 +32,8 @@ function ProductsTableView({
             <th className="fwTableHeaderCell">Description</th>
             <th className="fwTableHeaderCell" style={{ width: 300 }}>Components Prefix List</th>
             <th className="fwTableHeaderCell" style={{ width: 300 }}>Components Exclude List</th>
+            <th className="fwTableHeaderCell" style={{ width: 260 }}>Include flowids</th>
+            <th className="fwTableHeaderCell" style={{ width: 260 }}>Exclude flowids</th>
             <th className="fwTableHeaderCell" style={{ width: 120 }}>Actions</th>
           </tr>
           <tr>
@@ -73,6 +75,22 @@ function ProductsTableView({
                 placeholder="Filter exclude list..."
                 value={filters.componentsExcludeList}
                 onChange={(e) => setFilters((p) => ({ ...p, componentsExcludeList: e.target.value }))}
+              />
+            </th>
+            <th>
+              <input
+                className={`filterInput ${isNonEmptyString(filters.includeFlowids) ? "filterInput-active" : ""}`}
+                placeholder="Filter include flowids..."
+                value={filters.includeFlowids}
+                onChange={(e) => setFilters((p) => ({ ...p, includeFlowids: e.target.value }))}
+              />
+            </th>
+            <th>
+              <input
+                className={`filterInput ${isNonEmptyString(filters.excludeFlowids) ? "filterInput-active" : ""}`}
+                placeholder="Filter exclude flowids..."
+                value={filters.excludeFlowids}
+                onChange={(e) => setFilters((p) => ({ ...p, excludeFlowids: e.target.value }))}
               />
             </th>
             <th />
@@ -119,6 +137,16 @@ function ProductsTableView({
                 <td>
                   <div style={{ whiteSpace: "pre-line" }}>
                     {(Array.isArray(r?.componentsExcludeList) ? r.componentsExcludeList : []).join(", ")}
+                  </div>
+                </td>
+                <td>
+                  <div style={{ whiteSpace: "pre-line" }}>
+                    {(Array.isArray(r?.includeFlowids) ? r.includeFlowids : []).join(", ")}
+                  </div>
+                </td>
+                <td>
+                  <div style={{ whiteSpace: "pre-line" }}>
+                    {(Array.isArray(r?.excludeFlowids) ? r.excludeFlowids : []).join(", ")}
                   </div>
                 </td>
                 <td>
@@ -174,7 +202,7 @@ function ProductsTableView({
 
           {(rows || []).length === 0 ? (
             <tr>
-              <td colSpan={6} className="muted">
+              <td colSpan={8} className="muted">
                 No items
               </td>
             </tr>

@@ -27,14 +27,11 @@ function FwRulesTableView({
       <div className="actions">
         <div className="muted">fw-templates ({Array.isArray(rows) ? rows.length : 0})</div>
         <div style={{ display: "flex", gap: 6, alignItems: "center" }}>
-          <button className="iconBtn iconBtn-primary" title="Commit" onClick={onCommit}>
+          <button className="iconBtn iconBtn-primary" title="Verify and commit" onClick={onCommit}>
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-              <path d="M6 3h12" />
-              <path d="M6 8h12" />
-              <path d="M6 13h12" />
-              <path d="M6 18h6" />
-              <path d="M18 16v6" />
-              <path d="M15 19h6" />
+              <path d="M9 12l2 2 4-4" />
+              <path d="M12 22c5.523 0 10-4.477 10-10S17.523 2 12 2 2 6.477 2 12s4.477 10 10 10z" />
+              <path d="M12 6v6" />
             </svg>
           </button>
           <button className="iconBtn iconBtn-primary" title="Add" onClick={onAdd}>
@@ -177,14 +174,38 @@ function FwRulesTableView({
                       <div style={{ whiteSpace: "pre-line" }}>{safeTrim(r.destinationDisplay)}</div>
                     </td>
                     <td>
-                      {isEditing("protocol-port-reference") ? (
+                      <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
+                        {(Array.isArray(r?.protocolPortItems) ? r.protocolPortItems : []).length === 0 ? (
+                          <div className="muted" />
+                        ) : (
+                          (r.protocolPortItems || []).map((pp) => (
+                            <div
+                              key={pp.key}
+                              style={{
+                                padding: "6px 8px",
+                                borderRadius: 8,
+                                border: "1px solid rgba(0,0,0,0.10)",
+                                background: pp.valid ? "rgba(0,0,0,0.02)" : "rgba(220,53,69,0.10)",
+                                color: pp.valid ? "inherit" : "#dc3545",
+                              }}
+                            >
+                              {safeTrim(pp.display)}
+                            </div>
+                          ))
+                        )}
+                      </div>
+                    </td>
+                    <td>
+                      {isEditing("business-purpose-reference") ? (
                         <div style={{ display: "flex", gap: 8, alignItems: "flex-start" }}>
-                          <MultiSelectPicker
-                            options={Array.isArray(portProtocolNames) ? portProtocolNames : []}
-                            values={Array.isArray(cellEdit?.protocolPortRefs) ? cellEdit.protocolPortRefs : []}
-                            onChange={(next) => setCellEdit((p) => ({ ...p, protocolPortRefs: next }))}
-                            placeholder="Add protocol-port ref..."
-                            inputTestId={`fw-rule-cell-pprefs-${rowKey}`}
+                          <SingleSelectPicker
+                            options={Array.isArray(businessPurposeNames) ? businessPurposeNames : []}
+                            value={safeTrim(cellEdit?.businessPurpose)}
+                            onChange={(v) => setCellEdit((p) => ({ ...p, businessPurpose: v }))}
+                            placeholder="Type to filter..."
+                            inputTestId={`fw-rule-cell-bp-${rowKey}`}
+                            allowEmpty={true}
+                            emptyLabel="Select..."
                           />
                           <button className="iconBtn iconBtn-primary" title="Save" onClick={onSaveCellEdit} style={{ alignSelf: "flex-start" }}>
                             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
@@ -200,51 +221,17 @@ function FwRulesTableView({
                         </div>
                       ) : (
                         <div style={{ display: "flex", gap: 8, alignItems: "flex-start" }}>
-                          <div style={{ whiteSpace: "pre-line", flex: 1 }}>{safeTrim(r.protocolPortDisplay)}</div>
-                          <button
-                            className="iconBtn"
-                            title="Edit"
-                            onClick={() => onStartCellEdit(r, "protocol-port-reference")}
-                            style={{ alignSelf: "flex-start" }}
+                          <div
+                            style={{
+                              flex: 1,
+                              color: r?.businessPurposeValid ? "inherit" : "#dc3545",
+                              background: r?.businessPurposeValid ? "transparent" : "rgba(220,53,69,0.10)",
+                              borderRadius: 8,
+                              padding: r?.businessPurposeValid ? 0 : "6px 8px",
+                            }}
                           >
-                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                              <path d="M12 20h9" />
-                              <path d="M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4 12.5-12.5z" />
-                            </svg>
-                          </button>
-                        </div>
-                      )}
-                    </td>
-                    <td>
-                      {isEditing("business-purpose-reference") ? (
-                        <div style={{ display: "flex", gap: 8, alignItems: "flex-start" }}>
-                          <select
-                            className="filterInput"
-                            value={safeTrim(cellEdit?.businessPurpose)}
-                            onChange={(e) => setCellEdit((p) => ({ ...p, businessPurpose: e.target.value }))}
-                          >
-                            <option value="">Select...</option>
-                            {(Array.isArray(businessPurposeNames) ? businessPurposeNames : []).map((n) => (
-                              <option key={n} value={n}>
-                                {n}
-                              </option>
-                            ))}
-                          </select>
-                          <button className="iconBtn iconBtn-primary" title="Save" onClick={onSaveCellEdit} style={{ alignSelf: "flex-start" }}>
-                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                              <polyline points="20 6 9 17 4 12" />
-                            </svg>
-                          </button>
-                          <button className="iconBtn" title="Cancel" onClick={onCancelCellEdit} style={{ alignSelf: "flex-start" }}>
-                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                              <path d="M18 6L6 18" />
-                              <path d="M6 6l12 12" />
-                            </svg>
-                          </button>
-                        </div>
-                      ) : (
-                        <div style={{ display: "flex", gap: 8, alignItems: "flex-start" }}>
-                          <div style={{ flex: 1 }}>{safeTrim(r.businessPurposeDisplay)}</div>
+                            {safeTrim(r.businessPurposeDisplay)}
+                          </div>
                           <button
                             className="iconBtn"
                             title="Edit"

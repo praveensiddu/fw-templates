@@ -10,13 +10,52 @@ function MultiSelectPicker({
   const rootRef = React.useRef(null);
 
   const normalizedOptions = Array.isArray(options) ? options : [];
-  const selected = Array.isArray(values) ? values : [];
+  const selected = React.useMemo(() => {
+    const raw = Array.isArray(values) ? values : [];
+    const out = [];
+    for (const it of raw) {
+      if (it && typeof it === "object") {
+        const v = safeTrim(it.value);
+        if (v) out.push(v);
+        continue;
+      }
+      const v = safeTrim(it);
+      if (v) out.push(v);
+    }
+    return out;
+  }, [values]);
+
+  const optionRecords = React.useMemo(() => {
+    const out = [];
+    for (const opt of normalizedOptions) {
+      if (opt && typeof opt === "object") {
+        const value = safeTrim(opt.value);
+        const label = isNonEmptyString(opt.label) ? String(opt.label) : value;
+        if (!value) continue;
+        out.push({ value, label });
+        continue;
+      }
+      const value = safeTrim(opt);
+      if (!value) continue;
+      out.push({ value, label: value });
+    }
+    return out;
+  }, [normalizedOptions]);
+
+  const labelByValue = React.useMemo(() => {
+    const m = {};
+    for (const rec of optionRecords) {
+      if (!rec?.value) continue;
+      m[String(rec.value).toLowerCase()] = rec.label;
+    }
+    return m;
+  }, [optionRecords]);
 
   const filteredOptions = React.useMemo(() => {
     const q = String(query || "").trim().toLowerCase();
-    if (!q) return normalizedOptions;
-    return normalizedOptions.filter((x) => String(x).toLowerCase().includes(q));
-  }, [normalizedOptions, query]);
+    if (!q) return optionRecords;
+    return optionRecords.filter((x) => String(x?.label || "").toLowerCase().includes(q) || String(x?.value || "").toLowerCase().includes(q));
+  }, [optionRecords, query]);
 
   React.useEffect(() => {
     if (!open) return;
@@ -83,7 +122,7 @@ function MultiSelectPicker({
               fontSize: 12,
             }}
           >
-            <span>{c}</span>
+            <span>{labelByValue[String(c || "").toLowerCase()] || c}</span>
             <button
               type="button"
               className="btn"
@@ -156,7 +195,7 @@ function MultiSelectPicker({
           ) : (
             filteredOptions.map((c) => (
               <button
-                key={c}
+                key={c.value}
                 type="button"
                 className="btn"
                 style={{
@@ -168,10 +207,10 @@ function MultiSelectPicker({
                 }}
                 onMouseDown={(e) => {
                   e.preventDefault();
-                  addValue(c);
+                  addValue(c.value);
                 }}
               >
-                {c}
+                {c.label}
               </button>
             ))
           )}
@@ -244,6 +283,7 @@ function FwRulesTable({ setLoading, setError }) {
   const [confirmDelete, setConfirmDelete] = React.useState({ show: false, row: null });
   const [yamlEditor, setYamlEditor] = React.useState({ show: false, row: null, appflowid: "", yaml: "" });
   const [commitResult, setCommitResult] = React.useState({ show: false, ok: false, errors: [] });
+  const [verifyCommitPanel, setVerifyCommitPanel] = React.useState({ show: false, mode: "verify-only" });
   const [originalAppflowid, setOriginalAppflowid] = React.useState("");
 
   function stableStringify(v) {
@@ -447,6 +487,16 @@ function FwRulesTable({ setLoading, setError }) {
     }
   }, [setLoading, setError]);
 
+  const portProtocolOptions = React.useMemo(() => {
+    const names = Array.isArray(portProtocolNames) ? portProtocolNames : [];
+    return names.map((n) => {
+      const key = safeTrim(n);
+      const display = portProtocolDisplayByName?.[key];
+      const label = display ? `${key} (${display})` : key;
+      return { value: key, label };
+    });
+  }, [portProtocolNames, portProtocolDisplayByName]);
+
   React.useEffect(() => {
     load();
   }, [load]);
@@ -466,6 +516,9 @@ function FwRulesTable({ setLoading, setError }) {
   }, []);
 
   const rows = React.useMemo(() => {
+    const ppKnown = new Set((Array.isArray(portProtocolNames) ? portProtocolNames : []).map((x) => safeTrim(x)).filter(Boolean));
+    const bpKnown = new Set((Array.isArray(businessPurposeNames) ? businessPurposeNames : []).map((x) => safeTrim(x)).filter(Boolean));
+
     return (items || []).map((it) => {
       const refs = Array.isArray(it?.data?.["protocol-port-reference"]) ? it.data["protocol-port-reference"] : [];
       const src = it?.data?.["source-list"] || it?.data?.source;
@@ -474,26 +527,39 @@ function FwRulesTable({ setLoading, setError }) {
       const envs = Array.isArray(it?.data?.envs) ? it.data.envs : [];
       const bpRef = safeTrim(it?.data?.["business-purpose-reference"]);
       const appflowid = safeTrim(it?.data?.appflowid);
+
+      const protocolPortItems = refs
+        .map((r) => {
+          const key = safeTrim(r);
+          if (!key) return null;
+          return {
+            key,
+            display: portProtocolDisplayByName?.[key] || key,
+            valid: ppKnown.has(key),
+          };
+        })
+        .filter(Boolean);
+
+      const hasBp = isNonEmptyString(bpRef);
+      const businessPurposeValid = !hasBp || bpKnown.has(bpRef);
+
       return {
         ...it,
         name: safeTrim(it?.name) || appflowid,
         appflowid,
         sourceDisplay: formatEndpoint(src),
         destinationDisplay: formatEndpoint(dst),
-        protocolPortDisplay: refs
-          .map((r) => {
-            const key = safeTrim(r);
-            return portProtocolDisplayByName?.[key] || key;
-          })
-          .filter(Boolean)
-          .join("\n"),
-        businessPurposeDisplay:
-          businessPurposeDisplayByName?.[bpRef] || bpRef,
+        protocolPortItems,
+        protocolPortRefs: protocolPortItems.map((x) => x.key),
+        protocolPortDisplay: protocolPortItems.map((x) => x.display).filter(Boolean).join("\n"),
+        businessPurposeRef: bpRef,
+        businessPurposeValid,
+        businessPurposeDisplay: businessPurposeDisplayByName?.[bpRef] || bpRef,
         keywordsDisplay: keywords.map((x) => safeTrim(x)).filter(Boolean).join("\n"),
         envsJoined: envs.map((x) => safeTrim(x)).filter(Boolean).join("\n"),
       };
     });
-  }, [items, formatEndpoint, portProtocolDisplayByName, businessPurposeDisplayByName]);
+  }, [items, formatEndpoint, portProtocolDisplayByName, businessPurposeDisplayByName, portProtocolNames, businessPurposeNames]);
 
   const { sortedRows, filters, setFilters } = useTableFilter({
     rows,
@@ -761,24 +827,31 @@ function FwRulesTable({ setLoading, setError }) {
     }
   }, [yamlEditor, setLoading, setError, load]);
 
-  const onCommit = React.useCallback(async () => {
-    try {
-      setLoading(true);
-      setError("");
-      const res = await postJson(`${fwconfigTypeBasePath("fw-rules")}/commit`, {});
-      const ok = !!res?.ok;
-      const errors = Array.isArray(res?.errors) ? res.errors : [];
-      setCommitResult({ show: true, ok, errors });
-      if (!ok && errors.length) {
-        setError(String(errors[0] || "Validation failed"));
+  const runVerifyAndCommit = React.useCallback(
+    async (mode) => {
+      try {
+        setLoading(true);
+        setError("");
+        const res = await postJson(`${fwconfigTypeBasePath("fw-rules")}/verify_and_commit`, { mode });
+        const ok = !!res?.ok;
+        const errors = Array.isArray(res?.errors) ? res.errors : [];
+        setCommitResult({ show: true, ok, errors });
+        if (!ok && errors.length) {
+          setError(String(errors[0] || "Validation failed"));
+        }
+      } catch (e) {
+        setError(formatError(e));
+        setCommitResult({ show: true, ok: false, errors: [formatError(e)] });
+      } finally {
+        setLoading(false);
       }
-    } catch (e) {
-      setError(formatError(e));
-      setCommitResult({ show: true, ok: false, errors: [formatError(e)] });
-    } finally {
-      setLoading(false);
-    }
-  }, [setLoading, setError]);
+    },
+    [setLoading, setError]
+  );
+
+  const onCommit = React.useCallback(() => {
+    setVerifyCommitPanel({ show: true, mode: "verify-only" });
+  }, []);
 
   const onMoveFile = React.useCallback(
     async (row, nextFilename) => {
@@ -1085,7 +1158,7 @@ function FwRulesTable({ setLoading, setError }) {
           groupOptions={groupOptions}
           envNames={envNames}
           keywordNames={keywordNames}
-          portProtocolNames={portProtocolNames}
+          portProtocolNames={portProtocolOptions}
           businessPurposeNames={businessPurposeNames}
           ruleFileNames={ruleFileNames}
         />
@@ -1192,6 +1265,59 @@ function FwRulesTable({ setLoading, setError }) {
                 </div>
               </div>
             ) : null}
+          </div>
+        </div>
+      ) : null}
+
+      {verifyCommitPanel.show ? (
+        <div
+          className="modalOverlay"
+          onClick={(e) => e.target === e.currentTarget && setVerifyCommitPanel({ show: false, mode: "verify-only" })}
+        >
+          <div className="modalCard">
+            <div className="modalHeader">
+              <h3 style={{ margin: 0 }}>Verify and commit</h3>
+              <button className="btn" onClick={() => setVerifyCommitPanel({ show: false, mode: "verify-only" })}>
+                Close
+              </button>
+            </div>
+
+            <div style={{ marginTop: 12, display: "flex", flexDirection: "column", gap: 10 }}>
+              <label style={{ display: "flex", gap: 8, alignItems: "center" }}>
+                <input
+                  type="radio"
+                  name="verify-commit-mode"
+                  checked={safeTrim(verifyCommitPanel.mode) === "verify-only"}
+                  onChange={() => setVerifyCommitPanel((p) => ({ ...p, mode: "verify-only" }))}
+                />
+                <span>Verify-only</span>
+              </label>
+              <label style={{ display: "flex", gap: 8, alignItems: "center" }}>
+                <input
+                  type="radio"
+                  name="verify-commit-mode"
+                  checked={safeTrim(verifyCommitPanel.mode) === "verify-and-commit"}
+                  onChange={() => setVerifyCommitPanel((p) => ({ ...p, mode: "verify-and-commit" }))}
+                />
+                <span>Verify and commit</span>
+              </label>
+            </div>
+
+            <div className="modalActions">
+              <button className="btn" onClick={() => setVerifyCommitPanel({ show: false, mode: "verify-only" })}>
+                Cancel
+              </button>
+              <button
+                className="btn btn-primary"
+                onClick={async () => {
+                  const mode = safeTrim(verifyCommitPanel.mode) || "verify-only";
+                  setVerifyCommitPanel({ show: false, mode: "verify-only" });
+                  await runVerifyAndCommit(mode);
+                }}
+              >
+                Run
+              </button>
+            </div>
           </div>
         </div>
       ) : null}

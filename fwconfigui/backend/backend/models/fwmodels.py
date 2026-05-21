@@ -52,3 +52,7 @@ class MoveFwRuleRequest(BaseModel):
     appflowid: str
     from_filename: str
     to_filename: str
+
+
+class VerifyAndCommitRequest(BaseModel):
+    mode: str

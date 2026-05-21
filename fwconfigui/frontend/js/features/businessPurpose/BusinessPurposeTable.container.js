@@ -246,19 +246,14 @@ function BusinessPurposeTable({ setLoading, setError }) {
             <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
               <div style={{ fontWeight: 650 }}>{dedupePanel.duplicateName}</div>
               <div className="muted">is a duplicate of</div>
-              <select
-                className="filterInput"
+              <SingleSelectPicker
+                options={businessPurposeNames.filter((n) => n && n !== dedupePanel.duplicateName)}
                 value={dedupePanel.originalName}
-                onChange={(e) => setDedupePanel((p) => ({ ...p, originalName: e.target.value }))}
-              >
-                {businessPurposeNames
-                  .filter((n) => n && n !== dedupePanel.duplicateName)
-                  .map((n) => (
-                    <option key={n} value={n}>
-                      {n}
-                    </option>
-                  ))}
-              </select>
+                onChange={(v) => setDedupePanel((p) => ({ ...p, originalName: v }))}
+                placeholder="Type to filter..."
+                inputTestId="business-purpose-dedupe-original"
+                allowEmpty={false}
+              />
               <p>Please delete and remap all references.</p>
             </div>
             <div className="modalActions">

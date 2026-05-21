@@ -34,6 +34,7 @@ function ProductsDetailsView({
                 <input
                   className="input"
                   value={safeTrim(form?.name)}
+                  disabled={mode === "edit"}
                   onChange={(e) => setForm((p) => ({ ...p, name: normalizeProductName(e.target.value) }))}
                   placeholder="PRODUCT"
                 />
@@ -77,6 +78,26 @@ function ProductsDetailsView({
                   value={String(form?.componentsExcludeListText || "")}
                   onChange={(e) => setForm((p) => ({ ...p, componentsExcludeListText: e.target.value }))}
                   placeholder="prefix1, prefix2"
+                />
+              </div>
+
+              <div className="field" style={{ gridColumn: "1 / -1" }}>
+                <div className="muted">Include flowids (comma-separated)</div>
+                <input
+                  className="input"
+                  value={String(form?.includeFlowidsText || "")}
+                  onChange={(e) => setForm((p) => ({ ...p, includeFlowidsText: e.target.value }))}
+                  placeholder="FLOWID1, FLOWID2"
+                />
+              </div>
+
+              <div className="field" style={{ gridColumn: "1 / -1" }}>
+                <div className="muted">Exclude flowids (comma-separated)</div>
+                <input
+                  className="input"
+                  value={String(form?.excludeFlowidsText || "")}
+                  onChange={(e) => setForm((p) => ({ ...p, excludeFlowidsText: e.target.value }))}
+                  placeholder="FLOWID1, FLOWID2"
                 />
               </div>
             </div>

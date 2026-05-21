@@ -6,7 +6,15 @@ function ProductsTable({ setLoading, setError }) {
   const [activePage, setActivePage] = React.useState("list");
   const [detailsMode, setDetailsMode] = React.useState("add");
   const [originalName, setOriginalName] = React.useState("");
-  const [form, setForm] = React.useState({ name: "", envs: [], description: "", componentsPrefixListText: "", componentsExcludeListText: "" });
+  const [form, setForm] = React.useState({
+    name: "",
+    envs: [],
+    description: "",
+    componentsPrefixListText: "",
+    componentsExcludeListText: "",
+    includeFlowidsText: "",
+    excludeFlowidsText: "",
+  });
 
   const rows = React.useMemo(() => {
     return (items || []).map((it) => {
@@ -14,6 +22,8 @@ function ProductsTable({ setLoading, setError }) {
       const envs = Array.isArray(data?.envs) ? data.envs : [];
       const prefixList = Array.isArray(data?.components_prefix_list) ? data.components_prefix_list : [];
       const excludeList = Array.isArray(data?.components_exclude_list) ? data.components_exclude_list : [];
+      const includeFlowids = Array.isArray(data?.include_flowids) ? data.include_flowids : [];
+      const excludeFlowids = Array.isArray(data?.exclude_flowids) ? data.exclude_flowids : [];
       return {
         ...it,
         name: safeTrim(it?.name),
@@ -21,19 +31,31 @@ function ProductsTable({ setLoading, setError }) {
         description: safeTrim(data?.description),
         componentsPrefixList: prefixList,
         componentsExcludeList: excludeList,
+        includeFlowids,
+        excludeFlowids,
       };
     });
   }, [items]);
 
   const { sortedRows, filters, setFilters } = useTableFilter({
     rows,
-    initialFilters: { name: "", envs: "", description: "", componentsPrefixList: "", componentsExcludeList: "" },
+    initialFilters: {
+      name: "",
+      envs: "",
+      description: "",
+      componentsPrefixList: "",
+      componentsExcludeList: "",
+      includeFlowids: "",
+      excludeFlowids: "",
+    },
     fieldMapping: (row) => ({
       name: safeTrim(row?.name),
       envs: Array.isArray(row?.envs) ? row.envs.join(",") : "",
       description: safeTrim(row?.description),
       componentsPrefixList: (Array.isArray(row?.componentsPrefixList) ? row.componentsPrefixList : []).join(","),
       componentsExcludeList: (Array.isArray(row?.componentsExcludeList) ? row.componentsExcludeList : []).join(","),
+      includeFlowids: (Array.isArray(row?.includeFlowids) ? row.includeFlowids : []).join(","),
+      excludeFlowids: (Array.isArray(row?.excludeFlowids) ? row.excludeFlowids : []).join(","),
     }),
     sortBy: (a, b) => safeTrim(a?.name).toLowerCase().localeCompare(safeTrim(b?.name).toLowerCase()),
   });
@@ -67,7 +89,15 @@ function ProductsTable({ setLoading, setError }) {
   const onAdd = React.useCallback(() => {
     setDetailsMode("add");
     setOriginalName("");
-    setForm({ name: "", envs: ["pac", "prd"], description: "", componentsPrefixListText: "", componentsExcludeListText: "" });
+    setForm({
+      name: "",
+      envs: ["pac", "prd"],
+      description: "",
+      componentsPrefixListText: "",
+      componentsExcludeListText: "",
+      includeFlowidsText: "",
+      excludeFlowidsText: "",
+    });
     setActivePage("details");
   }, []);
 
@@ -77,6 +107,8 @@ function ProductsTable({ setLoading, setError }) {
     const desc = safeTrim(row?.description);
     const prefixList = Array.isArray(row?.componentsPrefixList) ? row.componentsPrefixList : [];
     const excludeList = Array.isArray(row?.componentsExcludeList) ? row.componentsExcludeList : [];
+    const includeFlowids = Array.isArray(row?.includeFlowids) ? row.includeFlowids : [];
+    const excludeFlowids = Array.isArray(row?.excludeFlowids) ? row.excludeFlowids : [];
 
     setDetailsMode("edit");
     setOriginalName(name);
@@ -86,6 +118,8 @@ function ProductsTable({ setLoading, setError }) {
       description: desc,
       componentsPrefixListText: prefixList.join(", "),
       componentsExcludeListText: excludeList.join(", "),
+      includeFlowidsText: includeFlowids.join(", "),
+      excludeFlowidsText: excludeFlowids.join(", "),
     });
     setActivePage("details");
   }, []);
@@ -118,7 +152,15 @@ function ProductsTable({ setLoading, setError }) {
     setActivePage("list");
     setDetailsMode("add");
     setOriginalName("");
-    setForm({ name: "", envs: [], description: "", componentsPrefixListText: "", componentsExcludeListText: "" });
+    setForm({
+      name: "",
+      envs: [],
+      description: "",
+      componentsPrefixListText: "",
+      componentsExcludeListText: "",
+      includeFlowidsText: "",
+      excludeFlowidsText: "",
+    });
   }, []);
 
   const onSave = React.useCallback(async () => {
@@ -147,6 +189,20 @@ function ProductsTable({ setLoading, setError }) {
             .filter((x) => x)
         : [];
 
+      const nextIncludeFlowids = safeTrim(form.includeFlowidsText)
+        ? safeTrim(form.includeFlowidsText)
+            .split(",")
+            .map((x) => safeTrim(x).toUpperCase())
+            .filter((x) => x)
+        : [];
+
+      const nextExcludeFlowids = safeTrim(form.excludeFlowidsText)
+        ? safeTrim(form.excludeFlowidsText)
+            .split(",")
+            .map((x) => safeTrim(x).toUpperCase())
+            .filter((x) => x)
+        : [];
+
       await saveFwConfigItem("products", {
         name: nextName,
         original_name: detailsMode === "edit" ? safeTrim(originalName) || undefined : undefined,
@@ -156,6 +212,8 @@ function ProductsTable({ setLoading, setError }) {
           description: nextDescription,
           components_prefix_list: nextComponentsPrefixList,
           components_exclude_list: nextComponentsExcludeList,
+          include_flowids: nextIncludeFlowids,
+          exclude_flowids: nextExcludeFlowids,
         },
       });
 

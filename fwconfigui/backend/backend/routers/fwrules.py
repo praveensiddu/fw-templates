@@ -13,6 +13,7 @@ from backend.models import (
     MoveFwRuleRequest,
     SaveItemRequest,
     UpdateFwRuleFieldsRequest,
+    VerifyAndCommitRequest,
 )
 from backend.repositories.fwconfig_repository import FwConfigRepository
 from backend.services.fwconfig_service import FwConfigService
@@ -252,3 +253,22 @@ def commit_validate_rules(
 ) -> Dict[str, Any]:
     errors = service.validate_fw_rules_commit()
     return {"ok": len(errors) == 0, "errors": errors}
+
+
+@router.post("/verify_and_commit")
+def verify_and_commit_rules(
+    request: Request,
+    product: str,
+    payload: VerifyAndCommitRequest,
+    service: FwConfigService = Depends(get_service),
+) -> Dict[str, Any]:
+    mode = str(payload.mode or "").strip().lower()
+    if mode not in {"verify-only", "verify and commit", "verify-and-commit"}:
+        raise ValidationError("mode", "must be one of: verify-only, verify-and-commit")
+
+    errors = service.validate_fw_rules_commit()
+    ok = len(errors) == 0
+
+    # NOTE: currently the backend only validates; committing is handled outside of this service.
+    committed = ok and mode in {"verify and commit", "verify-and-commit"}
+    return {"ok": ok, "errors": errors, "mode": mode, "committed": committed}

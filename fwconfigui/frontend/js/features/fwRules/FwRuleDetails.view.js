@@ -396,18 +396,15 @@ function FwRuleDetailsView({
             <div className="fieldGrid">
               <div className="field">
                 <div className="muted">Business Purpose</div>
-                <select
-                  className="filterInput"
+                <SingleSelectPicker
+                  options={Array.isArray(businessPurposeNames) ? businessPurposeNames : []}
                   value={safeTrim(form.businessPurpose)}
-                  onChange={(e) => setForm((p) => ({ ...p, businessPurpose: e.target.value }))}
-                >
-                  <option value="">Select...</option>
-                  {businessPurposeNames.map((n) => (
-                    <option key={n} value={n}>
-                      {n}
-                    </option>
-                  ))}
-                </select>
+                  onChange={(v) => setForm((p) => ({ ...p, businessPurpose: v }))}
+                  placeholder="Type to filter..."
+                  inputTestId="fw-rule-edit-business-purpose"
+                  allowEmpty={true}
+                  emptyLabel="Select..."
+                />
               </div>
               <div className="field">
                 <div className="muted">Keywords</div>

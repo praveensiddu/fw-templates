@@ -10,13 +10,52 @@ function MultiSelectPicker({
   const [open, setOpen] = React.useState(false);
 
   const normalizedOptions = Array.isArray(options) ? options : [];
-  const selected = Array.isArray(values) ? values : [];
+  const selected = React.useMemo(() => {
+    const raw = Array.isArray(values) ? values : [];
+    const out = [];
+    for (const it of raw) {
+      if (it && typeof it === "object") {
+        const v = safeTrim(it.value);
+        if (v) out.push(v);
+        continue;
+      }
+      const v = safeTrim(it);
+      if (v) out.push(v);
+    }
+    return out;
+  }, [values]);
+
+  const optionRecords = React.useMemo(() => {
+    const out = [];
+    for (const opt of normalizedOptions) {
+      if (opt && typeof opt === "object") {
+        const value = safeTrim(opt.value);
+        const label = isNonEmptyString(opt.label) ? String(opt.label) : value;
+        if (!value) continue;
+        out.push({ value, label });
+        continue;
+      }
+      const value = safeTrim(opt);
+      if (!value) continue;
+      out.push({ value, label: value });
+    }
+    return out;
+  }, [normalizedOptions]);
+
+  const labelByValue = React.useMemo(() => {
+    const m = {};
+    for (const rec of optionRecords) {
+      if (!rec?.value) continue;
+      m[String(rec.value).toLowerCase()] = rec.label;
+    }
+    return m;
+  }, [optionRecords]);
 
   const filteredOptions = React.useMemo(() => {
     const q = String(query || "").trim().toLowerCase();
-    if (!q) return normalizedOptions;
-    return normalizedOptions.filter((x) => String(x).toLowerCase().includes(q));
-  }, [normalizedOptions, query]);
+    if (!q) return optionRecords;
+    return optionRecords.filter((x) => String(x?.label || "").toLowerCase().includes(q) || String(x?.value || "").toLowerCase().includes(q));
+  }, [optionRecords, query]);
 
   function addValue(name) {
     const v = String(name || "").trim();
@@ -68,7 +107,7 @@ function MultiSelectPicker({
               fontSize: 12,
             }}
           >
-            <span>{c}</span>
+            <span>{labelByValue[String(c || "").toLowerCase()] || c}</span>
             <button
               type="button"
               className="btn"
@@ -108,7 +147,7 @@ function MultiSelectPicker({
               }
 
               const first = filteredOptions[0];
-              if (first) addValue(first);
+              if (first) addValue(first.value);
               return;
             }
             if (e.key === "Backspace" && !query && (selected || []).length > 0) {
@@ -147,7 +186,7 @@ function MultiSelectPicker({
           ) : (
             filteredOptions.map((c) => (
               <button
-                key={c}
+                key={c.value}
                 type="button"
                 className="btn"
                 style={{
@@ -159,10 +198,10 @@ function MultiSelectPicker({
                 }}
                 onMouseDown={(e) => {
                   e.preventDefault();
-                  addValue(c);
+                  addValue(c.value);
                 }}
               >
-                {c}
+                {c.label}
               </button>
             ))
           )}

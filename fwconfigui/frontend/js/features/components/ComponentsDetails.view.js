@@ -42,18 +42,15 @@ function ComponentsDetailsView({
 
           <div className="field">
             <div className="muted">Networkarea</div>
-            <select
-              className="filterInput"
+            <SingleSelectPicker
+              options={Array.isArray(networkareaNames) ? networkareaNames : []}
               value={safeTrim(form?.networkarea)}
-              onChange={(e) => setForm((p) => ({ ...p, networkarea: e.target.value }))}
-            >
-              <option value="">(none)</option>
-              {(Array.isArray(networkareaNames) ? networkareaNames : []).map((n) => (
-                <option key={n} value={n}>
-                  {n}
-                </option>
-              ))}
-            </select>
+              onChange={(v) => setForm((p) => ({ ...p, networkarea: v }))}
+              placeholder="Type to filter..."
+              inputTestId="components-networkarea"
+              allowEmpty={true}
+              emptyLabel="(none)"
+            />
           </div>
 
           <div className="field" style={{ gridColumn: "1 / -1" }}>
@@ -113,24 +110,20 @@ function ComponentsDetailsView({
                 >
                   <div className="field">
                     <div className="muted">Env</div>
-                    <select
-                      className="filterInput"
+                    <SingleSelectPicker
+                      options={envOptions}
                       value={safeTrim(it?.env)}
-                      onChange={(e) => {
-                        const v = e.target.value;
+                      onChange={(v) => {
                         setForm((p) => {
                           const next = Array.isArray(p?.sitesItems) ? [...p.sitesItems] : [];
                           next[idx] = { ...(next[idx] || {}), env: v };
                           return { ...p, sitesItems: next };
                         });
                       }}
-                    >
-                      {envOptions.map((e) => (
-                        <option key={e} value={e}>
-                          {e}
-                        </option>
-                      ))}
-                    </select>
+                      placeholder="Type to filter..."
+                      inputTestId={`components-env-${idx}`}
+                      allowEmpty={false}
+                    />
                   </div>
 
                   <div className="field">
