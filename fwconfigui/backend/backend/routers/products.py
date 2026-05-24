@@ -45,6 +45,10 @@ def _normalize_description(v: Any) -> str:
     return str(v or "").strip()
 
 
+def _normalize_templates_repo(v: Any) -> str:
+    return str(v or "").strip()
+
+
 def _normalize_components_prefix_list(v: Any) -> list[str]:
     xs = v if isinstance(v, list) else []
     out = [str(x or "").strip() for x in xs if str(x or "").strip()]
@@ -100,6 +104,7 @@ def list_items(request: Request):
                     "name": k,
                     "envs": _normalize_envs(data.get("envs")),
                     "description": _normalize_description(data.get("description")),
+                    "templates-repo": _normalize_templates_repo(data.get("templates-repo")),
                     "components_prefix_list": _normalize_components_prefix_list(data.get("components_prefix_list")),
                     "components_exclude_list": _normalize_components_exclude_list(data.get("components_exclude_list")),
                     "include_flowids": _normalize_flowids(data.get("include_flowids")),
@@ -138,6 +143,8 @@ def save_item(
     if not description:
         raise ValidationError("description", "must not be empty")
 
+    templates_repo = _normalize_templates_repo(data.get("templates-repo"))
+
     components_prefix_list = _normalize_components_prefix_list(data.get("components_prefix_list"))
     if len(components_prefix_list) == 0:
         raise ValidationError("components_prefix_list", "must not be empty")
@@ -157,6 +164,7 @@ def save_item(
     raw[name] = {
         "envs": envs,
         "description": description,
+        "templates-repo": templates_repo,
         "components_prefix_list": components_prefix_list,
         "components_exclude_list": components_exclude_list,
         "include_flowids": include_flowids,
@@ -193,11 +201,16 @@ def update_item(
     if not description:
         raise ValidationError("description", "must not be empty")
 
+    templates_repo = _normalize_templates_repo(data.get("templates-repo"))
+
     components_prefix_list = _normalize_components_prefix_list(data.get("components_prefix_list"))
     if len(components_prefix_list) == 0:
         raise ValidationError("components_prefix_list", "must not be empty")
     components_exclude_list = _normalize_components_exclude_list(data.get("components_exclude_list"))
 
+    include_flowids = _normalize_flowids(data.get("include_flowids"))
+    exclude_flowids = _normalize_flowids(data.get("exclude_flowids"))
+    
     path = _path()
     raw = read_yaml_dict(path)
     if not isinstance(raw, dict):
@@ -211,6 +224,7 @@ def update_item(
     raw[name] = {
         "envs": envs,
         "description": description,
+        "templates-repo": templates_repo,
         "components_prefix_list": components_prefix_list,
         "components_exclude_list": components_exclude_list,
         "include_flowids": include_flowids,

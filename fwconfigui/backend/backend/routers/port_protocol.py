@@ -4,7 +4,7 @@ from typing import Any, Dict
 
 from fastapi import APIRouter, Depends, Request
 
-from backend.models import DedupePortProtocolRequest, SaveItemRequest
+from backend.models import DedupePortProtocolRequest, PortProtocolOverrideRequest, SaveItemRequest
 from backend.services.port_protocol_service import PortProtocolService
 
 router = APIRouter(prefix="/api/v1/products/{product}/port-protocol", tags=["port-protocol"])
@@ -72,3 +72,19 @@ def dedupe_item(
 ) -> Dict[str, Any]:
     updated_files, updated_refs = service.dedupe_item(duplicate_name=payload.duplicate_name, original_name=payload.original_name)
     return {"ok": True, "updated_fw_rules_files": updated_files, "updated_fw_rules_references": updated_refs}
+
+
+@router.put("/service_override")
+def put_service_override(
+    request: Request,
+    product: str,
+    payload: PortProtocolOverrideRequest,
+    service: PortProtocolService = Depends(get_service),
+) -> Dict[str, Any]:
+    service.save_override(
+        name=payload.name,
+        port=payload.port,
+        originalservice=payload.originalservice,
+        newservice=payload.newservice,
+    )
+    return {"ok": True}

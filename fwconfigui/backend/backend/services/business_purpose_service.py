@@ -31,6 +31,9 @@ class BusinessPurposeService:
     def _path(self) -> Path:
         return get_fwconfigfiles_root(self._product) / _BUSINESS_PURPOSE_FILENAME
 
+    def _overrides_path(self) -> Path:
+        return get_fwconfigfiles_root(None) / "overrides" / "flows" / "business_purpose_overrides.yaml"
+
     def list_items(self) -> List[Dict[str, Any]]:
         path = self._path()
         if not path.exists():
@@ -87,6 +90,30 @@ class BusinessPurposeService:
             raw.pop(prev, None)
 
         raw[key] = self._normalize_purpose(business_purpose)
+        write_yaml_dict(path, raw, sort_keys=True)
+
+    def save_override(self, *, name: str, original_text: str, newtext: str) -> None:
+        key = self._normalize_name(name)
+        ot = str(original_text or "").strip()
+        nt = str(newtext or "").strip()
+        if not ot:
+            raise ValidationError("original_text", "is required")
+        if not nt:
+            raise ValidationError("newtext", "is required")
+
+        path = self._overrides_path()
+        path.parent.mkdir(parents=True, exist_ok=True)
+        raw = read_yaml_dict(path)
+        if not isinstance(raw, dict):
+            raw = {}
+
+        existing = raw.get(key)
+        if isinstance(existing, dict):
+            preserved_original_text = str(existing.get("original_text") or "").strip() or ot
+        else:
+            preserved_original_text = ot
+
+        raw[key] = {"original_text": preserved_original_text, "newtext": nt}
         write_yaml_dict(path, raw, sort_keys=True)
 
     def delete_item(self, *, name: str) -> None:

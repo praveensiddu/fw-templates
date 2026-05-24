@@ -11,6 +11,7 @@ from backend.models import (
     ListItemsResponse,
     ListYamlFilesResponse,
     MoveFwRuleRequest,
+    SaveFwRuleRequest,
     SaveItemRequest,
     UpdateFwRuleFieldsRequest,
     VerifyAndCommitRequest,
@@ -41,11 +42,11 @@ def list_items(request: Request, product: str, service: FwConfigService = Depend
 def save_item(
     request: Request,
     product: str,
-    filename: str,
-    payload: SaveItemRequest,
+    filename: Optional[str] = None,
+    payload: SaveFwRuleRequest = Body(...),
     service: FwConfigService = Depends(get_service),
 ) -> Dict[str, Any]:
-    file_name = str(filename or "").strip()
+    file_name = str(filename or payload.filename or "").strip()
     if not file_name:
         raise ValidationError("filename", "is required")
 
@@ -67,8 +68,8 @@ def save_item(
 def update_item(
     request: Request,
     product: str,
-    filename: str,
-    payload: SaveItemRequest,
+    filename: Optional[str] = None,
+    payload: SaveFwRuleRequest = Body(...),
     service: FwConfigService = Depends(get_service),
 ) -> Dict[str, Any]:
     """Update an existing fw-rule.
@@ -78,7 +79,7 @@ def update_item(
     record (as identified by original_name) after saving the new payload.
     """
 
-    file_name = str(filename or "").strip()
+    file_name = str(filename or payload.filename or "").strip()
     if not file_name:
         raise ValidationError("filename", "is required")
 
@@ -120,8 +121,8 @@ def update_item(
 def delete_item(
     request: Request,
     product: str,
-    filename: str,
     name: str,
+    filename: Optional[str] = None,
     service: FwConfigService = Depends(get_service),
 ) -> Dict[str, Any]:
     file_name = str(filename or "").strip()
@@ -266,7 +267,13 @@ def verify_and_commit_rules(
     if mode not in {"verify-only", "verify and commit", "verify-and-commit"}:
         raise ValidationError("mode", "must be one of: verify-only, verify-and-commit")
 
-    errors = service.validate_fw_rules_commit()
+    raw_envs = payload.envs if isinstance(payload.envs, list) else None
+    envs = [str(x or "").strip() for x in (raw_envs or [])]
+    envs = [e for e in envs if e]
+    if len(envs) == 1 and envs[0].strip().lower() == "all":
+        envs = []
+
+    errors = service.validate_fw_rules_commit(envs=envs or None)
     ok = len(errors) == 0
 
     # NOTE: currently the backend only validates; committing is handled outside of this service.

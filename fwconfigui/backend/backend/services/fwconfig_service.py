@@ -307,7 +307,7 @@ class FwConfigService:
                 if n and n not in env_names:
                     raise ValidationError("envs", f"unknown env '{e}' valid envs: {env_names}")
 
-    def validate_fw_rules_commit(self) -> List[str]:
+    def validate_fw_rules_commit(self, envs: Optional[List[str]] = None) -> List[str]:
         """Validate fw-rules across all files.
 
         This is used by the UI "Commit" action to validate the full rule-templates set.
@@ -317,6 +317,14 @@ class FwConfigService:
         errors: List[str] = []
 
         env_names = {str(x.get("name", "") or "").strip().lower() for x in EnvService().list_items()}
+        filter_envs = [str(x or "").strip().lower() for x in (envs or [])]
+        filter_envs = [e for e in filter_envs if e]
+        if filter_envs:
+            unknown = [e for e in filter_envs if e not in env_names]
+            if unknown:
+                for e in unknown:
+                    errors.append(f"Unknown env '{e}'")
+                return errors
         kw_names = {str(x.get("name", "") or "").strip().upper() for x in KeywordsService(self._product).list_items()}
         bp_names = {str(x.get("name", "") or "").strip().lower() for x in BusinessPurposeService(self._product).list_items()}
         pp_names = {str(x.get("name", "") or "").strip().lower() for x in PortProtocolService(self._product).list_items()}
@@ -325,7 +333,12 @@ class FwConfigService:
         for filename, entry in self.repo.read_items("fw-rules"):
             if not isinstance(entry, dict):
                 continue
-            all_entries.append({"filename": filename, "entry": dict(entry)})
+            payload = dict(entry)
+            rule_envs = payload.get("envs")
+            rule_env_set = {str(x or "").strip().lower() for x in (rule_envs if isinstance(rule_envs, list) else []) if str(x or "").strip()}
+            if filter_envs and rule_env_set.isdisjoint(set(filter_envs)):
+                continue
+            all_entries.append({"filename": filename, "entry": payload})
 
         seen: Dict[str, int] = {}
         for it in all_entries:

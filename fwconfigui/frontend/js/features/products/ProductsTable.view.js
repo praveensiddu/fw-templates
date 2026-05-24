@@ -30,6 +30,7 @@ function ProductsTableView({
               Envs
             </th>
             <th className="fwTableHeaderCell">Description</th>
+            <th className="fwTableHeaderCell" style={{ width: 260 }}>templates-repo</th>
             <th className="fwTableHeaderCell" style={{ width: 300 }}>Components Prefix List</th>
             <th className="fwTableHeaderCell" style={{ width: 300 }}>Components Exclude List</th>
             <th className="fwTableHeaderCell" style={{ width: 260 }}>Include flowids</th>
@@ -59,6 +60,14 @@ function ProductsTableView({
                 placeholder="Filter description..."
                 value={filters.description}
                 onChange={(e) => setFilters((p) => ({ ...p, description: e.target.value }))}
+              />
+            </th>
+            <th>
+              <input
+                className={`filterInput ${isNonEmptyString(filters.templatesRepo) ? "filterInput-active" : ""}`}
+                placeholder="Filter templates-repo..."
+                value={filters.templatesRepo}
+                onChange={(e) => setFilters((p) => ({ ...p, templatesRepo: e.target.value }))}
               />
             </th>
             <th>
@@ -130,6 +139,9 @@ function ProductsTableView({
                   <div style={{ whiteSpace: "pre-line" }}>{safeTrim(r?.description)}</div>
                 </td>
                 <td>
+                  <div style={{ whiteSpace: "pre-line" }}>{safeTrim(r?.templatesRepo)}</div>
+                </td>
+                <td>
                   <div style={{ whiteSpace: "pre-line" }}>
                     {(Array.isArray(r?.componentsPrefixList) ? r.componentsPrefixList : []).join(", ")}
                   </div>
@@ -166,7 +178,7 @@ function ProductsTableView({
                     </button>
                     <button
                       className="iconBtn"
-                      title="Import"
+                      title="Import SICG"
                       onClick={(e) => {
                         e.stopPropagation();
                         onImport(r);
@@ -202,7 +214,7 @@ function ProductsTableView({
 
           {(rows || []).length === 0 ? (
             <tr>
-              <td colSpan={8} className="muted">
+              <td colSpan={9} className="muted">
                 No items
               </td>
             </tr>

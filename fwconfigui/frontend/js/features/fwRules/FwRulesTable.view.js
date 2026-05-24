@@ -3,6 +3,8 @@ function FwRulesTableView({
   filters,
   setFilters,
   onCommit,
+  onEditPortProtocolService,
+  onEditBusinessPurposeText,
   onAdd,
   onEdit,
   onEditYaml,
@@ -181,12 +183,21 @@ function FwRulesTableView({
                           (r.protocolPortItems || []).map((pp) => (
                             <div
                               key={pp.key}
+                              role="button"
+                              tabIndex={0}
+                              onClick={() => typeof onEditPortProtocolService === "function" && onEditPortProtocolService(pp.key)}
+                              onKeyDown={(e) => {
+                                if (e.key === "Enter" || e.key === " ") {
+                                  typeof onEditPortProtocolService === "function" && onEditPortProtocolService(pp.key);
+                                }
+                              }}
                               style={{
                                 padding: "6px 8px",
                                 borderRadius: 8,
                                 border: "1px solid rgba(0,0,0,0.10)",
                                 background: pp.valid ? "rgba(0,0,0,0.02)" : "rgba(220,53,69,0.10)",
                                 color: pp.valid ? "inherit" : "#dc3545",
+                                cursor: "pointer",
                               }}
                             >
                               {safeTrim(pp.display)}
@@ -196,55 +207,26 @@ function FwRulesTableView({
                       </div>
                     </td>
                     <td>
-                      {isEditing("business-purpose-reference") ? (
-                        <div style={{ display: "flex", gap: 8, alignItems: "flex-start" }}>
-                          <SingleSelectPicker
-                            options={Array.isArray(businessPurposeNames) ? businessPurposeNames : []}
-                            value={safeTrim(cellEdit?.businessPurpose)}
-                            onChange={(v) => setCellEdit((p) => ({ ...p, businessPurpose: v }))}
-                            placeholder="Type to filter..."
-                            inputTestId={`fw-rule-cell-bp-${rowKey}`}
-                            allowEmpty={true}
-                            emptyLabel="Select..."
-                          />
-                          <button className="iconBtn iconBtn-primary" title="Save" onClick={onSaveCellEdit} style={{ alignSelf: "flex-start" }}>
-                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                              <polyline points="20 6 9 17 4 12" />
-                            </svg>
-                          </button>
-                          <button className="iconBtn" title="Cancel" onClick={onCancelCellEdit} style={{ alignSelf: "flex-start" }}>
-                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                              <path d="M18 6L6 18" />
-                              <path d="M6 6l12 12" />
-                            </svg>
-                          </button>
-                        </div>
-                      ) : (
-                        <div style={{ display: "flex", gap: 8, alignItems: "flex-start" }}>
-                          <div
-                            style={{
-                              flex: 1,
-                              color: r?.businessPurposeValid ? "inherit" : "#dc3545",
-                              background: r?.businessPurposeValid ? "transparent" : "rgba(220,53,69,0.10)",
-                              borderRadius: 8,
-                              padding: r?.businessPurposeValid ? 0 : "6px 8px",
-                            }}
-                          >
-                            {safeTrim(r.businessPurposeDisplay)}
-                          </div>
-                          <button
-                            className="iconBtn"
-                            title="Edit"
-                            onClick={() => onStartCellEdit(r, "business-purpose-reference")}
-                            style={{ alignSelf: "flex-start" }}
-                          >
-                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                              <path d="M12 20h9" />
-                              <path d="M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4 12.5-12.5z" />
-                            </svg>
-                          </button>
-                        </div>
-                      )}
+                      <div
+                        role="button"
+                        tabIndex={0}
+                        onClick={() => typeof onEditBusinessPurposeText === "function" && onEditBusinessPurposeText(r?.businessPurposeRef)}
+                        onKeyDown={(e) => {
+                          if (e.key === "Enter" || e.key === " ") {
+                            typeof onEditBusinessPurposeText === "function" && onEditBusinessPurposeText(r?.businessPurposeRef);
+                          }
+                        }}
+                        style={{
+                          padding: "6px 8px",
+                          borderRadius: 8,
+                          border: "1px solid rgba(0,0,0,0.10)",
+                          background: r?.businessPurposeValid ? "rgba(0,0,0,0.02)" : "rgba(220,53,69,0.10)",
+                          color: r?.businessPurposeValid ? "inherit" : "#dc3545",
+                          cursor: "pointer",
+                        }}
+                      >
+                        {safeTrim(r.businessPurposeDisplay)}
+                      </div>
                     </td>
                     <td>
                       {isEditing("keywords") ? (

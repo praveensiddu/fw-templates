@@ -62,6 +62,16 @@ function ProductsDetailsView({
               </div>
 
               <div className="field" style={{ gridColumn: "1 / -1" }}>
+                <div className="muted">templates-repo</div>
+                <input
+                  className="input"
+                  value={String(form?.templatesRepo || "")}
+                  onChange={(e) => setForm((p) => ({ ...p, templatesRepo: e.target.value }))}
+                  placeholder="org/repo (optional)"
+                />
+              </div>
+
+              <div className="field" style={{ gridColumn: "1 / -1" }}>
                 <div className="muted">Components Prefix List (comma-separated)</div>
                 <input
                   className="input"

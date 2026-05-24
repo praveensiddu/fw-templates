@@ -36,6 +36,9 @@ class PortProtocolService:
     def _path(self) -> Path:
         return get_fwconfigfiles_root(self._product) / _PORT_PROTOCOL_FILENAME
 
+    def _overrides_path(self) -> Path:
+        return get_fwconfigfiles_root(None) / "overrides" / "flows" / "port_protocol_overrides.yaml"
+
     def list_items(self) -> List[Dict[str, Any]]:
         path = self._path()
         if not path.exists():
@@ -105,6 +108,42 @@ class PortProtocolService:
             raw.pop(prev, None)
 
         raw[key] = self._normalize_port_protocol(port_protocol)
+        write_yaml_dict(path, raw, sort_keys=True)
+
+    def save_override(
+        self,
+        *,
+        name: str,
+        port: str,
+        originalservice: str,
+        newservice: str,
+    ) -> None:
+        key = self._normalize_name(name)
+        p = str(port or "").strip()
+        osvc = str(originalservice or "").strip()
+        nsvc = str(newservice or "").strip()
+        if not p:
+            raise ValidationError("port", "is required")
+        if not osvc:
+            raise ValidationError("originalservice", "is required")
+        if not nsvc:
+            raise ValidationError("newservice", "is required")
+
+        path = self._overrides_path()
+        path.parent.mkdir(parents=True, exist_ok=True)
+        raw = read_yaml_dict(path)
+        if not isinstance(raw, dict):
+            raw = {}
+
+        existing = raw.get(key)
+        if isinstance(existing, dict):
+            preserved_port = str(existing.get("port") or "").strip() or p
+            preserved_original_service = str(existing.get("originalservice") or "").strip() or osvc
+        else:
+            preserved_port = p
+            preserved_original_service = osvc
+
+        raw[key] = {"port": preserved_port, "originalservice": preserved_original_service, "newservice": nsvc}
         write_yaml_dict(path, raw, sort_keys=True)
 
     def delete_item(self, *, name: str) -> None:

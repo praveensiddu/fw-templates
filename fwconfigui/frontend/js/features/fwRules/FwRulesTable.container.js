@@ -224,6 +224,7 @@ function FwRulesTable({ setLoading, setError }) {
   const [items, setItems] = React.useState([]);
   const [portProtocolNames, setPortProtocolNames] = React.useState([]);
   const [portProtocolDisplayByName, setPortProtocolDisplayByName] = React.useState({});
+  const [portProtocolByName, setPortProtocolByName] = React.useState({});
   const [businessPurposeNames, setBusinessPurposeNames] = React.useState([]);
   const [businessPurposeDisplayByName, setBusinessPurposeDisplayByName] = React.useState({});
   const [envNames, setEnvNames] = React.useState([]);
@@ -283,7 +284,9 @@ function FwRulesTable({ setLoading, setError }) {
   const [confirmDelete, setConfirmDelete] = React.useState({ show: false, row: null });
   const [yamlEditor, setYamlEditor] = React.useState({ show: false, row: null, appflowid: "", yaml: "" });
   const [commitResult, setCommitResult] = React.useState({ show: false, ok: false, errors: [] });
-  const [verifyCommitPanel, setVerifyCommitPanel] = React.useState({ show: false, mode: "verify-only" });
+  const [verifyCommitPanel, setVerifyCommitPanel] = React.useState({ show: false, mode: "verify-only", env: "All" });
+  const [ppServiceEditor, setPpServiceEditor] = React.useState({ show: false, name: "", port: "", originalservice: "", newservice: "" });
+  const [bpTextEditor, setBpTextEditor] = React.useState({ show: false, name: "", originalText: "", newText: "" });
   const [originalAppflowid, setOriginalAppflowid] = React.useState("");
 
   function stableStringify(v) {
@@ -444,6 +447,16 @@ function FwRulesTable({ setLoading, setError }) {
         return acc;
       }, {});
       setPortProtocolDisplayByName(ppDisplay);
+
+      const ppByName = (ppResp?.items || []).reduce((acc, it) => {
+        const n = safeTrim(it?.name);
+        const pp = it?.data?.["port-protocol"];
+        const port = safeTrim(pp?.port);
+        const service = safeTrim(pp?.service);
+        if (n) acc[n] = { port, service };
+        return acc;
+      }, {});
+      setPortProtocolByName(ppByName);
 
       const bpNames = (bpResp?.items || [])
         .map((x) => safeTrim(x?.name))
@@ -828,11 +841,13 @@ function FwRulesTable({ setLoading, setError }) {
   }, [yamlEditor, setLoading, setError, load]);
 
   const runVerifyAndCommit = React.useCallback(
-    async (mode) => {
+    async (mode, env) => {
       try {
         setLoading(true);
         setError("");
-        const res = await postJson(`${fwconfigTypeBasePath("fw-rules")}/verify_and_commit`, { mode });
+        const selectedEnv = safeTrim(env) || "All";
+        const envs = selectedEnv.toLowerCase() === "all" ? ["All"] : [selectedEnv];
+        const res = await postJson(`${fwconfigTypeBasePath("fw-rules")}/verify_and_commit`, { mode, envs });
         const ok = !!res?.ok;
         const errors = Array.isArray(res?.errors) ? res.errors : [];
         setCommitResult({ show: true, ok, errors });
@@ -850,7 +865,7 @@ function FwRulesTable({ setLoading, setError }) {
   );
 
   const onCommit = React.useCallback(() => {
-    setVerifyCommitPanel({ show: true, mode: "verify-only" });
+    setVerifyCommitPanel({ show: true, mode: "verify-only", env: "All" });
   }, []);
 
   const onMoveFile = React.useCallback(
@@ -1120,6 +1135,93 @@ function FwRulesTable({ setLoading, setError }) {
     }
   }, [cellEdit, setLoading, setError, load, onCancelCellEdit]);
 
+  const onEditPortProtocolService = React.useCallback(
+    (name) => {
+      const key = safeTrim(name);
+      if (!key) return;
+      const pp = portProtocolByName?.[key] || {};
+      const port = safeTrim(pp?.port);
+      const service = safeTrim(pp?.service);
+      setPpServiceEditor({ show: true, name: key, port, originalservice: service, newservice: service });
+    },
+    [portProtocolByName]
+  );
+
+  const onSavePortProtocolService = React.useCallback(async () => {
+    try {
+      const name = safeTrim(ppServiceEditor?.name);
+      const port = safeTrim(ppServiceEditor?.port);
+      const originalservice = safeTrim(ppServiceEditor?.originalservice);
+      const newserviceRaw = String(ppServiceEditor?.newservice ?? "");
+      const newservice = newserviceRaw.trim();
+      if (!name || !port || !originalservice || !newservice) return;
+
+      setLoading(true);
+      setError("");
+
+      await putJson(fwconfigTypeBasePath("port-protocol"), {
+        name,
+        original_name: name,
+        data: { "port-protocol": { port, service: newservice } },
+      });
+
+      await putJson(`${fwconfigTypeBasePath("port-protocol")}/service_override`, {
+        name,
+        port,
+        originalservice,
+        newservice,
+      });
+
+      setPpServiceEditor({ show: false, name: "", port: "", originalservice: "", newservice: "" });
+      await load();
+    } catch (e) {
+      setError(formatError(e));
+    } finally {
+      setLoading(false);
+    }
+  }, [ppServiceEditor, setLoading, setError, load]);
+
+  const onEditBusinessPurposeText = React.useCallback(
+    (name) => {
+      const key = safeTrim(name);
+      if (!key) return;
+      const display = businessPurposeDisplayByName?.[key] || key;
+      setBpTextEditor({ show: true, name: key, originalText: String(display || ""), newText: String(display || "") });
+    },
+    [businessPurposeDisplayByName]
+  );
+
+  const onSaveBusinessPurposeText = React.useCallback(async () => {
+    try {
+      const name = safeTrim(bpTextEditor?.name);
+      const original_text = String(bpTextEditor?.originalText ?? "").trim();
+      const newtext = String(bpTextEditor?.newText ?? "").trim();
+      if (!name || !original_text || !newtext) return;
+
+      setLoading(true);
+      setError("");
+
+      await putJson(fwconfigTypeBasePath("business-purpose"), {
+        name,
+        original_name: name,
+        data: { "business-purpose": newtext },
+      });
+
+      await putJson(`${fwconfigTypeBasePath("business-purpose")}/text_override`, {
+        name,
+        original_text,
+        newtext,
+      });
+
+      setBpTextEditor({ show: false, name: "", originalText: "", newText: "" });
+      await load();
+    } catch (e) {
+      setError(formatError(e));
+    } finally {
+      setLoading(false);
+    }
+  }, [bpTextEditor, setLoading, setError, load]);
+
   return (
     <>
       {activePage === "details" ? (
@@ -1168,6 +1270,8 @@ function FwRulesTable({ setLoading, setError }) {
           filters={filters}
           setFilters={setFilters}
           onCommit={onCommit}
+          onEditPortProtocolService={onEditPortProtocolService}
+          onEditBusinessPurposeText={onEditBusinessPurposeText}
           onAdd={onAdd}
           onEdit={onEdit}
           onEditYaml={onEditYaml}
@@ -1272,12 +1376,14 @@ function FwRulesTable({ setLoading, setError }) {
       {verifyCommitPanel.show ? (
         <div
           className="modalOverlay"
-          onClick={(e) => e.target === e.currentTarget && setVerifyCommitPanel({ show: false, mode: "verify-only" })}
+          onClick={(e) =>
+            e.target === e.currentTarget && setVerifyCommitPanel({ show: false, mode: "verify-only", env: "All" })
+          }
         >
           <div className="modalCard">
             <div className="modalHeader">
               <h3 style={{ margin: 0 }}>Verify and commit</h3>
-              <button className="btn" onClick={() => setVerifyCommitPanel({ show: false, mode: "verify-only" })}>
+              <button className="btn" onClick={() => setVerifyCommitPanel({ show: false, mode: "verify-only", env: "All" })}>
                 Close
               </button>
             </div>
@@ -1301,21 +1407,140 @@ function FwRulesTable({ setLoading, setError }) {
                 />
                 <span>Verify and commit</span>
               </label>
+
+              <label style={{ display: "flex", gap: 8, alignItems: "center" }}>
+                <span style={{ minWidth: 48 }}>Envs</span>
+                <select
+                  value={safeTrim(verifyCommitPanel.env) || "All"}
+                  onChange={(e) => setVerifyCommitPanel((p) => ({ ...p, env: e.target.value }))}
+                >
+                  <option value="All">All</option>
+                  {(Array.isArray(envNames) ? envNames : []).map((e) => {
+                    const v = safeTrim(e);
+                    if (!v) return null;
+                    return (
+                      <option key={v} value={v}>
+                        {v}
+                      </option>
+                    );
+                  })}
+                </select>
+              </label>
             </div>
 
             <div className="modalActions">
-              <button className="btn" onClick={() => setVerifyCommitPanel({ show: false, mode: "verify-only" })}>
+              <button className="btn" onClick={() => setVerifyCommitPanel({ show: false, mode: "verify-only", env: "All" })}>
                 Cancel
               </button>
               <button
                 className="btn btn-primary"
                 onClick={async () => {
                   const mode = safeTrim(verifyCommitPanel.mode) || "verify-only";
-                  setVerifyCommitPanel({ show: false, mode: "verify-only" });
-                  await runVerifyAndCommit(mode);
+                  const env = safeTrim(verifyCommitPanel.env) || "All";
+                  setVerifyCommitPanel({ show: false, mode: "verify-only", env: "All" });
+                  await runVerifyAndCommit(mode, env);
                 }}
               >
                 Run
+              </button>
+            </div>
+          </div>
+        </div>
+      ) : null}
+
+      {ppServiceEditor.show ? (
+        <div
+          className="modalOverlay"
+          onClick={(e) =>
+            e.target === e.currentTarget &&
+            setPpServiceEditor({ show: false, name: "", port: "", originalservice: "", newservice: "" })
+          }
+        >
+          <div className="modalCard">
+            <div className="modalHeader">
+              <h3 style={{ margin: 0 }}>Edit service</h3>
+              <button
+                className="btn"
+                onClick={() => setPpServiceEditor({ show: false, name: "", port: "", originalservice: "", newservice: "" })}
+              >
+                Close
+              </button>
+            </div>
+
+            <div style={{ marginTop: 12, display: "flex", flexDirection: "column", gap: 10 }}>
+              <div className="muted">Edit the server/service offered on this port</div>
+
+              <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
+                <div style={{ display: "flex", gap: 10, alignItems: "center" }}>
+                  <span style={{ minWidth: 56 }}>Port</span>
+                  <span>{safeTrim(ppServiceEditor.port)}</span>
+                </div>
+                <div style={{ display: "flex", gap: 10, alignItems: "center" }}>
+                  <span style={{ minWidth: 56 }}>Service</span>
+                  <input
+                    className="input"
+                    value={String(ppServiceEditor.newservice ?? "")}
+                    onChange={(e) => setPpServiceEditor((p) => ({ ...p, newservice: e.target.value }))}
+                    placeholder="service name"
+                  />
+                </div>
+              </div>
+            </div>
+
+            <div className="modalActions">
+              <button
+                className="btn"
+                onClick={() => setPpServiceEditor({ show: false, name: "", port: "", originalservice: "", newservice: "" })}
+              >
+                Cancel
+              </button>
+              <button className="btn btn-primary" onClick={onSavePortProtocolService}>
+                Save
+              </button>
+            </div>
+          </div>
+        </div>
+      ) : null}
+
+      {bpTextEditor.show ? (
+        <div
+          className="modalOverlay"
+          onClick={(e) => e.target === e.currentTarget && setBpTextEditor({ show: false, name: "", originalText: "", newText: "" })}
+        >
+          <div className="modalCard">
+            <div className="modalHeader">
+              <h3 style={{ margin: 0 }}>Edit Business purpose</h3>
+              <button className="btn" onClick={() => setBpTextEditor({ show: false, name: "", originalText: "", newText: "" })}>
+                Close
+              </button>
+            </div>
+
+            <div style={{ marginTop: 12, display: "flex", flexDirection: "column", gap: 10 }}>
+              <div className="muted">Edit the business purpose for this flow</div>
+
+              <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
+                <div style={{ display: "flex", gap: 10, alignItems: "center" }}>
+                  <span style={{ minWidth: 56 }}>Current</span>
+                  <span>{String(bpTextEditor.originalText || "")}</span>
+                </div>
+                <div style={{ display: "flex", gap: 10, alignItems: "center" }}>
+                  <span style={{ minWidth: 56 }}>New</span>
+                  <input
+                    className="input"
+                    value={String(bpTextEditor.newText ?? "")}
+                    onChange={(e) => setBpTextEditor((p) => ({ ...p, newText: e.target.value }))}
+                    placeholder="business purpose"
+                  />
+                </div>
+              </div>
+            </div>
+
+            <div className="modalActions">
+              <button className="btn" onClick={() => setBpTextEditor({ show: false, name: "", originalText: "", newText: "" })}>
+                Cancel
+              </button>
+              <button className="btn btn-primary" onClick={onSaveBusinessPurposeText}>
+                Save
               </button>
             </div>
           </div>

@@ -30,7 +30,8 @@ function isProductScopedType(type) {
     t === "business-purpose" ||
     t === "fw-rules" ||
     t === "groups" ||
-    t === "addrs"
+    t === "addrs" ||
+    t === "ip_inventory"
   );
 }
 
@@ -211,6 +212,49 @@ async function deleteAddr(env, name, filename) {
   const fn = safeTrim(filename) || "addresses.yaml";
   const url = `/api/v1/products/${encodeURIComponent(product)}/addrs/${encodeURIComponent(e)}?filename=${encodeURIComponent(fn)}&name=${encodeURIComponent(n)}`;
   return await deleteJson(url);
+}
+
+async function listIpInventory(env) {
+  const product = getCurrentProduct();
+  if (!isNonEmptyString(product)) throw new Error("Select a product first");
+  const e = requireEnv(env);
+  return await fetchJson(`/api/v1/products/${encodeURIComponent(product)}/ip_inventory/${encodeURIComponent(e)}`);
+}
+
+async function saveIpInventory(env, payload) {
+  const product = getCurrentProduct();
+  if (!isNonEmptyString(product)) throw new Error("Select a product first");
+  const e = requireEnv(env);
+  const name = safeTrim(payload?.name);
+  const originalName = safeTrim(payload?.original_name);
+  if (!name) throw new Error("name is required");
+
+  const body = {
+    name,
+    original_name: originalName || undefined,
+    ...(payload?.data ? { data: payload.data } : {}),
+  };
+
+  const url = `/api/v1/products/${encodeURIComponent(product)}/ip_inventory/${encodeURIComponent(e)}`;
+  return isNonEmptyString(originalName) ? await putJson(url, body) : await postJson(url, body);
+}
+
+async function deleteIpInventory(env, name) {
+  const product = getCurrentProduct();
+  if (!isNonEmptyString(product)) throw new Error("Select a product first");
+  const e = requireEnv(env);
+  const n = safeTrim(name);
+  if (!n) throw new Error("name is required");
+  const url = `/api/v1/products/${encodeURIComponent(product)}/ip_inventory/${encodeURIComponent(e)}?name=${encodeURIComponent(n)}`;
+  return await deleteJson(url);
+}
+
+async function importIpInventoryFromFortimgr(env) {
+  const product = getCurrentProduct();
+  if (!isNonEmptyString(product)) throw new Error("Select a product first");
+  const e = requireEnv(env);
+  const url = `/api/v1/products/${encodeURIComponent(product)}/ip_inventory/${encodeURIComponent(e)}/import`;
+  return await postJson(url, {});
 }
 
 async function dedupePortProtocol(duplicateName, originalName) {

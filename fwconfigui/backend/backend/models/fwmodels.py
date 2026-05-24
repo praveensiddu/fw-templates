@@ -31,6 +31,13 @@ class SaveItemRequest(BaseModel):
     data: Optional[Dict[str, Any]] = None
 
 
+class SaveFwRuleRequest(BaseModel):
+    filename: Optional[str] = None
+    name: str
+    original_name: Optional[str] = None
+    data: Optional[Dict[str, Any]] = None
+
+
 class DedupePortProtocolRequest(BaseModel):
     duplicate_name: str
     original_name: str
@@ -56,3 +63,17 @@ class MoveFwRuleRequest(BaseModel):
 
 class VerifyAndCommitRequest(BaseModel):
     mode: str
+    envs: Optional[List[str]] = None
+
+
+class PortProtocolOverrideRequest(BaseModel):
+    name: str
+    port: str
+    originalservice: str
+    newservice: str
+
+
+class BusinessPurposeOverrideRequest(BaseModel):
+    name: str
+    original_text: str
+    newtext: str

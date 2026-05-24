@@ -10,6 +10,7 @@ function ProductsTable({ setLoading, setError }) {
     name: "",
     envs: [],
     description: "",
+    templatesRepo: "",
     componentsPrefixListText: "",
     componentsExcludeListText: "",
     includeFlowidsText: "",
@@ -24,11 +25,13 @@ function ProductsTable({ setLoading, setError }) {
       const excludeList = Array.isArray(data?.components_exclude_list) ? data.components_exclude_list : [];
       const includeFlowids = Array.isArray(data?.include_flowids) ? data.include_flowids : [];
       const excludeFlowids = Array.isArray(data?.exclude_flowids) ? data.exclude_flowids : [];
+      const templatesRepo = safeTrim(data?.["templates-repo"]);
       return {
         ...it,
         name: safeTrim(it?.name),
         envs,
         description: safeTrim(data?.description),
+        templatesRepo,
         componentsPrefixList: prefixList,
         componentsExcludeList: excludeList,
         includeFlowids,
@@ -43,6 +46,7 @@ function ProductsTable({ setLoading, setError }) {
       name: "",
       envs: "",
       description: "",
+      templatesRepo: "",
       componentsPrefixList: "",
       componentsExcludeList: "",
       includeFlowids: "",
@@ -52,6 +56,7 @@ function ProductsTable({ setLoading, setError }) {
       name: safeTrim(row?.name),
       envs: Array.isArray(row?.envs) ? row.envs.join(",") : "",
       description: safeTrim(row?.description),
+      templatesRepo: safeTrim(row?.templatesRepo),
       componentsPrefixList: (Array.isArray(row?.componentsPrefixList) ? row.componentsPrefixList : []).join(","),
       componentsExcludeList: (Array.isArray(row?.componentsExcludeList) ? row.componentsExcludeList : []).join(","),
       includeFlowids: (Array.isArray(row?.includeFlowids) ? row.includeFlowids : []).join(","),
@@ -93,6 +98,7 @@ function ProductsTable({ setLoading, setError }) {
       name: "",
       envs: ["pac", "prd"],
       description: "",
+      templatesRepo: "",
       componentsPrefixListText: "",
       componentsExcludeListText: "",
       includeFlowidsText: "",
@@ -105,6 +111,7 @@ function ProductsTable({ setLoading, setError }) {
     const name = safeTrim(row?.name);
     const envs = Array.isArray(row?.envs) ? row.envs : [];
     const desc = safeTrim(row?.description);
+    const templatesRepo = safeTrim(row?.templatesRepo);
     const prefixList = Array.isArray(row?.componentsPrefixList) ? row.componentsPrefixList : [];
     const excludeList = Array.isArray(row?.componentsExcludeList) ? row.componentsExcludeList : [];
     const includeFlowids = Array.isArray(row?.includeFlowids) ? row.includeFlowids : [];
@@ -116,6 +123,7 @@ function ProductsTable({ setLoading, setError }) {
       name,
       envs,
       description: desc,
+      templatesRepo,
       componentsPrefixListText: prefixList.join(", "),
       componentsExcludeListText: excludeList.join(", "),
       includeFlowidsText: includeFlowids.join(", "),
@@ -156,6 +164,7 @@ function ProductsTable({ setLoading, setError }) {
       name: "",
       envs: [],
       description: "",
+      templatesRepo: "",
       componentsPrefixListText: "",
       componentsExcludeListText: "",
       includeFlowidsText: "",
@@ -176,6 +185,7 @@ function ProductsTable({ setLoading, setError }) {
         .map((x) => safeTrim(x).toLowerCase())
         .filter((x) => x);
       const nextDescription = safeTrim(form.description);
+      const nextTemplatesRepo = safeTrim(form.templatesRepo);
       const nextComponentsPrefixList = safeTrim(form.componentsPrefixListText)
         ? safeTrim(form.componentsPrefixListText)
             .split(",")
@@ -210,6 +220,7 @@ function ProductsTable({ setLoading, setError }) {
           name: nextName,
           envs: nextEnvs,
           description: nextDescription,
+          "templates-repo": nextTemplatesRepo,
           components_prefix_list: nextComponentsPrefixList,
           components_exclude_list: nextComponentsExcludeList,
           include_flowids: nextIncludeFlowids,
