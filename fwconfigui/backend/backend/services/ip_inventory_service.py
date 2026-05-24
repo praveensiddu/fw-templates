@@ -212,7 +212,7 @@ class IpInventoryService:
         fm_root = Path(fm_root_raw).expanduser()
         fm_addrs_dir = fm_root / e / "addrs"
         if not fm_addrs_dir.exists() or not fm_addrs_dir.is_dir():
-            raise ValidationError("FORTIMGR_EXTRACT", f"missing dir '{fm_addrs_dir}'")
+            raise ValidationError("FORTIMGR_EXTRACT", f"missing dir '{fm_addrs_dir}' Make sure FORTIMGR_EXTRACT is an absolute folder")
 
         fortimgr_addrs_dict: Dict[str, str] = {}
         for p in list_yaml_files(fm_addrs_dir):

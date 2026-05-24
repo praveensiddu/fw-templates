@@ -417,11 +417,11 @@ function FwRulesTable({ setLoading, setError }) {
       setLoading(true);
       setError("");
 
-      const [fwResp, ppResp, bpResp, envResp, kwResp, rfResp, compResp] = await Promise.all([
+      const [fwResp, ppResp, bpResp, productsResp, kwResp, rfResp, compResp] = await Promise.all([
         listFwConfigItems("fw-rules"),
         listFwConfigItems("port-protocol"),
         listFwConfigItems("business-purpose"),
-        listFwConfigItems("env"),
+        listFwConfigItems("products"),
         listFwConfigItems("keywords"),
         listFwConfigItems("rule-files"),
         listFwConfigItems("components"),
@@ -474,8 +474,17 @@ function FwRulesTable({ setLoading, setError }) {
       }, {});
       setBusinessPurposeDisplayByName(bpDisplay);
 
-      const envs = (envResp?.items || [])
-        .map((x) => safeTrim(x?.name))
+      const currentProduct = (() => {
+        const fromGlobal = safeTrim(window.__fwCurrentProduct);
+        if (fromGlobal) return fromGlobal;
+        const p = String(window?.location?.pathname || "");
+        const m = p.match(/^\/products\/([^/]+)(?:\/|$)/);
+        return m ? safeTrim(m[1]) : "";
+      })();
+
+      const productRow = (productsResp?.items || []).find((it) => safeTrim(it?.name) === currentProduct);
+      const envs = (Array.isArray(productRow?.data?.envs) ? productRow.data.envs : [])
+        .map((x) => safeTrim(x))
         .filter(Boolean)
         .sort((a, b) => a.localeCompare(b));
       setEnvNames(envs);

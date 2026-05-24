@@ -221,6 +221,13 @@ async function listIpInventory(env) {
   return await fetchJson(`/api/v1/products/${encodeURIComponent(product)}/ip_inventory/${encodeURIComponent(e)}`);
 }
 
+async function listRules(env) {
+  const product = getCurrentProduct();
+  if (!isNonEmptyString(product)) throw new Error("Select a product first");
+  const e = requireEnv(env);
+  return await fetchJson(`/api/v1/products/${encodeURIComponent(product)}/rules/${encodeURIComponent(e)}`);
+}
+
 async function saveIpInventory(env, payload) {
   const product = getCurrentProduct();
   if (!isNonEmptyString(product)) throw new Error("Select a product first");

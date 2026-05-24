@@ -1,3 +1,4 @@
+import os
 from pathlib import Path
 from typing import Any, Dict, List, Optional, Tuple
 
@@ -11,6 +12,37 @@ class GroupsService:
 
     def __init__(self, product: Optional[str] = None):
         self._product = product
+
+    def _products_path(self) -> Path:
+        return get_fwconfigfiles_root(None) / "products.yaml"
+
+    def _get_templates_repo_name(self) -> str:
+        raw = read_yaml_dict(self._products_path())
+        if not isinstance(raw, dict):
+            raw = {}
+
+        prod_key = str(self._product or "").strip().upper()
+        prod = raw.get(prod_key) if prod_key else None
+        if not isinstance(prod, dict):
+            prod = {}
+
+        templates_repo = str(prod.get("templates-repo") or "").strip()
+        if not templates_repo:
+            raise ValidationError("templates-repo", "is required on product")
+
+        parts = [p for p in templates_repo.split("/") if p]
+        if not parts:
+            raise ValidationError("templates-repo", "invalid format")
+        repo_name = str(parts[-1]).strip()
+        if not repo_name:
+            raise ValidationError("templates-repo", "invalid format")
+        return repo_name
+
+    def _get_templates_folder_prefix(self) -> str:
+        prefix = str(os.getenv("TEMPLATES_FOLDER_PREFIX", "") or "").strip()
+        if not prefix:
+            raise ValidationError("TEMPLATES_FOLDER_PREFIX", "env var is required")
+        return prefix
 
     @staticmethod
     def _normalize_env(env: str) -> str:
@@ -34,7 +66,9 @@ class GroupsService:
 
     def _env_groups_dir(self, env: str) -> Path:
         e = self._normalize_env(env)
-        root = get_fwconfigfiles_root(self._product) / e / "groups"
+        repo_name = self._get_templates_repo_name()
+        templates_prefix = self._get_templates_folder_prefix()
+        root = get_fwconfigfiles_root(None) / "cloned-repos" / repo_name / e / templates_prefix / "groups"
         root.mkdir(parents=True, exist_ok=True)
         return root
 

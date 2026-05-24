@@ -125,10 +125,19 @@ def delete_item(
     filename: Optional[str] = None,
     service: FwConfigService = Depends(get_service),
 ) -> Dict[str, Any]:
+    key = str(name or "").strip().upper()
+    key = re.sub(r"[^A-Z0-9_-]", "", key)
+    if not key:
+        raise ValidationError("name", "is required")
+
     file_name = str(filename or "").strip()
     if not file_name:
-        raise ValidationError("filename", "is required")
-    service.delete_item("fw-rules", filename=file_name, name=name)
+        found_filename = service.repo.find_item_file("fw-rules", key)
+        if not found_filename:
+            raise NotFoundError("Item", key)
+        file_name = found_filename
+
+    service.delete_item("fw-rules", filename=file_name, name=key)
     return {"ok": True}
 
 
