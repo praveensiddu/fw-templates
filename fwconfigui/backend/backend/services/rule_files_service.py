@@ -2,7 +2,7 @@ from pathlib import Path
 from typing import Any, Dict, List, Optional
 
 from backend.exceptions.custom import ValidationError
-from backend.utils.workspace import get_fwconfigfiles_root
+from backend.utils.workspace import get_fwconfigfiles_product_repo_root
 from backend.utils.yaml_utils import read_yaml_dict, write_yaml_dict
 
 _RULE_FILES_FILENAME = "rule-files.yaml"
@@ -13,7 +13,7 @@ class RuleFilesService:
         self._product = product
 
     def _path(self) -> Path:
-        return get_fwconfigfiles_root(self._product) / _RULE_FILES_FILENAME
+        return get_fwconfigfiles_product_repo_root(self._product) / _RULE_FILES_FILENAME
 
     @staticmethod
     def _normalize_rule_filename(name: str) -> str:

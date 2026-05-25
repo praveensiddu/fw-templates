@@ -165,13 +165,7 @@ function App() {
       setActiveTab("products");
     }
 
-    const onPop = async () => {
-      const ok = await canNavigateAway();
-      if (!ok) {
-        window.history.pushState({}, "", lastAllowedPathRef.current || "/rule-templates");
-        return;
-      }
-
+    const applyRouteFromLocation = () => {
       setRouteVersion((v) => v + 1);
       setError("");
 
@@ -193,7 +187,14 @@ function App() {
         window.history.replaceState({}, "", "/infra/env");
       }
 
-      const pm = p.match(/^\/products\/[^/]+\/(rule-templates|port-protocol|business-purpose|components|keywords|rule-files|groups|addrs|rules|ip_inventory)(?:\/.*)?$/);
+      const prod = getProductFromPath(p);
+      if (prod && typeof setCurrentProduct === "function") {
+        setCurrentProduct(prod);
+      }
+
+      const pm = p.match(
+        /^\/products\/[^/]+\/(rule-templates|port-protocol|business-purpose|components|keywords|rule-files|groups|addrs|rules|ip_inventory)(?:\/.*)?$/
+      );
       if (pm) {
         setProductSubTab(safeTrim(pm[1]) || "rule-templates");
         setActiveTab("products");
@@ -213,8 +214,48 @@ function App() {
         setActiveTab("products");
       }
     };
+
+    const onPop = async () => {
+      const ok = await canNavigateAway();
+      if (!ok) {
+        window.history.pushState({}, "", lastAllowedPathRef.current || "/rule-templates");
+        return;
+      }
+
+      applyRouteFromLocation();
+    };
+
+    const onLocationChange = async () => {
+      const ok = await canNavigateAway();
+      if (!ok) {
+        window.history.pushState({}, "", lastAllowedPathRef.current || "/rule-templates");
+        return;
+      }
+      applyRouteFromLocation();
+    };
+
+    const origPush = window.history.pushState;
+    const origReplace = window.history.replaceState;
+    const fireLocationChange = () => window.dispatchEvent(new Event("locationchange"));
+    window.history.pushState = function (...args) {
+      const ret = origPush.apply(this, args);
+      fireLocationChange();
+      return ret;
+    };
+    window.history.replaceState = function (...args) {
+      const ret = origReplace.apply(this, args);
+      fireLocationChange();
+      return ret;
+    };
+
     window.addEventListener("popstate", onPop);
-    return () => window.removeEventListener("popstate", onPop);
+    window.addEventListener("locationchange", onLocationChange);
+    return () => {
+      window.removeEventListener("popstate", onPop);
+      window.removeEventListener("locationchange", onLocationChange);
+      window.history.pushState = origPush;
+      window.history.replaceState = origReplace;
+    };
   }, [canNavigateAway, setError]);
 
   React.useEffect(() => {
@@ -342,8 +383,9 @@ function App() {
                 onClick={() => {
                   const envNames = (envNamesForProduct || []).length ? envNamesForProduct : [];
                   const nextEnv = safeTrim(productEnv) || getProductEnvFromPath(window.location.pathname) || (envNames.length ? envNames[0] : "");
-                  if (!nextEnv) return;
-                  const nextPath = `/products/${encodeURIComponent(currentProduct)}/groups/${encodeURIComponent(nextEnv)}`;
+                  const nextPath = nextEnv
+                    ? `/products/${encodeURIComponent(currentProduct)}/groups/${encodeURIComponent(nextEnv)}`
+                    : `/products/${encodeURIComponent(currentProduct)}/groups`;
                   if (`${window.location.pathname}${window.location.search}` !== nextPath) {
                     window.history.pushState({}, "", nextPath);
                   }
@@ -359,8 +401,9 @@ function App() {
                 onClick={() => {
                   const envNames = (envNamesForProduct || []).length ? envNamesForProduct : [];
                   const nextEnv = safeTrim(productEnv) || getProductEnvFromPath(window.location.pathname) || (envNames.length ? envNames[0] : "");
-                  if (!nextEnv) return;
-                  const nextPath = `/products/${encodeURIComponent(currentProduct)}/addrs/${encodeURIComponent(nextEnv)}`;
+                  const nextPath = nextEnv
+                    ? `/products/${encodeURIComponent(currentProduct)}/addrs/${encodeURIComponent(nextEnv)}`
+                    : `/products/${encodeURIComponent(currentProduct)}/addrs`;
                   if (`${window.location.pathname}${window.location.search}` !== nextPath) {
                     window.history.pushState({}, "", nextPath);
                   }
@@ -376,8 +419,9 @@ function App() {
                 onClick={() => {
                   const envNames = (envNamesForProduct || []).length ? envNamesForProduct : [];
                   const nextEnv = safeTrim(productEnv) || getProductEnvFromPath(window.location.pathname) || (envNames.length ? envNames[0] : "");
-                  if (!nextEnv) return;
-                  const nextPath = `/products/${encodeURIComponent(currentProduct)}/rules/${encodeURIComponent(nextEnv)}`;
+                  const nextPath = nextEnv
+                    ? `/products/${encodeURIComponent(currentProduct)}/rules/${encodeURIComponent(nextEnv)}`
+                    : `/products/${encodeURIComponent(currentProduct)}/rules`;
                   if (`${window.location.pathname}${window.location.search}` !== nextPath) {
                     window.history.pushState({}, "", nextPath);
                   }
@@ -446,8 +490,9 @@ function App() {
                 onClick={() => {
                   const envNames = (envNamesForProduct || []).length ? envNamesForProduct : [];
                   const nextEnv = safeTrim(productEnv) || getProductEnvFromPath(window.location.pathname) || (envNames.length ? envNames[0] : "");
-                  if (!nextEnv) return;
-                  const nextPath = `/products/${encodeURIComponent(currentProduct)}/ip_inventory/${encodeURIComponent(nextEnv)}`;
+                  const nextPath = nextEnv
+                    ? `/products/${encodeURIComponent(currentProduct)}/ip_inventory/${encodeURIComponent(nextEnv)}`
+                    : `/products/${encodeURIComponent(currentProduct)}/ip_inventory`;
                   if (`${window.location.pathname}${window.location.search}` !== nextPath) {
                     window.history.pushState({}, "", nextPath);
                   }

@@ -72,6 +72,16 @@ function ProductsDetailsView({
               </div>
 
               <div className="field" style={{ gridColumn: "1 / -1" }}>
+                <div className="muted">generated-repo</div>
+                <input
+                  className="input"
+                  value={String(form?.generatedRepo || "")}
+                  onChange={(e) => setForm((p) => ({ ...p, generatedRepo: e.target.value }))}
+                  placeholder="repo name used under cloned-repos (optional)"
+                />
+              </div>
+
+              <div className="field" style={{ gridColumn: "1 / -1" }}>
                 <div className="muted">Components Prefix List (comma-separated)</div>
                 <input
                   className="input"

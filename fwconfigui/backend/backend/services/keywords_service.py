@@ -2,7 +2,7 @@ import re
 from typing import Any, Dict, List, Optional
 
 from backend.exceptions.custom import ValidationError
-from backend.utils.workspace import get_fwconfigfiles_root
+from backend.utils.workspace import get_fwconfigfiles_product_repo_root
 from backend.utils.yaml_utils import read_yaml_dict, write_yaml_dict
 from pathlib import Path
 
@@ -22,7 +22,7 @@ class KeywordsService:
 
     def list_items(self) -> List[Dict[str, Any]]:
         out: List[Dict[str, Any]] = []
-        kfilename = get_fwconfigfiles_root(self._product) / _KEYWORDS_FILENAME
+        kfilename = get_fwconfigfiles_product_repo_root(self._product) / _KEYWORDS_FILENAME
         if not Path(kfilename).exists():
             return out
         
@@ -38,7 +38,7 @@ class KeywordsService:
         return out
 
     def save_item(self, *, name: str) -> None:
-        kfilename = get_fwconfigfiles_root(self._product) / _KEYWORDS_FILENAME
+        kfilename = get_fwconfigfiles_product_repo_root(self._product) / _KEYWORDS_FILENAME
         key = self._normalize_keyword_name(name)
         raw = read_yaml_dict(kfilename)
         if not isinstance(raw, dict):
@@ -47,7 +47,7 @@ class KeywordsService:
         write_yaml_dict(kfilename, raw, sort_keys=True)
 
     def delete_item(self, *, name: str) -> None:
-        kfilename = get_fwconfigfiles_root(self._product) / _KEYWORDS_FILENAME
+        kfilename = get_fwconfigfiles_product_repo_root(self._product) / _KEYWORDS_FILENAME
         raw = read_yaml_dict(kfilename)
         if not isinstance(raw, dict):
             raw = {}

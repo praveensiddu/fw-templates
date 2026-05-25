@@ -255,7 +255,7 @@ function FwRulesTable({ setLoading, setError }) {
         for (const s of lst) {
           const site = safeTrim(s);
           if (!site) continue;
-          const val = `${site}-${comp}-<env-suffix>`;
+          const val = `${site}-${comp}-<ES>`;
           if (seen.has(val)) continue;
           seen.add(val);
           out.push(val);
@@ -1018,7 +1018,7 @@ function FwRulesTable({ setLoading, setError }) {
       if (detailsMode === "edit") {
         await putJson(fwconfigTypeBasePath("fw-rules"), payload);
       } else {
-        await saveFwConfigItem("fw-rules", payload);
+        await postJson(fwconfigTypeBasePath("fw-rules"), payload);
       }
 
       initialDetailsSnapshotRef.current = stableStringify(form);

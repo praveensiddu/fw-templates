@@ -5,7 +5,7 @@ from typing import Any, Dict, List, Optional, Tuple
 
 from backend.exceptions.custom import ValidationError
 from backend.models import SaveItemRequest
-from backend.utils.workspace import get_fwconfigfiles_root
+from backend.utils.workspace import get_fwconfigfiles_product_repo_root, get_fwconfigfiles_root
 from backend.utils.yaml_utils import list_yaml_files, read_yaml_dict, write_yaml_dict
 
 
@@ -33,7 +33,7 @@ class IpInventoryService:
 
     def _path(self, *, env: str) -> Path:
         e = self._normalize_env(env)
-        root = get_fwconfigfiles_root(None) / "overrides" / "ip_inventory" / e
+        root = get_fwconfigfiles_product_repo_root(self._product) / "overrides" / "ip_inventory" / e
         root.mkdir(parents=True, exist_ok=True)
         return root / self._FILENAME
 
@@ -75,28 +75,6 @@ class IpInventoryService:
 
     def _products_path(self) -> Path:
         return get_fwconfigfiles_root(None) / "products.yaml"
-
-    def _get_templates_repo_name(self) -> str:
-        raw = read_yaml_dict(self._products_path())
-        if not isinstance(raw, dict):
-            raw = {}
-
-        prod_key = str(self._product or "").strip().upper()
-        prod = raw.get(prod_key) if prod_key else None
-        if not isinstance(prod, dict):
-            prod = {}
-
-        templates_repo = str(prod.get("templates-repo") or "").strip()
-        if not templates_repo:
-            raise ValidationError("templates-repo", "is required on product")
-
-        parts = [p for p in templates_repo.split("/") if p]
-        if not parts:
-            raise ValidationError("templates-repo", "invalid format")
-        repo_name = str(parts[-1]).strip()
-        if not repo_name:
-            raise ValidationError("templates-repo", "invalid format")
-        return repo_name
 
     def _get_templates_folder_prefix(self) -> str:
         prefix = str(os.getenv("TEMPLATES_FOLDER_PREFIX", "") or "").strip()
@@ -252,9 +230,8 @@ class IpInventoryService:
             if matched:
                 product_addr_match_dict[name] = val
 
-        repo_name = self._get_templates_repo_name()
         templates_prefix = self._get_templates_folder_prefix()
-        envgenfolder = get_fwconfigfiles_root(None) / "cloned-repos" / repo_name / e / templates_prefix
+        envgenfolder = get_fwconfigfiles_product_repo_root(self._product) / e / templates_prefix
         address_dir = envgenfolder / "address"
         address_dir.mkdir(parents=True, exist_ok=True)
 

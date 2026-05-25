@@ -3,7 +3,7 @@ from pathlib import Path
 from typing import Any, Dict, List, Optional
 
 from backend.exceptions.custom import ValidationError
-from backend.utils.workspace import get_fwconfigfiles_root
+from backend.utils.workspace import get_fwconfigfiles_product_repo_root, get_fwconfigfiles_root
 from backend.utils.yaml_utils import list_yaml_files, read_yaml_dict, write_yaml_dict
 
 _COMPONENTS_FILENAME = "components.yaml"
@@ -15,7 +15,7 @@ class ComponentsService:
         self._product = product
 
     def _path(self) -> Path:
-        return get_fwconfigfiles_root(self._product) / _COMPONENTS_FILENAME
+        return get_fwconfigfiles_product_repo_root(self._product) / _COMPONENTS_FILENAME
 
     @staticmethod
     def _normalize_component_name(name: str) -> str:
@@ -115,7 +115,7 @@ class ComponentsService:
             if prev not in existing_keys:
                 raise ValidationError("original_name", "does not exist")
 
-            fw_rules_root = get_fwconfigfiles_root(self._product) / "fw-rules"
+            fw_rules_root = get_fwconfigfiles_product_repo_root(self._product) / "fw-rules"
             fw_rules_root.mkdir(parents=True, exist_ok=True)
 
             def _rewrite_group(group: Any) -> str:
