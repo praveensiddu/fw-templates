@@ -9,7 +9,7 @@ Keys are product names.
 """
 
 from pathlib import Path
-from typing import Any, Dict
+from typing import Any, Dict, Optional
 
 import re
 from fastapi import APIRouter, Depends, Request
@@ -106,14 +106,20 @@ def get_service():
     return True
 
 
-@router.get("", response_model=ListItemsResponse)
-def list_items(request: Request):
+@router.get("")
+def list_items(request: Request, name: Optional[str] = None):
     raw = read_yaml_dict(_path())
     if not isinstance(raw, dict):
         raw = {}
 
+    name_key = ""
+    if str(name or "").strip():
+        name_key = _normalize_name(str(name))
+
     items = []
     for k in sorted([str(x) for x in raw.keys()]):
+        if name_key and _normalize_name(k) != name_key:
+            continue
         val = raw.get(k)
         data = val if isinstance(val, dict) else {}
         items.append(

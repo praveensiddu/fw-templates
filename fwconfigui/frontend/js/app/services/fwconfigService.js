@@ -20,6 +20,19 @@ function getCurrentProduct() {
   return "";
 }
 
+async function fetchProductRecord(productName) {
+  const name = safeTrim(productName);
+  if (!name) throw new Error("product name is required");
+  const url = `/api/v1/fwconfig/products?name=${encodeURIComponent(name)}`;
+  const resp = await fetchJson(url);
+  const items = Array.isArray(resp?.items) ? resp.items : [];
+  return items.length ? items[0] : null;
+}
+
+if (typeof window !== "undefined") {
+  window.fetchProductRecord = fetchProductRecord;
+}
+
 function isProductScopedType(type) {
   const t = safeTrim(type);
   return (

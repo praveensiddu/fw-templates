@@ -23,7 +23,7 @@ def get_service() -> NetworkAreasService:
     return NetworkAreasService()
 
 
-@router.get("", response_model=ListItemsResponse)
+@router.get("")
 def list_items(request: Request, service: NetworkAreasService = Depends(get_service)):
     items = service.list_items()
     return {"type": "networkareas", "items": items}

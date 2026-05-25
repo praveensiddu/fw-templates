@@ -62,6 +62,7 @@ function App() {
 
   const [infraEnvItems, setInfraEnvItems] = React.useState([]);
   const [productItems, setProductItems] = React.useState([]);
+  const [productEnvOptions, setProductEnvOptions] = React.useState([]);
 
   const [navConfirm, setNavConfirm] = React.useState({
     show: false,
@@ -282,16 +283,37 @@ function App() {
     loadProducts();
   }, []);
 
-  const envNamesForProduct = React.useMemo(() => {
+  React.useEffect(() => {
     const currentProduct = safeTrim(window.__fwCurrentProduct) || getProductFromPath(window.location.pathname);
-    if (!isNonEmptyString(currentProduct)) return [];
+    if (!isNonEmptyString(currentProduct)) {
+      if ((productEnvOptions || []).length) setProductEnvOptions([]);
+      return;
+    }
 
-    const prod = (productItems || []).find((it) => safeTrim(it?.name) === currentProduct);
-    const envs = prod?.data?.envs;
-    return (Array.isArray(envs) ? envs : [])
-      .map((x) => safeTrim(x))
-      .filter(Boolean);
-  }, [productItems, getProductFromPath]);
+    if (activeTab !== "products") return;
+    if (productSubTab !== "groups" && productSubTab !== "addrs" && productSubTab !== "rules" && productSubTab !== "ip_inventory") return;
+
+    const fn = typeof window !== "undefined" ? window.fetchProductRecord : null;
+    if (typeof fn !== "function") return;
+
+    let cancelled = false;
+    (async () => {
+      try {
+        const row = await fn(currentProduct);
+        const envs = row?.data?.envs;
+        const next = (Array.isArray(envs) ? envs : [])
+          .map((x) => safeTrim(x))
+          .filter(Boolean);
+        if (!cancelled) setProductEnvOptions(next);
+      } catch (e) {
+        if (!cancelled) setProductEnvOptions([]);
+      }
+    })();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [activeTab, productSubTab, routeVersion, getProductFromPath]);
 
   React.useEffect(() => {
     if (activeTab !== "products") return;
@@ -301,11 +323,8 @@ function App() {
     if (!isNonEmptyString(currentProduct)) return;
 
     const envFromPath = getProductEnvFromPath(window.location.pathname);
-    const envNames = (envNamesForProduct || []).length ? envNamesForProduct : [];
-
-    // If product envs aren't loaded yet, don't default to all infra envs.
-    // Wait for products list load to populate envNamesForProduct.
-    if ((envNamesForProduct || []).length === 0) return;
+    const envNames = (productEnvOptions || []).length ? productEnvOptions : [];
+    if (envNames.length === 0) return;
 
     const preferred = safeTrim(envFromPath) || safeTrim(productEnv) || (envNames.length ? envNames[0] : "");
     if (!preferred) return;
@@ -318,7 +337,7 @@ function App() {
       window.history.replaceState({}, "", expected);
       setRouteVersion((v) => v + 1);
     }
-  }, [activeTab, productSubTab, productEnv, infraEnvItems, envNamesForProduct, getProductFromPath, getProductEnvFromPath]);
+  }, [activeTab, productSubTab, productEnv, infraEnvItems, productEnvOptions, getProductFromPath, getProductEnvFromPath]);
 
   const content = React.useMemo(() => {
     if (activeTab === "products") {
@@ -381,7 +400,7 @@ function App() {
               <button
                 className={`tab ${productSubTab === "groups" ? "active" : ""}`}
                 onClick={() => {
-                  const envNames = (envNamesForProduct || []).length ? envNamesForProduct : [];
+                  const envNames = (productEnvOptions || []).length ? productEnvOptions : [];
                   const nextEnv = safeTrim(productEnv) || getProductEnvFromPath(window.location.pathname) || (envNames.length ? envNames[0] : "");
                   const nextPath = nextEnv
                     ? `/products/${encodeURIComponent(currentProduct)}/groups/${encodeURIComponent(nextEnv)}`
@@ -399,7 +418,7 @@ function App() {
               <button
                 className={`tab ${productSubTab === "addrs" ? "active" : ""}`}
                 onClick={() => {
-                  const envNames = (envNamesForProduct || []).length ? envNamesForProduct : [];
+                  const envNames = (productEnvOptions || []).length ? productEnvOptions : [];
                   const nextEnv = safeTrim(productEnv) || getProductEnvFromPath(window.location.pathname) || (envNames.length ? envNames[0] : "");
                   const nextPath = nextEnv
                     ? `/products/${encodeURIComponent(currentProduct)}/addrs/${encodeURIComponent(nextEnv)}`
@@ -417,7 +436,7 @@ function App() {
               <button
                 className={`tab ${productSubTab === "rules" ? "active" : ""}`}
                 onClick={() => {
-                  const envNames = (envNamesForProduct || []).length ? envNamesForProduct : [];
+                  const envNames = (productEnvOptions || []).length ? productEnvOptions : [];
                   const nextEnv = safeTrim(productEnv) || getProductEnvFromPath(window.location.pathname) || (envNames.length ? envNames[0] : "");
                   const nextPath = nextEnv
                     ? `/products/${encodeURIComponent(currentProduct)}/rules/${encodeURIComponent(nextEnv)}`
@@ -488,7 +507,7 @@ function App() {
               <button
                 className={`tab ${productSubTab === "ip_inventory" ? "active" : ""}`}
                 onClick={() => {
-                  const envNames = (envNamesForProduct || []).length ? envNamesForProduct : [];
+                  const envNames = (productEnvOptions || []).length ? productEnvOptions : [];
                   const nextEnv = safeTrim(productEnv) || getProductEnvFromPath(window.location.pathname) || (envNames.length ? envNames[0] : "");
                   const nextPath = nextEnv
                     ? `/products/${encodeURIComponent(currentProduct)}/ip_inventory/${encodeURIComponent(nextEnv)}`
@@ -508,7 +527,7 @@ function App() {
           {productSubTab === "groups" || productSubTab === "addrs" || productSubTab === "rules" || productSubTab === "ip_inventory" ? (
             <div className="actions" style={{ marginTop: 10, justifyContent: "flex-start" }}>
               <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
-                {(envNamesForProduct || []).map((envName) => (
+                {(productEnvOptions || []).map((envName) => (
                     <button
                       key={envName}
                       className={`tab ${safeTrim(productEnv) === envName ? "active" : ""}`}

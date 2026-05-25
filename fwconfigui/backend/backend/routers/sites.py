@@ -22,7 +22,7 @@ def get_service() -> SitesService:
     return SitesService()
 
 
-@router.get("", response_model=ListItemsResponse)
+@router.get("")
 def list_items(request: Request, service: SitesService = Depends(get_service)):
     items = service.list_items()
     return {"type": "sites", "items": items}
