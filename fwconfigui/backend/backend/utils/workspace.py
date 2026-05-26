@@ -55,6 +55,51 @@ def get_fwconfigfiles_root(product: Optional[str] = None) -> Path:
     return scoped
 
 
+def get_product_templates_repo(product: Optional[str]) -> Path:
+    root = get_fwconfigfiles_root(None)
+    if not str(product or "").strip():
+        return root
+    prod_key = str(product or "").strip().upper()
+
+    repo_name = ""
+    try:
+        products_path = get_settings_yaml_path("products.yaml")
+        raw = read_yaml_dict(products_path)
+        if isinstance(raw, dict) and prod_key:
+            data = raw.get(prod_key)
+            prod = data if isinstance(data, dict) else {}
+            templates_repo = str(prod.get("templates-repo") or "").strip()
+            parts = [p for p in templates_repo.split("/") if str(p or "").strip()]
+            repo_name = str(parts[-1]).strip() if parts else ""
+    except Exception:
+        raise NotInitializedError(f"templates-repo field must be set for this product={product}")
+
+    scoped = root / "cloned-repos" / repo_name
+    return scoped
+
+
+def get_product_generated_repo(product: Optional[str]) -> Path:
+    root = get_fwconfigfiles_root(None)
+    if not str(product or "").strip():
+        return root
+    prod_key = str(product or "").strip().upper()
+
+    repo_name = ""
+    try:
+        products_path = get_settings_yaml_path("products.yaml")
+        raw = read_yaml_dict(products_path)
+        if isinstance(raw, dict) and prod_key:
+            data = raw.get(prod_key)
+            prod = data if isinstance(data, dict) else {}
+            repo_name = str(prod.get("generated-repo") or "").strip()
+    except Exception:
+        raise NotInitializedError(f"generated-repo field must be set for this product={product}")
+
+
+    scoped = root / "cloned-repos" / repo_name
+    return scoped
+
+
 def get_fwconfigfiles_product_repo_root(product: Optional[str]) -> Path:
     root = get_fwconfigfiles_root(None)
     if not str(product or "").strip():
@@ -63,7 +108,7 @@ def get_fwconfigfiles_product_repo_root(product: Optional[str]) -> Path:
 
     repo_name = ""
     try:
-        products_path = root / "products.yaml"
+        products_path = get_settings_yaml_path("products.yaml")
         raw = read_yaml_dict(products_path)
         if isinstance(raw, dict) and prod_key:
             data = raw.get(prod_key)
@@ -90,3 +135,21 @@ def ensure_fwconfigfiles_root() -> Path:
     root = get_workspace_root() / "fwconfigfiles"
     root.mkdir(parents=True, exist_ok=True)
     return root
+
+
+def get_pfc_settings_root() -> Path:
+    pfc_repo_raw = str(os.getenv("PFC_REPO", "") or "").strip()
+    if not pfc_repo_raw:
+        raise NotInitializedError("PFC_REPO")
+    root = Path(pfc_repo_raw).expanduser() / "settings"
+    root.mkdir(parents=True, exist_ok=True)
+    return root
+
+
+def get_settings_yaml_path(filename: str) -> Path:
+    fn = str(filename or "").strip()
+    if not fn:
+        raise ValueError("filename is required")
+    if "/" in fn or "\\" in fn:
+        raise ValueError("filename must be a base filename")
+    return get_pfc_settings_root() / fn

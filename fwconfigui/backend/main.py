@@ -1,6 +1,7 @@
 """FastAPI application entrypoint."""
 
 import logging
+import os
 import uvicorn
 from contextlib import asynccontextmanager
 from pathlib import Path
@@ -45,12 +46,20 @@ BASE_DIR = Path(__file__).resolve().parents[1]
 FRONTEND_DIR = BASE_DIR / "frontend"
 
 
+def _require_env_vars() -> None:
+    required = ["FORTIMGR_EXTRACT_REPO", "PFC_REPO", "GENERATED_FOLDER_PREFIX"]
+    missing = [k for k in required if not str(os.getenv(k, "") or "").strip()]
+    if missing:
+        raise RuntimeError(f"Missing required environment variable(s): {', '.join(missing)}")
+
+
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     logger.info("=" * 80)
     logger.info("🚀 %s v%s", settings.api_title, settings.api_version)
     logger.info("=" * 80)
 
+    _require_env_vars()
     ws_root = ensure_fwconfigfiles_root()
 
 

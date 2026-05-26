@@ -4,7 +4,7 @@ import ipaddress
 from typing import Any, Dict, List, Optional, Tuple
 
 from backend.exceptions.custom import AlreadyExistsError, ValidationError
-from backend.utils.workspace import get_fwconfigfiles_root
+from backend.utils.workspace import get_fwconfigfiles_root, get_settings_yaml_path
 from backend.utils.yaml_utils import list_yaml_files, read_yaml_dict, write_yaml_dict
 
 
@@ -15,7 +15,29 @@ class AddressesService:
         self._product = product
 
     def _products_path(self) -> Path:
-        return get_fwconfigfiles_root(None) / "products.yaml"
+        return get_settings_yaml_path("products.yaml")
+
+    def _get_generated_repo_name(self) -> str:
+        raw = read_yaml_dict(self._products_path())
+        if not isinstance(raw, dict):
+            raw = {}
+
+        prod_key = str(self._product or "").strip().upper()
+        prod = raw.get(prod_key) if prod_key else None
+        if not isinstance(prod, dict):
+            prod = {}
+
+        generated_repo = str(prod.get("generated-repo") or "").strip()
+        if not generated_repo:
+            raise ValidationError("generated-repo", "is required on product")
+
+        parts = [p for p in generated_repo.split("/") if p]
+        if not parts:
+            raise ValidationError("generated-repo", "invalid format")
+        repo_name = str(parts[-1]).strip()
+        if not repo_name:
+            raise ValidationError("generated-repo", "invalid format")
+        return generated_repo
 
     def _get_templates_repo_name(self) -> str:
         raw = read_yaml_dict(self._products_path())
@@ -39,10 +61,10 @@ class AddressesService:
             raise ValidationError("templates-repo", "invalid format")
         return repo_name
 
-    def _get_templates_folder_prefix(self) -> str:
-        prefix = str(os.getenv("TEMPLATES_FOLDER_PREFIX", "") or "").strip()
+    def _get_generated_folder_prefix(self) -> str:
+        prefix = str(os.getenv("GENERATED_FOLDER_PREFIX", "") or "").strip()
         if not prefix:
-            raise ValidationError("TEMPLATES_FOLDER_PREFIX", "env var is required")
+            raise ValidationError("GENERATED_FOLDER_PREFIX", "env var is required")
         return prefix
 
     @staticmethod
@@ -73,7 +95,7 @@ class AddressesService:
 
     def _validate_env_exists(self, env: str) -> None:
         e = self._normalize_env(env)
-        env_path = get_fwconfigfiles_root(None) / "env.yaml"
+        env_path = get_settings_yaml_path("env.yaml")
         raw = read_yaml_dict(env_path)
         if not isinstance(raw, dict) or not raw:
             return
@@ -82,9 +104,9 @@ class AddressesService:
 
     def _env_addrs_dir(self, env: str) -> Path:
         e = self._normalize_env(env)
-        repo_name = self._get_templates_repo_name()
-        templates_prefix = self._get_templates_folder_prefix()
-        root = get_fwconfigfiles_root(None) / "cloned-repos" / repo_name / e / templates_prefix / "address"
+        repo_name = self._get_generated_repo_name()
+        generated_prefix = self._get_generated_folder_prefix()
+        root = get_fwconfigfiles_root(None) / "cloned-repos" / repo_name / e / generated_prefix / "address"
         root.mkdir(parents=True, exist_ok=True)
         return root
 

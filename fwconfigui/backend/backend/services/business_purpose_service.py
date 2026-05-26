@@ -3,7 +3,7 @@ from pathlib import Path
 from typing import Any, Dict, List, Optional, Tuple
 
 from backend.exceptions.custom import ValidationError
-from backend.utils.workspace import get_fwconfigfiles_product_repo_root, get_fwconfigfiles_root
+from backend.utils.workspace import get_product_templates_repo, get_fwconfigfiles_root
 from backend.utils.yaml_utils import list_yaml_files, read_yaml_dict, write_yaml_dict
 
 _BUSINESS_PURPOSE_FILENAME = "business-purpose.yaml"
@@ -29,10 +29,10 @@ class BusinessPurposeService:
         return v
 
     def _path(self) -> Path:
-        return get_fwconfigfiles_product_repo_root(self._product) / _BUSINESS_PURPOSE_FILENAME
+        return get_product_templates_repo(self._product) / _BUSINESS_PURPOSE_FILENAME
 
     def _overrides_path(self) -> Path:
-        return get_fwconfigfiles_product_repo_root(self._product) / "overrides" / "flows" / "business_purpose_overrides.yaml"
+        return get_product_templates_repo(self._product) / "overrides" / "flows" / "business_purpose_overrides.yaml"
 
     def list_items(self) -> List[Dict[str, Any]]:
         path = self._path()
@@ -63,7 +63,7 @@ class BusinessPurposeService:
             if prev not in existing_keys:
                 raise ValidationError("original_name", "does not exist")
 
-            fw_rules_root = get_fwconfigfiles_product_repo_root(self._product) / "fw-rules"
+            fw_rules_root = get_product_templates_repo(self._product) / "fw-rules"
             fw_rules_root.mkdir(parents=True, exist_ok=True)
 
             for fpath in list_yaml_files(fw_rules_root):
@@ -146,7 +146,7 @@ class BusinessPurposeService:
         updated_files = 0
         updated_refs = 0
 
-        fw_rules_root = get_fwconfigfiles_product_repo_root(self._product) / "fw-rules"
+        fw_rules_root = get_product_templates_repo(self._product) / "fw-rules"
         fw_rules_root.mkdir(parents=True, exist_ok=True)
 
         for path in list_yaml_files(fw_rules_root):

@@ -18,7 +18,7 @@ from pydantic import BaseModel
 from backend.exceptions.custom import AlreadyExistsError, ValidationError
 from backend.models import ListItemsResponse, SaveItemRequest
 from backend.services.env_service import EnvService
-from backend.utils.workspace import get_fwconfigfiles_root
+from backend.utils.workspace import get_settings_yaml_path
 from backend.utils.yaml_utils import read_yaml_dict, write_yaml_dict
 
 router = APIRouter(prefix="/api/v1/fwconfig/products", tags=["products"])
@@ -27,7 +27,7 @@ _FIXED_FILENAME = "products.yaml"
 
 
 def _path() -> Path:
-    return get_fwconfigfiles_root() / _FIXED_FILENAME
+    return get_settings_yaml_path(_FIXED_FILENAME)
 
 
 def _normalize_name(name: str) -> str:

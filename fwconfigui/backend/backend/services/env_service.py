@@ -1,7 +1,7 @@
 from pathlib import Path
 from typing import Any, Dict, List
 
-from backend.utils.workspace import get_fwconfigfiles_root
+from backend.utils.workspace import get_settings_yaml_path
 from backend.utils.yaml_utils import read_yaml_dict, write_yaml_dict
 
 
@@ -9,7 +9,7 @@ class EnvService:
     _FIXED_FILENAME = "env.yaml"
 
     def _path(self) -> Path:
-        return get_fwconfigfiles_root() / self._FIXED_FILENAME
+        return get_settings_yaml_path(self._FIXED_FILENAME)
 
     def list_items(self) -> List[Dict[str, Any]]:
         file_path = self._path()

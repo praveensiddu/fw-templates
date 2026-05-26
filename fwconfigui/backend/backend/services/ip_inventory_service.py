@@ -5,7 +5,7 @@ from typing import Any, Dict, List, Optional, Tuple
 
 from backend.exceptions.custom import ValidationError
 from backend.models import SaveItemRequest
-from backend.utils.workspace import get_fwconfigfiles_product_repo_root, get_fwconfigfiles_root
+from backend.utils.workspace import get_product_templates_repo, get_product_generated_repo, get_settings_yaml_path
 from backend.utils.yaml_utils import list_yaml_files, read_yaml_dict, write_yaml_dict
 
 
@@ -24,7 +24,7 @@ class IpInventoryService:
 
     def _validate_env_exists(self, env: str) -> None:
         e = self._normalize_env(env)
-        env_path = get_fwconfigfiles_root(None) / "env.yaml"
+        env_path = get_settings_yaml_path("env.yaml")
         raw = read_yaml_dict(env_path)
         if not isinstance(raw, dict) or not raw:
             return
@@ -33,7 +33,7 @@ class IpInventoryService:
 
     def _path(self, *, env: str) -> Path:
         e = self._normalize_env(env)
-        root = get_fwconfigfiles_product_repo_root(self._product) / "overrides" / "ip_inventory" / e
+        root = get_product_templates_repo(self._product) / "overrides" / "ip_inventory" / e
         root.mkdir(parents=True, exist_ok=True)
         return root / self._FILENAME
 
@@ -73,13 +73,10 @@ class IpInventoryService:
             raise ValidationError("name", "must be a valid IP address")
         return v
 
-    def _products_path(self) -> Path:
-        return get_fwconfigfiles_root(None) / "products.yaml"
-
-    def _get_templates_folder_prefix(self) -> str:
-        prefix = str(os.getenv("TEMPLATES_FOLDER_PREFIX", "") or "").strip()
+    def _get_generated_folder_prefix(self) -> str:
+        prefix = str(os.getenv("GENERATED_FOLDER_PREFIX", "") or "").strip()
         if not prefix:
-            raise ValidationError("TEMPLATES_FOLDER_PREFIX", "env var is required")
+            raise ValidationError("GENERATED_FOLDER_PREFIX", "env var is required")
         return prefix
 
     @staticmethod
@@ -184,13 +181,13 @@ class IpInventoryService:
         e = self._normalize_env(env)
         self._validate_env_exists(e)
 
-        fm_root_raw = str(os.getenv("FORTIMGR_EXTRACT", "") or "").strip()
+        fm_root_raw = str(os.getenv("FORTIMGR_EXTRACT_REPO", "") or "").strip()
         if not fm_root_raw:
-            raise ValidationError("FORTIMGR_EXTRACT", "env var is required")
+            raise ValidationError("FORTIMGR_EXTRACT_REPO", "env var is required")
         fm_root = Path(fm_root_raw).expanduser()
         fm_addrs_dir = fm_root / e / "addrs"
         if not fm_addrs_dir.exists() or not fm_addrs_dir.is_dir():
-            raise ValidationError("FORTIMGR_EXTRACT", f"missing dir '{fm_addrs_dir}' Make sure FORTIMGR_EXTRACT is an absolute folder")
+            raise ValidationError("FORTIMGR_EXTRACT_REPO", f"missing dir '{fm_addrs_dir}' Make sure FORTIMGR_EXTRACT_REPO is an absolute folder")
 
         fortimgr_addrs_dict: Dict[str, str] = {}
         for p in list_yaml_files(fm_addrs_dir):
@@ -230,8 +227,8 @@ class IpInventoryService:
             if matched:
                 product_addr_match_dict[name] = val
 
-        templates_prefix = self._get_templates_folder_prefix()
-        envgenfolder = get_fwconfigfiles_product_repo_root(self._product) / e / templates_prefix
+        generated_prefix = self._get_generated_folder_prefix()
+        envgenfolder = get_product_generated_repo(self._product) / e / generated_prefix
         address_dir = envgenfolder / "address"
         address_dir.mkdir(parents=True, exist_ok=True)
 
