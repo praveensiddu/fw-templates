@@ -56,7 +56,6 @@ class RulesService:
         repo_name = self._get_templates_repo_name()
         generated_prefix = self._get_generated_folder_prefix()
         root = get_fwconfigfiles_root(None) / "cloned-repos" / repo_name / e / generated_prefix / "flows"
-        root.mkdir(parents=True, exist_ok=True)
         return root
 
     @staticmethod
