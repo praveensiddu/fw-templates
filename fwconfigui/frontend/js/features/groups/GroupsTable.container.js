@@ -142,6 +142,22 @@ function GroupsTable({ env, setLoading, setError }) {
     }
   }, [env, confirmDelete, setLoading, setError, load]);
 
+  const onExclude = React.useCallback(
+    async (row) => {
+      try {
+        setLoading(true);
+        setError("");
+        await excludeGroupFromImport(env, row?.name);
+        await load();
+      } catch (e) {
+        setError(formatError(e));
+      } finally {
+        setLoading(false);
+      }
+    },
+    [env, setLoading, setError, load]
+  );
+
   return (
     <>
       <GroupsTableView
@@ -152,6 +168,7 @@ function GroupsTable({ env, setLoading, setError }) {
         onAdd={onAdd}
         onEdit={onEdit}
         onDelete={onDelete}
+        onExclude={onExclude}
         editingKey={editingKey}
         draft={draft}
         setDraft={setDraft}

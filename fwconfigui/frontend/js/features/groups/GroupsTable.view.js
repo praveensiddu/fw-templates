@@ -1,4 +1,4 @@
-function GroupsTableView({ env, rows, filters, setFilters, onAdd, onEdit, onDelete, editingKey, draft, setDraft, memberOptions, canSubmit, onCancelEdit, onSave }) {
+function GroupsTableView({ env, rows, filters, setFilters, onAdd, onEdit, onDelete, onExclude, editingKey, draft, setDraft, memberOptions, canSubmit, onCancelEdit, onSave }) {
   function normalizeName(v) {
     return String(v || "")
       .toLowerCase()
@@ -217,7 +217,17 @@ function GroupsTableView({ env, rows, filters, setFilters, onAdd, onEdit, onDele
               })();
               return (
                 <tr key={`${safeTrim(r.filename) || "groups.yaml"}::${r.name || idx}`}>
-                  <td>{r.name}</td>
+                  <td>
+                    <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 8 }}>
+                      <span>{r.name}</span>
+                      <button className="iconBtn" title="Exclude from import" onClick={() => onExclude(r)}>
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                          <circle cx="12" cy="12" r="10" />
+                          <line x1="8" y1="12" x2="16" y2="12" />
+                        </svg>
+                      </button>
+                    </div>
+                  </td>
                   <td className="muted" style={{ whiteSpace: "pre-line" }}>{(members || []).map((m) => safeTrim(m)).filter(Boolean).join("\n")}</td>
                   <td className="muted">{nameOverride}</td>
                   <td className="muted">{inFirewall}</td>

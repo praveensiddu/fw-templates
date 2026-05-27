@@ -191,6 +191,16 @@ async function deleteGroup(env, name, filename) {
   return await deleteJson(url);
 }
 
+async function excludeGroupFromImport(env, name) {
+  const product = getCurrentProduct();
+  if (!isNonEmptyString(product)) throw new Error("Select a product first");
+  const e = requireEnv(env);
+  const n = safeTrim(name);
+  if (!n) throw new Error("name is required");
+  const url = `/api/v1/products/${encodeURIComponent(product)}/groups/${encodeURIComponent(e)}/exclude`;
+  return await postJson(url, { name: n });
+}
+
 async function listAddrs(env) {
   const product = getCurrentProduct();
   if (!isNonEmptyString(product)) throw new Error("Select a product first");
@@ -225,6 +235,16 @@ async function deleteAddr(env, name, filename) {
   const fn = safeTrim(filename) || "addresses.yaml";
   const url = `/api/v1/products/${encodeURIComponent(product)}/addrs/${encodeURIComponent(e)}?filename=${encodeURIComponent(fn)}&name=${encodeURIComponent(n)}`;
   return await deleteJson(url);
+}
+
+async function excludeAddrFromImport(env, name) {
+  const product = getCurrentProduct();
+  if (!isNonEmptyString(product)) throw new Error("Select a product first");
+  const e = requireEnv(env);
+  const n = safeTrim(name);
+  if (!n) throw new Error("name is required");
+  const url = `/api/v1/products/${encodeURIComponent(product)}/addrs/${encodeURIComponent(e)}/exclude`;
+  return await postJson(url, { name: n });
 }
 
 async function listIpInventory(env) {

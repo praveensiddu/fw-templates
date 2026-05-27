@@ -6,6 +6,8 @@ from fastapi import APIRouter, Depends, Request
 
 from backend.models import SaveItemRequest
 from backend.services.groups_service import GroupsService
+from backend.utils.workspace import get_product_templates_repo
+from backend.utils.yaml_utils import read_yaml_dict, write_yaml_dict
 
 router = APIRouter(prefix="/api/v1/products/{product}/groups/{env}", tags=["groups"])
 
@@ -56,4 +58,23 @@ def delete_item(
     service: GroupsService = Depends(get_service),
 ) -> Dict[str, Any]:
     service.delete_item(env=env, filename=filename, name=name)
+    return {"ok": True}
+
+
+@router.post("/exclude")
+def exclude_from_import(
+    request: Request,
+    product: str,
+    env: str,
+    payload: SaveItemRequest,
+) -> Dict[str, Any]:
+    name = str(payload.name or "").strip()
+    if not name:
+        return {"ok": False, "error": "name is required"}
+    path = get_product_templates_repo(product) / "overrides" / str(env or "").strip().lower() / "groups_excluded_from_import.yaml"
+    raw = read_yaml_dict(path)
+    if not isinstance(raw, dict):
+        raw = {}
+    raw[name] = {}
+    write_yaml_dict(path, raw, sort_keys=True)
     return {"ok": True}

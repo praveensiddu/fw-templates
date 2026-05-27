@@ -252,11 +252,34 @@ class IpInventoryService:
             if no:
                 name_override_to_key[no] = k
 
+        excluded_addr_names: set[str] = set()
+        pfc_repo_raw = str(os.getenv("PFC_REPO", "") or "").strip()
+        if pfc_repo_raw:
+            common_excluded_path = Path(pfc_repo_raw).expanduser() / "settings" / "import" / e / "common_address_excluded_from_import.yaml"
+            if common_excluded_path.exists():
+                raw = read_yaml_dict(common_excluded_path)
+                if isinstance(raw, dict):
+                    for k in raw.keys():
+                        name = str(k or "").strip()
+                        if name:
+                            excluded_addr_names.add(name)
+
+        excluded_addr_path = get_product_templates_repo(self._product) / "overrides" / e / "address_excluded_from_import.yaml"
+        if excluded_addr_path.exists():
+            raw = read_yaml_dict(excluded_addr_path)
+            if isinstance(raw, dict):
+                for k in raw.keys():
+                    name = str(k or "").strip()
+                    if name:
+                        excluded_addr_names.add(name)
+
         addr_unmatch_dict: Dict[str, Dict[str, Any]] = {}
         existing_conflict_updates = 0
         existing_match_count = 0
 
         for fm_name, fm_val in product_addr_match_dict.items():
+            if fm_name in excluded_addr_names:
+                continue
             existing_key = fm_name if fm_name in existing_address_dict else name_override_to_key.get(fm_name)
             fm_data = self._fortimgr_value_to_address_data(fm_val)
 
@@ -309,6 +332,31 @@ class IpInventoryService:
         groups_dir = envgenfolder / "groups"
         groups_dir.mkdir(parents=True, exist_ok=True)
 
+        excluded_group_names: set[str] = set()
+        pfc_repo_raw = str(os.getenv("PFC_REPO", "") or "").strip()
+        if pfc_repo_raw:
+            common_excluded_groups_path = Path(pfc_repo_raw).expanduser() / "settings" / "import" / e / "common_groups_excluded_from_import.yaml"
+            if common_excluded_groups_path.exists():
+                raw = read_yaml_dict(common_excluded_groups_path)
+                if isinstance(raw, dict):
+                    for k in raw.keys():
+                        name = str(k or "").strip()
+                        if name:
+                            excluded_group_names.add(name)
+
+        excluded_groups_path = get_product_templates_repo(self._product) / "overrides" / e / "groups_excluded_from_import.yaml"
+        if excluded_groups_path.exists():
+            raw = read_yaml_dict(excluded_groups_path)
+            if isinstance(raw, dict):
+                for k in raw.keys():
+                    name = str(k or "").strip()
+                    if name:
+                        excluded_group_names.add(name)
+
+        for k in list(matched_groups.keys()):
+            if k in excluded_group_names:
+                matched_groups.pop(k, None)
+
         existing_group_names: set[str] = set()
         for p in list_yaml_files(groups_dir):
             if str(p.name).strip().lower() in {"fm_extract_groups.yaml", "fm_extract_groups.yml"}:
@@ -326,20 +374,6 @@ class IpInventoryService:
 
         for k in list(matched_groups.keys()):
             if k in existing_group_names:
-                matched_groups.pop(k, None)
-
-        excluded_groups_path = get_product_templates_repo(self._product) / "overrides" / e / "groups_excluded_from_import.yaml"
-        excluded_group_names: set[str] = set()
-        if excluded_groups_path.exists():
-            raw = read_yaml_dict(excluded_groups_path)
-            if isinstance(raw, dict):
-                for k in raw.keys():
-                    name = str(k or "").strip()
-                    if name:
-                        excluded_group_names.add(name)
-
-        for k in list(matched_groups.keys()):
-            if k in excluded_group_names:
                 matched_groups.pop(k, None)
 
         out_groups_path = groups_dir / "fm_extract_groups.yaml"
