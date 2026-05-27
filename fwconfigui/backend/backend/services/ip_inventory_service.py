@@ -34,7 +34,7 @@ class IpInventoryService:
 
     def _path(self, *, env: str) -> Path:
         e = self._normalize_env(env)
-        root = get_product_templates_repo(self._product) / "overrides" / "ip_inventory" / e
+        root = get_product_templates_repo(self._product) / "ip_inventory" / e
         root.mkdir(parents=True, exist_ok=True)
         return root / self._FILENAME
 
