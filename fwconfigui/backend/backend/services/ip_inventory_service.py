@@ -1,5 +1,6 @@
 import ipaddress
 import os
+import re
 from pathlib import Path
 from typing import Any, Dict, List, Optional, Tuple
 
@@ -260,6 +261,77 @@ class IpInventoryService:
 
         out_path = address_dir / "fm_extract_address.yaml"
         write_yaml_dict(out_path, {"addresses": addr_unmatch_dict}, sort_keys=True)
+
+        fm_groups_dir = fm_root / e / "expgrps"
+        fm_groups_dict: Dict[str, List[str]] = {}
+        if fm_groups_dir.exists() and fm_groups_dir.is_dir():
+            for p in list_yaml_files(fm_groups_dir):
+                doc = read_yaml_dict(p)
+                if not isinstance(doc, dict):
+                    continue
+                for group_name, members_raw in doc.items():
+                    g = str(group_name or "").strip()
+                    if not g:
+                        continue
+                    if not isinstance(members_raw, list):
+                        continue
+
+                    members: List[str] = []
+                    for m in members_raw:
+                        s = str(m or "").strip()
+                        if not s:
+                            continue
+                        s = re.sub(r"\([^)]*\)", "", s).strip()
+                        if s:
+                            members.append(s)
+
+                    if members:
+                        fm_groups_dict[g] = members
+
+        product_addr_names = set(product_addr_match_dict.keys())
+        matched_groups: Dict[str, Dict[str, Any]] = {}
+        for gname, members in fm_groups_dict.items():
+            if any(m in product_addr_names for m in members):
+                matched_groups[gname] = {"in-firewall": True, "members": list(members)}
+
+        groups_dir = envgenfolder / "groups"
+        groups_dir.mkdir(parents=True, exist_ok=True)
+
+        existing_group_names: set[str] = set()
+        for p in list_yaml_files(groups_dir):
+            if str(p.name).strip().lower() in {"fm_extract_groups.yaml", "fm_extract_groups.yml"}:
+                continue
+            doc = read_yaml_dict(p)
+            if not isinstance(doc, dict):
+                continue
+            groups = doc.get("groups")
+            if not isinstance(groups, dict):
+                continue
+            for k in groups.keys():
+                name = str(k or "").strip()
+                if name:
+                    existing_group_names.add(name)
+
+        for k in list(matched_groups.keys()):
+            if k in existing_group_names:
+                matched_groups.pop(k, None)
+
+        excluded_groups_path = get_product_templates_repo(self._product) / "overrides" / e / "groups_excluded_from_import.yaml"
+        excluded_group_names: set[str] = set()
+        if excluded_groups_path.exists():
+            raw = read_yaml_dict(excluded_groups_path)
+            if isinstance(raw, dict):
+                for k in raw.keys():
+                    name = str(k or "").strip()
+                    if name:
+                        excluded_group_names.add(name)
+
+        for k in list(matched_groups.keys()):
+            if k in excluded_group_names:
+                matched_groups.pop(k, None)
+
+        out_groups_path = groups_dir / "fm_extract_groups.yaml"
+        write_yaml_dict(out_groups_path, {"groups": matched_groups}, sort_keys=True)
 
         return {
             "ok": True,
