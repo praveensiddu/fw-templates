@@ -182,16 +182,28 @@ class IpInventoryService:
         e = self._normalize_env(env)
         self._validate_env_exists(e)
 
+        def _list_yaml_files_recursive(root: Path) -> List[Path]:
+            if not root.exists() or not root.is_dir():
+                return []
+            out: List[Path] = []
+            for p in sorted(root.rglob("*")):
+                if not p.is_file():
+                    continue
+                if p.suffix.lower() not in {".yaml", ".yml"}:
+                    continue
+                out.append(p)
+            return out
+
         fm_root_raw = str(os.getenv("FORTIMGR_EXTRACT_REPO", "") or "").strip()
         if not fm_root_raw:
             raise ValidationError("FORTIMGR_EXTRACT_REPO", "env var is required")
         fm_root = Path(fm_root_raw).expanduser()
-        fm_addrs_dir = fm_root / e / "addrs"
+        fm_addrs_dir = fm_root / e / "addrobjs"
         if not fm_addrs_dir.exists() or not fm_addrs_dir.is_dir():
             raise ValidationError("FORTIMGR_EXTRACT_REPO", f"missing dir '{fm_addrs_dir}' Make sure FORTIMGR_EXTRACT_REPO is an absolute folder")
 
         fortimgr_addrs_dict: Dict[str, str] = {}
-        for p in list_yaml_files(fm_addrs_dir):
+        for p in _list_yaml_files_recursive(fm_addrs_dir):
             doc = read_yaml_dict(p)
             if not isinstance(doc, dict):
                 continue
@@ -265,7 +277,7 @@ class IpInventoryService:
         fm_groups_dir = fm_root / e / "expgrps"
         fm_groups_dict: Dict[str, List[str]] = {}
         if fm_groups_dir.exists() and fm_groups_dir.is_dir():
-            for p in list_yaml_files(fm_groups_dir):
+            for p in _list_yaml_files_recursive(fm_groups_dir):
                 doc = read_yaml_dict(p)
                 if not isinstance(doc, dict):
                     continue
