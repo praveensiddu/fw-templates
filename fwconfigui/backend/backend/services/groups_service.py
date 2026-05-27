@@ -90,7 +90,7 @@ class GroupsService:
         e = self._normalize_env(env)
         repo_name = self._get_generated_repo_name()
         generated_prefix = self._get_generated_folder_prefix()
-        root = get_fwconfigfiles_root(None) / "cloned-repos" / repo_name / e / generated_prefix / "groups"
+        root = get_fwconfigfiles_root(None) / "cloned-repositories" / repo_name / e / generated_prefix / "groups"
         root.mkdir(parents=True, exist_ok=True)
         return root
 

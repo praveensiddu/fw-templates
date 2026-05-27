@@ -77,7 +77,7 @@ function ProductsDetailsView({
                   className="input"
                   value={String(form?.generatedRepo || "")}
                   onChange={(e) => setForm((p) => ({ ...p, generatedRepo: e.target.value }))}
-                  placeholder="repo name used under cloned-repos (optional)"
+                  placeholder="repo name used under cloned-repositories (optional)"
                 />
               </div>
 

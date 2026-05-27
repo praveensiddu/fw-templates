@@ -74,7 +74,7 @@ def get_product_templates_repo(product: Optional[str]) -> Path:
     except Exception:
         raise NotInitializedError(f"templates-repo field must be set for this product={product}")
 
-    scoped = root / "cloned-repos" / repo_name
+    scoped = root / "cloned-repositories" / repo_name
     return scoped
 
 
@@ -96,7 +96,7 @@ def get_product_generated_repo(product: Optional[str]) -> Path:
         raise NotInitializedError(f"generated-repo field must be set for this product={product}")
 
 
-    scoped = root / "cloned-repos" / repo_name
+    scoped = root / "cloned-repositories" / repo_name
     return scoped
 
 
@@ -124,7 +124,7 @@ def get_fwconfigfiles_product_repo_root(product: Optional[str]) -> Path:
     if not repo_name:
         repo_name = _normalize_product_name(product)
 
-    scoped = root / "cloned-repos" / repo_name
+    scoped = root / "cloned-repositories" / repo_name
     scoped.mkdir(parents=True, exist_ok=True)
     return scoped
 
