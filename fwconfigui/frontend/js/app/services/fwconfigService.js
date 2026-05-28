@@ -201,6 +201,16 @@ async function excludeGroupFromImport(env, name) {
   return await postJson(url, { name: n });
 }
 
+async function excludeGroupFromEnvCommon(env, name) {
+  const product = getCurrentProduct();
+  if (!isNonEmptyString(product)) throw new Error("Select a product first");
+  const e = requireEnv(env);
+  const n = safeTrim(name);
+  if (!n) throw new Error("name is required");
+  const url = `/api/v1/products/${encodeURIComponent(product)}/groups/${encodeURIComponent(e)}/exclude-common`;
+  return await postJson(url, { name: n });
+}
+
 async function listAddrs(env) {
   const product = getCurrentProduct();
   if (!isNonEmptyString(product)) throw new Error("Select a product first");
@@ -245,6 +255,24 @@ async function excludeAddrFromImport(env, name) {
   if (!n) throw new Error("name is required");
   const url = `/api/v1/products/${encodeURIComponent(product)}/addrs/${encodeURIComponent(e)}/exclude`;
   return await postJson(url, { name: n });
+}
+
+async function excludeAddrFromEnvCommon(env, name) {
+  const product = getCurrentProduct();
+  if (!isNonEmptyString(product)) throw new Error("Select a product first");
+  const e = requireEnv(env);
+  const n = safeTrim(name);
+  if (!n) throw new Error("name is required");
+  const url = `/api/v1/products/${encodeURIComponent(product)}/addrs/${encodeURIComponent(e)}/exclude-common`;
+  return await postJson(url, { name: n });
+}
+
+async function checkAddrUsedInGroups(env) {
+  const product = getCurrentProduct();
+  if (!isNonEmptyString(product)) throw new Error("Select a product first");
+  const e = requireEnv(env);
+  const url = `/api/v1/products/${encodeURIComponent(product)}/addrs/${encodeURIComponent(e)}/check-used`;
+  return await postJson(url, {});
 }
 
 async function listIpInventory(env) {

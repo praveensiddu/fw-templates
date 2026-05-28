@@ -4,6 +4,7 @@ import ipaddress
 from typing import Any, Dict, List, Optional, Tuple
 
 from backend.exceptions.custom import AlreadyExistsError, ValidationError
+from backend.services.common_service import build_address_used_in_group_metadata
 from backend.utils.workspace import get_fwconfigfiles_root, get_settings_yaml_path
 from backend.utils.yaml_utils import list_yaml_files, read_yaml_dict, write_yaml_dict
 
@@ -89,8 +90,8 @@ class AddressesService:
             raise ValidationError("filename", "is required")
         if "/" in v or "\\" in v:
             raise ValidationError("filename", "must be a base filename")
-        if not (v.lower().endswith(".yaml") or v.lower().endswith(".yml")):
-            raise ValidationError("filename", "must end with .yaml or .yml")
+        if not (v.lower().endswith(".yaml")):
+            raise ValidationError("filename", "must end with .yaml")
         return v
 
     def _validate_env_exists(self, env: str) -> None:
@@ -107,6 +108,22 @@ class AddressesService:
         repo_name = self._get_generated_repo_name()
         generated_prefix = self._get_generated_folder_prefix()
         root = get_fwconfigfiles_root(None) / "cloned-repositories" / repo_name / e / generated_prefix / "address"
+        root.mkdir(parents=True, exist_ok=True)
+        return root
+
+    def _env_address_metadata_dir(self, env: str) -> Path:
+        e = self._normalize_env(env)
+        repo_name = self._get_generated_repo_name()
+        generated_prefix = self._get_generated_folder_prefix()
+        root = (
+            get_fwconfigfiles_root(None)
+            / "cloned-repositories"
+            / repo_name
+            / e
+            / generated_prefix
+            / "metadata"
+            / "address"
+        )
         root.mkdir(parents=True, exist_ok=True)
         return root
 
@@ -210,6 +227,19 @@ class AddressesService:
         self._validate_env_exists(env)
         root = self._env_addrs_dir(env)
 
+        addr2groups_path = self._env_address_metadata_dir(env) / "fw_address2group.yaml"
+        raw_addr2groups = read_yaml_dict(addr2groups_path) if addr2groups_path.exists() else {}
+        addr2groups: Dict[str, List[str]] = raw_addr2groups if isinstance(raw_addr2groups, dict) else {}
+        addr2groups_lc: Dict[str, List[str]] = {}
+        for k, v in addr2groups.items():
+            key = str(k or "").strip().lower()
+            if not key:
+                continue
+            if isinstance(v, list):
+                addr2groups_lc[key] = [str(x or "").strip() for x in v if str(x or "").strip()]
+            else:
+                addr2groups_lc[key] = []
+
         items: List[Dict[str, Any]] = []
         for p in list_yaml_files(root):
             raw = self._read_addresses_file(p)
@@ -222,10 +252,23 @@ class AddressesService:
                 if not name:
                     continue
                 data = dict(v) if isinstance(v, dict) else {}
+                groups = addr2groups_lc.get(name.lower())
+                if groups is not None:
+                    data["used-in-grp"] = bool(groups)
                 items.append({"filename": p.name, "name": name, "data": data})
 
         items.sort(key=lambda d: (str(d.get("filename", "") or "").lower(), str(d.get("name", "") or "").lower()))
         return items
+
+    def build_address_used_in_group_metadata(self, *, env: str) -> Dict[str, Any]:
+        self._validate_env_exists(env)
+        e = self._normalize_env(env)
+
+        return build_address_used_in_group_metadata(
+            env=e,
+            address_dir=self._env_addrs_dir(e),
+            metadata_dir=self._env_address_metadata_dir(e),
+        )
 
     def save_item(
         self,

@@ -79,6 +79,7 @@ function ComponentsTable({ setLoading, setError }) {
     return (items || []).map((it) => {
       const data = it?.data || {};
       const sites = data?.sites && typeof data.sites === "object" ? data.sites : {};
+      const fmSites = data?.fm_sites && typeof data.fm_sites === "object" ? data.fm_sites : {};
 
       const envOrder = ["prd", "pac", "rtb", "ent", "dev"];
       const envKeys = [...envOrder.filter((k) => Object.prototype.hasOwnProperty.call(sites || {}, k)), ...Object.keys(sites || {}).filter((k) => !envOrder.includes(k))];
@@ -90,6 +91,31 @@ function ComponentsTable({ setLoading, setError }) {
         })
         .filter((x) => x && !x.endsWith(": "));
 
+      const fmEnvKeys = [...envOrder.filter((k) => Object.prototype.hasOwnProperty.call(fmSites || {}, k)), ...Object.keys(fmSites || {}).filter((k) => !envOrder.includes(k))];
+      const fmSitesLines = fmEnvKeys
+        .map((k) => {
+          const lst = Array.isArray(fmSites?.[k]) ? fmSites[k] : [];
+          const line = `${k}: ${(lst || []).join(", ")}`;
+          return safeTrim(line);
+        })
+        .filter((x) => x && !x.endsWith(": "));
+
+      function normalizeSitesObj(obj) {
+        const o = obj && typeof obj === "object" ? obj : {};
+        const keys = Object.keys(o).sort((a, b) => String(a).localeCompare(String(b)));
+        const out = {};
+        for (const k of keys) {
+          const vals = Array.isArray(o[k]) ? o[k] : [];
+          out[k] = (vals || [])
+            .map((x) => safeTrim(x))
+            .filter(Boolean)
+            .sort((a, b) => a.localeCompare(b));
+        }
+        return out;
+      }
+
+      const sitesMismatch = JSON.stringify(normalizeSitesObj(sites)) !== JSON.stringify(normalizeSitesObj(fmSites));
+
       return {
         ...it,
         componentname: safeTrim(it?.name),
@@ -98,6 +124,9 @@ function ComponentsTable({ setLoading, setError }) {
         exposedto: Array.isArray(data?.exposedto) ? data.exposedto : [],
         sites,
         sitesLines,
+        fmSites,
+        fmSitesLines,
+        sitesMismatch,
       };
     });
   }, [items]);
@@ -110,6 +139,7 @@ function ComponentsTable({ setLoading, setError }) {
       description: "",
       exposedto: "",
       sites: "",
+      fmSites: "",
     },
     fieldMapping: (row) => ({
       componentname: safeTrim(row?.componentname),
@@ -117,6 +147,7 @@ function ComponentsTable({ setLoading, setError }) {
       description: safeTrim(row?.description),
       exposedto: (Array.isArray(row?.exposedto) ? row.exposedto : []).join(", "),
       sites: (Array.isArray(row?.sitesLines) ? row.sitesLines : []).join("\n"),
+      fmSites: (Array.isArray(row?.fmSitesLines) ? row.fmSitesLines : []).join("\n"),
     }),
     sortBy: (a, b) => safeTrim(a?.componentname).localeCompare(safeTrim(b?.componentname)),
   });

@@ -39,7 +39,7 @@ function GroupsTable({ env, setLoading, setError }) {
 
   const { sortedRows, filters, setFilters } = useTableFilter({
     rows,
-    initialFilters: { name: "", filename: "", members: "", nameOverride: "", inFirewall: "" },
+    initialFilters: { name: "", filename: "", members: "", nameOverride: "", inFirewall: "", usedInGrp: "", usedInRule: "" },
     fieldMapping: (row) => ({
       name: safeTrim(row.name),
       filename: safeTrim(row.filename),
@@ -47,6 +47,20 @@ function GroupsTable({ env, setLoading, setError }) {
       nameOverride: safeTrim(row?.data?.["name-override"]) || "empty",
       inFirewall: (() => {
         const v = row?.data?.["in-firewall"];
+        if (v === true) return "true";
+        if (v === false) return "false";
+        const s = safeTrim(v).toLowerCase();
+        return s || "empty";
+      })(),
+      usedInGrp: (() => {
+        const v = row?.data?.["used-in-grp"];
+        if (v === true) return "true";
+        if (v === false) return "false";
+        const s = safeTrim(v).toLowerCase();
+        return s || "empty";
+      })(),
+      usedInRule: (() => {
+        const v = row?.data?.["used-in-rule"];
         if (v === true) return "true";
         if (v === false) return "false";
         const s = safeTrim(v).toLowerCase();
@@ -158,6 +172,22 @@ function GroupsTable({ env, setLoading, setError }) {
     [env, setLoading, setError, load]
   );
 
+  const onExcludeEnvCommon = React.useCallback(
+    async (row) => {
+      try {
+        setLoading(true);
+        setError("");
+        await excludeGroupFromEnvCommon(env, row?.name);
+        await load();
+      } catch (e) {
+        setError(formatError(e));
+      } finally {
+        setLoading(false);
+      }
+    },
+    [env, setLoading, setError, load]
+  );
+
   return (
     <>
       <GroupsTableView
@@ -169,6 +199,7 @@ function GroupsTable({ env, setLoading, setError }) {
         onEdit={onEdit}
         onDelete={onDelete}
         onExclude={onExclude}
+        onExcludeEnvCommon={onExcludeEnvCommon}
         editingKey={editingKey}
         draft={draft}
         setDraft={setDraft}

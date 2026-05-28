@@ -34,7 +34,7 @@ def list_yaml_files(root: Path) -> List[Path]:
     for p in sorted(root.iterdir()):
         if not p.is_file():
             continue
-        if p.suffix.lower() not in {".yaml", ".yml"}:
+        if p.suffix.lower() not in {".yaml"}:
             continue
         out.append(p)
     return out

@@ -78,6 +78,11 @@ function ComponentsTableView({
                 <span>Sites</span>
               </div>
             </th>
+            <th className="fwTableHeaderCell" style={{ width: 260 }}>
+              <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 8 }}>
+                <span>FMSites</span>
+              </div>
+            </th>
             <th className="fwTableHeaderCell" style={{ width: 100 }}>Actions</th>
           </tr>
           <tr>
@@ -119,6 +124,14 @@ function ComponentsTableView({
                 placeholder="Filter sites..."
                 value={filters.sites}
                 onChange={(e) => setFilters((p) => ({ ...p, sites: e.target.value }))}
+              />
+            </th>
+            <th>
+              <input
+                className={`filterInput ${isNonEmptyString(filters.fmSites) ? "filterInput-active" : ""}`}
+                placeholder="Filter fm sites..."
+                value={filters.fmSites}
+                onChange={(e) => setFilters((p) => ({ ...p, fmSites: e.target.value }))}
               />
             </th>
             <th />
@@ -211,6 +224,17 @@ function ComponentsTableView({
                   </div>
                 </td>
 
+                <td style={r?.sitesMismatch ? { background: "#fff3bf" } : undefined}>
+                  <div style={{ display: "flex", flexDirection: "column", gap: 4 }}>
+                    {(Array.isArray(r?.fmSitesLines) ? r.fmSitesLines : []).length === 0 ? <div className="muted">(none)</div> : null}
+                    {(Array.isArray(r?.fmSitesLines) ? r.fmSitesLines : []).map((ln, i) => (
+                      <div key={i} className="muted" style={{ whiteSpace: "pre-wrap" }}>
+                        {ln}
+                      </div>
+                    ))}
+                  </div>
+                </td>
+
                 <td>
                   <div style={{ display: "flex", gap: 6 }}>
                     <button className="iconBtn iconBtn-primary" title="Edit" onClick={() => onEditName(r)}>
@@ -242,7 +266,7 @@ function ComponentsTableView({
 
           {rows.length === 0 ? (
             <tr>
-              <td colSpan={6} className="muted">
+              <td colSpan={7} className="muted">
                 No items
               </td>
             </tr>

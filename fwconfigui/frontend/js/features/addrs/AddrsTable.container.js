@@ -32,13 +32,26 @@ function AddrsTable({ env, setLoading, setError }) {
     load();
   }, [env, load]);
 
+  const onCheckUsed = React.useCallback(async () => {
+    try {
+      setLoading(true);
+      setError("");
+      await checkAddrUsedInGroups(env);
+      await load();
+    } catch (e) {
+      setError(formatError(e));
+    } finally {
+      setLoading(false);
+    }
+  }, [env, load, setLoading, setError]);
+
   const rows = React.useMemo(() => {
     return (items || []).map((it) => ({ ...it }));
   }, [items]);
 
   const { sortedRows, filters, setFilters } = useTableFilter({
     rows,
-    initialFilters: { filename: "", name: "", value: "", nameOverride: "", inFirewall: "" },
+    initialFilters: { filename: "", name: "", value: "", nameOverride: "", inFirewall: "", usedInGrp: "", usedInRule: "" },
     fieldMapping: (row) => ({
       filename: safeTrim(row.filename),
       name: safeTrim(row.name),
@@ -46,6 +59,20 @@ function AddrsTable({ env, setLoading, setError }) {
       nameOverride: safeTrim(row?.data?.["name-override"]) || "empty",
       inFirewall: (() => {
         const v = row?.data?.["in-firewall"];
+        if (v === true) return "true";
+        if (v === false) return "false";
+        const s = safeTrim(v).toLowerCase();
+        return s || "empty";
+      })(),
+      usedInGrp: (() => {
+        const v = row?.data?.["used-in-grp"];
+        if (v === true) return "true";
+        if (v === false) return "false";
+        const s = safeTrim(v).toLowerCase();
+        return s || "empty";
+      })(),
+      usedInRule: (() => {
+        const v = row?.data?.["used-in-rule"];
         if (v === true) return "true";
         if (v === false) return "false";
         const s = safeTrim(v).toLowerCase();
@@ -174,6 +201,22 @@ function AddrsTable({ env, setLoading, setError }) {
     [env, setLoading, setError, load]
   );
 
+  const onExcludeEnvCommon = React.useCallback(
+    async (row) => {
+      try {
+        setLoading(true);
+        setError("");
+        await excludeAddrFromEnvCommon(env, row?.name);
+        await load();
+      } catch (e) {
+        setError(formatError(e));
+      } finally {
+        setLoading(false);
+      }
+    },
+    [env, setLoading, setError, load]
+  );
+
   return (
     <>
       <AddrsTableView
@@ -182,9 +225,11 @@ function AddrsTable({ env, setLoading, setError }) {
         filters={filters}
         setFilters={setFilters}
         onAdd={onAdd}
+        onCheckUsed={onCheckUsed}
         onEdit={onEdit}
         onDelete={onDelete}
         onExclude={onExclude}
+        onExcludeEnvCommon={onExcludeEnvCommon}
         editingKey={editingKey}
         draft={draft}
         setDraft={setDraft}

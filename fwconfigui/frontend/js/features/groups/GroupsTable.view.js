@@ -1,4 +1,4 @@
-function GroupsTableView({ env, rows, filters, setFilters, onAdd, onEdit, onDelete, onExclude, editingKey, draft, setDraft, memberOptions, canSubmit, onCancelEdit, onSave }) {
+function GroupsTableView({ env, rows, filters, setFilters, onAdd, onEdit, onDelete, onExclude, onExcludeEnvCommon, editingKey, draft, setDraft, memberOptions, canSubmit, onCancelEdit, onSave }) {
   function normalizeName(v) {
     return String(v || "")
       .toLowerCase()
@@ -36,6 +36,8 @@ function GroupsTableView({ env, rows, filters, setFilters, onAdd, onEdit, onDele
             <th className="fwTableHeaderCell" style={{ width: 420 }}>members</th>
             <th className="fwTableHeaderCell" style={{ width: 220 }}>name-override</th>
             <th className="fwTableHeaderCell" style={{ width: 160 }}>in-firewall</th>
+            <th className="fwTableHeaderCell" style={{ width: 160 }}>in-fw-grp</th>
+            <th className="fwTableHeaderCell" style={{ width: 160 }}>in-fw-rule</th>
             <th className="fwTableHeaderCell" style={{ width: 200 }}>
               <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 8 }}>
                 <span>File</span>
@@ -74,6 +76,22 @@ function GroupsTableView({ env, rows, filters, setFilters, onAdd, onEdit, onDele
                 placeholder="Filter in-firewall..."
                 value={filters.inFirewall}
                 onChange={(e) => setFilters((p) => ({ ...p, inFirewall: e.target.value }))}
+              />
+            </th>
+            <th>
+              <input
+                className={`filterInput ${isNonEmptyString(filters.usedInGrp) ? "filterInput-active" : ""}`}
+                placeholder="Filter used-in-grp..."
+                value={filters.usedInGrp}
+                onChange={(e) => setFilters((p) => ({ ...p, usedInGrp: e.target.value }))}
+              />
+            </th>
+            <th>
+              <input
+                className={`filterInput ${isNonEmptyString(filters.usedInRule) ? "filterInput-active" : ""}`}
+                placeholder="Filter used-in-rule..."
+                value={filters.usedInRule}
+                onChange={(e) => setFilters((p) => ({ ...p, usedInRule: e.target.value }))}
               />
             </th>
             <th>
@@ -215,22 +233,46 @@ function GroupsTableView({ env, rows, filters, setFilters, onAdd, onEdit, onDele
                 const s = safeTrim(v).toLowerCase();
                 return s || "empty";
               })();
+              const usedInGrp = (() => {
+                const v = r?.data?.["used-in-grp"];
+                if (v === true) return "true";
+                if (v === false) return "false";
+                const s = safeTrim(v).toLowerCase();
+                return s || "empty";
+              })();
+              const usedInRule = (() => {
+                const v = r?.data?.["used-in-rule"];
+                if (v === true) return "true";
+                if (v === false) return "false";
+                const s = safeTrim(v).toLowerCase();
+                return s || "empty";
+              })();
               return (
                 <tr key={`${safeTrim(r.filename) || "groups.yaml"}::${r.name || idx}`}>
                   <td>
                     <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 8 }}>
                       <span>{r.name}</span>
-                      <button className="iconBtn" title="Exclude from import" onClick={() => onExclude(r)}>
-                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                          <circle cx="12" cy="12" r="10" />
-                          <line x1="8" y1="12" x2="16" y2="12" />
-                        </svg>
-                      </button>
+                      <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
+                        <button className="iconBtn" title="Exclude from import" onClick={() => onExclude(r)}>
+                          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                            <circle cx="12" cy="12" r="10" />
+                            <line x1="8" y1="12" x2="16" y2="12" />
+                          </svg>
+                        </button>
+                        <button className="iconBtn" title="Exclude from env common" onClick={() => onExcludeEnvCommon(r)}>
+                          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                            <rect x="3" y="3" width="18" height="18" rx="2" ry="2" />
+                            <path d="M8 12h8" />
+                          </svg>
+                        </button>
+                      </div>
                     </div>
                   </td>
                   <td className="muted" style={{ whiteSpace: "pre-line" }}>{(members || []).map((m) => safeTrim(m)).filter(Boolean).join("\n")}</td>
                   <td className="muted">{nameOverride}</td>
                   <td className="muted">{inFirewall}</td>
+                  <td className="muted">{usedInGrp}</td>
+                  <td className="muted">{usedInRule}</td>
                   <td className="muted">{safeTrim(r.filename) || "groups.yaml"}</td>
                   <td>
                     <button className="iconBtn" title="Edit" onClick={() => onEdit(r)}>
@@ -255,7 +297,7 @@ function GroupsTableView({ env, rows, filters, setFilters, onAdd, onEdit, onDele
           )}
           {rows.length === 0 ? (
             <tr>
-              <td colSpan={6} className="muted">
+              <td colSpan={8} className="muted">
                 No items
               </td>
             </tr>

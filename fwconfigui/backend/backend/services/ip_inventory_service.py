@@ -1,11 +1,17 @@
 import ipaddress
 import os
-import re
 from pathlib import Path
 from typing import Any, Dict, List, Optional, Tuple
 
 from backend.exceptions.custom import ValidationError
 from backend.models import SaveItemRequest
+from backend.services.common_service import (
+    build_address_used_in_group_metadata,
+    build_fortimgr_matched_groups_for_env,
+    read_existing_addresses,
+    read_existing_group_names,
+    read_fortimgr_addrs_for_env,
+)
 from backend.utils.workspace import get_product_templates_repo, get_product_generated_repo, get_settings_yaml_path
 from backend.utils.yaml_utils import list_yaml_files, read_yaml_dict, write_yaml_dict
 
@@ -160,58 +166,23 @@ class IpInventoryService:
                 return {"ip": v}
         return {"ip": v}
 
-    def _read_existing_addresses(self, address_dir: Path) -> Dict[str, Dict[str, Any]]:
-        existing: Dict[str, Dict[str, Any]] = {}
-        for p in list_yaml_files(address_dir):
-            if str(p.name).strip().lower() in {"fm_extract_address.yaml", "fm_extract_address.yml"}:
-                continue
-            doc = read_yaml_dict(p)
-            if not isinstance(doc, dict):
-                continue
-            addrs = doc.get("addresses")
-            if not isinstance(addrs, dict):
-                continue
-            for k, v in addrs.items():
-                name = str(k or "").strip()
-                if not name:
-                    continue
-                existing[name] = dict(v) if isinstance(v, dict) else {}
-        return existing
+    @staticmethod
+    def _add_yaml_dict_keys_to_set(path: Path, out: set[str]) -> None:
+        if not path.exists():
+            return
+        raw = read_yaml_dict(path)
+        if not isinstance(raw, dict):
+            return
+        for k in raw.keys():
+            name = str(k or "").strip()
+            if name:
+                out.add(name)
 
     def import_fortimgr(self, *, env: str) -> Dict[str, Any]:
         e = self._normalize_env(env)
         self._validate_env_exists(e)
 
-        def _list_yaml_files_recursive(root: Path) -> List[Path]:
-            if not root.exists() or not root.is_dir():
-                return []
-            out: List[Path] = []
-            for p in sorted(root.rglob("*")):
-                if not p.is_file():
-                    continue
-                if p.suffix.lower() not in {".yaml", ".yml"}:
-                    continue
-                out.append(p)
-            return out
-
-        fm_root_raw = str(os.getenv("FORTIMGR_EXTRACT_REPO", "") or "").strip()
-        if not fm_root_raw:
-            raise ValidationError("FORTIMGR_EXTRACT_REPO", "env var is required")
-        fm_root = Path(fm_root_raw).expanduser()
-        fm_addrs_dir = fm_root / e / "addrobjs"
-        if not fm_addrs_dir.exists() or not fm_addrs_dir.is_dir():
-            raise ValidationError("FORTIMGR_EXTRACT_REPO", f"missing dir '{fm_addrs_dir}' Make sure FORTIMGR_EXTRACT_REPO is an absolute folder")
-
-        fortimgr_addrs_dict: Dict[str, str] = {}
-        for p in _list_yaml_files_recursive(fm_addrs_dir):
-            doc = read_yaml_dict(p)
-            if not isinstance(doc, dict):
-                continue
-            for k, v in doc.items():
-                key = str(k or "").strip()
-                val = str(v or "").strip()
-                if key and val:
-                    fortimgr_addrs_dict[key] = val
+        fortimgr_addrs_dict = read_fortimgr_addrs_for_env(env=e)
 
         inv_path = self._path(env=e)
         inv_raw = read_yaml_dict(inv_path)
@@ -245,7 +216,7 @@ class IpInventoryService:
         address_dir = envgenfolder / "address"
         address_dir.mkdir(parents=True, exist_ok=True)
 
-        existing_address_dict = self._read_existing_addresses(address_dir)
+        existing_address_dict = read_existing_addresses(address_dir=address_dir)
         name_override_to_key: Dict[str, str] = {}
         for k, v in existing_address_dict.items():
             no = str(v.get("name-override") or "").strip()
@@ -256,22 +227,10 @@ class IpInventoryService:
         pfc_repo_raw = str(os.getenv("PFC_REPO", "") or "").strip()
         if pfc_repo_raw:
             common_excluded_path = Path(pfc_repo_raw).expanduser() / "settings" / "import" / e / "common_address_excluded_from_import.yaml"
-            if common_excluded_path.exists():
-                raw = read_yaml_dict(common_excluded_path)
-                if isinstance(raw, dict):
-                    for k in raw.keys():
-                        name = str(k or "").strip()
-                        if name:
-                            excluded_addr_names.add(name)
+            self._add_yaml_dict_keys_to_set(common_excluded_path, excluded_addr_names)
 
         excluded_addr_path = get_product_templates_repo(self._product) / "overrides" / e / "address_excluded_from_import.yaml"
-        if excluded_addr_path.exists():
-            raw = read_yaml_dict(excluded_addr_path)
-            if isinstance(raw, dict):
-                for k in raw.keys():
-                    name = str(k or "").strip()
-                    if name:
-                        excluded_addr_names.add(name)
+        self._add_yaml_dict_keys_to_set(excluded_addr_path, excluded_addr_names)
 
         addr_unmatch_dict: Dict[str, Dict[str, Any]] = {}
         existing_conflict_updates = 0
@@ -297,37 +256,13 @@ class IpInventoryService:
         out_path = address_dir / "fm_extract_address.yaml"
         write_yaml_dict(out_path, {"addresses": addr_unmatch_dict}, sort_keys=True)
 
-        fm_groups_dir = fm_root / e / "expgrps"
-        fm_groups_dict: Dict[str, List[str]] = {}
-        if fm_groups_dir.exists() and fm_groups_dir.is_dir():
-            for p in _list_yaml_files_recursive(fm_groups_dir):
-                doc = read_yaml_dict(p)
-                if not isinstance(doc, dict):
-                    continue
-                for group_name, members_raw in doc.items():
-                    g = str(group_name or "").strip()
-                    if not g:
-                        continue
-                    if not isinstance(members_raw, list):
-                        continue
+        build_address_used_in_group_metadata(
+            env=e,
+            address_dir=address_dir,
+            metadata_dir=envgenfolder / "metadata" / "address",
+        )
 
-                    members: List[str] = []
-                    for m in members_raw:
-                        s = str(m or "").strip()
-                        if not s:
-                            continue
-                        s = re.sub(r"\([^)]*\)", "", s).strip()
-                        if s:
-                            members.append(s)
-
-                    if members:
-                        fm_groups_dict[g] = members
-
-        product_addr_names = set(product_addr_match_dict.keys())
-        matched_groups: Dict[str, Dict[str, Any]] = {}
-        for gname, members in fm_groups_dict.items():
-            if any(m in product_addr_names for m in members):
-                matched_groups[gname] = {"in-firewall": True, "members": list(members)}
+        matched_groups = build_fortimgr_matched_groups_for_env(env=e, product_addr_match_dict=product_addr_match_dict)
 
         groups_dir = envgenfolder / "groups"
         groups_dir.mkdir(parents=True, exist_ok=True)
@@ -336,41 +271,16 @@ class IpInventoryService:
         pfc_repo_raw = str(os.getenv("PFC_REPO", "") or "").strip()
         if pfc_repo_raw:
             common_excluded_groups_path = Path(pfc_repo_raw).expanduser() / "settings" / "import" / e / "common_groups_excluded_from_import.yaml"
-            if common_excluded_groups_path.exists():
-                raw = read_yaml_dict(common_excluded_groups_path)
-                if isinstance(raw, dict):
-                    for k in raw.keys():
-                        name = str(k or "").strip()
-                        if name:
-                            excluded_group_names.add(name)
+            self._add_yaml_dict_keys_to_set(common_excluded_groups_path, excluded_group_names)
 
         excluded_groups_path = get_product_templates_repo(self._product) / "overrides" / e / "groups_excluded_from_import.yaml"
-        if excluded_groups_path.exists():
-            raw = read_yaml_dict(excluded_groups_path)
-            if isinstance(raw, dict):
-                for k in raw.keys():
-                    name = str(k or "").strip()
-                    if name:
-                        excluded_group_names.add(name)
+        self._add_yaml_dict_keys_to_set(excluded_groups_path, excluded_group_names)
 
         for k in list(matched_groups.keys()):
             if k in excluded_group_names:
                 matched_groups.pop(k, None)
 
-        existing_group_names: set[str] = set()
-        for p in list_yaml_files(groups_dir):
-            if str(p.name).strip().lower() in {"fm_extract_groups.yaml", "fm_extract_groups.yml"}:
-                continue
-            doc = read_yaml_dict(p)
-            if not isinstance(doc, dict):
-                continue
-            groups = doc.get("groups")
-            if not isinstance(groups, dict):
-                continue
-            for k in groups.keys():
-                name = str(k or "").strip()
-                if name:
-                    existing_group_names.add(name)
+        existing_group_names = read_existing_group_names(groups_dir=groups_dir)
 
         for k in list(matched_groups.keys()):
             if k in existing_group_names:

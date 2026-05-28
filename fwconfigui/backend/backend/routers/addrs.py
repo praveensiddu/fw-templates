@@ -1,5 +1,8 @@
 """API routes for product-scoped addresses."""
 
+import os
+from pathlib import Path
+
 from typing import Any, Dict, Optional
 
 from fastapi import APIRouter, Depends, Request
@@ -61,6 +64,11 @@ def delete_item(
     return {"ok": True}
 
 
+@router.post("/check-used")
+def check_used(request: Request, product: str, env: str, service: AddressesService = Depends(get_service)) -> Dict[str, Any]:
+    return service.build_address_used_in_group_metadata(env=env)
+
+
 @router.post("/exclude")
 def exclude_from_import(
     request: Request,
@@ -72,6 +80,36 @@ def exclude_from_import(
     if not name:
         return {"ok": False, "error": "name is required"}
     path = get_product_templates_repo(product) / "overrides" / str(env or "").strip().lower() / "address_excluded_from_import.yaml"
+    raw = read_yaml_dict(path)
+    if not isinstance(raw, dict):
+        raw = {}
+    raw[name] = {}
+    write_yaml_dict(path, raw, sort_keys=True)
+    return {"ok": True}
+
+
+@router.post("/exclude-common")
+def exclude_from_env_common(
+    request: Request,
+    product: str,
+    env: str,
+    payload: SaveItemRequest,
+) -> Dict[str, Any]:
+    name = str(payload.name or "").strip()
+    if not name:
+        return {"ok": False, "error": "name is required"}
+
+    pfc_repo_raw = str(os.getenv("PFC_REPO", "") or "").strip()
+    if not pfc_repo_raw:
+        return {"ok": False, "error": "PFC_REPO is not set"}
+
+    e = str(env or "").strip().lower()
+    if not e:
+        return {"ok": False, "error": "env is required"}
+
+    path = Path(pfc_repo_raw).expanduser() / "settings" / "import" / e / "common_address_excluded_from_import.yaml"
+    path.parent.mkdir(parents=True, exist_ok=True)
+
     raw = read_yaml_dict(path)
     if not isinstance(raw, dict):
         raw = {}
