@@ -3,6 +3,7 @@ from pathlib import Path
 from typing import Any, Dict, List, Optional, Tuple
 
 from backend.exceptions.custom import AlreadyExistsError, ValidationError
+from backend.services.common_service import build_group_used_in_group_metadata
 from backend.utils.workspace import get_fwconfigfiles_root, get_settings_yaml_path
 from backend.utils.yaml_utils import list_yaml_files, read_yaml_dict, write_yaml_dict
 
@@ -94,6 +95,22 @@ class GroupsService:
         root.mkdir(parents=True, exist_ok=True)
         return root
 
+    def _env_groups_metadata_dir(self, env: str) -> Path:
+        e = self._normalize_env(env)
+        repo_name = self._get_generated_repo_name()
+        generated_prefix = self._get_generated_folder_prefix()
+        root = (
+            get_fwconfigfiles_root(None)
+            / "cloned-repositories"
+            / repo_name
+            / e
+            / generated_prefix
+            / "metadata"
+            / "groups"
+        )
+        root.mkdir(parents=True, exist_ok=True)
+        return root
+
     @staticmethod
     def _validate_group_fields(data: Dict[str, Any]) -> Dict[str, Any]:
         payload = dict(data or {})
@@ -155,6 +172,20 @@ class GroupsService:
         self._validate_env_exists(env)
         items: List[Dict[str, Any]] = []
         root = self._env_groups_dir(env)
+
+        group2groups_path = self._env_groups_metadata_dir(env) / "fw_group2group.yaml"
+        raw_group2groups = read_yaml_dict(group2groups_path) if group2groups_path.exists() else {}
+        group2groups: Dict[str, List[str]] = raw_group2groups if isinstance(raw_group2groups, dict) else {}
+        group2groups_lc: Dict[str, List[str]] = {}
+        for k, v in group2groups.items():
+            key = str(k or "").strip().lower()
+            if not key:
+                continue
+            if isinstance(v, list):
+                group2groups_lc[key] = [str(x or "").strip() for x in v if str(x or "").strip()]
+            else:
+                group2groups_lc[key] = []
+
         for p in list_yaml_files(root):
             raw = self._read_groups_file(p)
             groups = raw.get("groups", {})
@@ -167,8 +198,20 @@ class GroupsService:
                     continue
                 v = groups.get(k)
                 data = dict(v) if isinstance(v, dict) else {}
+                parents = group2groups_lc.get(name.lower())
+                if parents is not None:
+                    data["used-in-grp"] = bool(parents)
                 items.append({"filename": p.name, "name": name, "data": data})
         return items
+
+    def build_group_used_in_group_metadata(self, *, env: str) -> Dict[str, Any]:
+        self._validate_env_exists(env)
+        e = self._normalize_env(env)
+        return build_group_used_in_group_metadata(
+            env=e,
+            groups_dir=self._env_groups_dir(e),
+            metadata_dir=self._env_groups_metadata_dir(e),
+        )
 
     def _find_existing(self, *, env: str, name: str) -> Optional[Tuple[str, str]]:
         root = self._env_groups_dir(env)

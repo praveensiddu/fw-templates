@@ -33,6 +33,19 @@ function GroupsTable({ env, setLoading, setError }) {
     load();
   }, [env, load]);
 
+  const onCheckUsed = React.useCallback(async () => {
+    try {
+      setLoading(true);
+      setError("");
+      await checkGroupUsedInGroups(env);
+      await load();
+    } catch (e) {
+      setError(formatError(e));
+    } finally {
+      setLoading(false);
+    }
+  }, [env, load, setLoading, setError]);
+
   const rows = React.useMemo(() => {
     return (items || []).map((it) => ({ ...it }));
   }, [items]);
@@ -196,6 +209,7 @@ function GroupsTable({ env, setLoading, setError }) {
         filters={filters}
         setFilters={setFilters}
         onAdd={onAdd}
+        onCheckUsed={onCheckUsed}
         onEdit={onEdit}
         onDelete={onDelete}
         onExclude={onExclude}

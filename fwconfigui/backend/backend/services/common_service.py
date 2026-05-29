@@ -199,3 +199,56 @@ def build_address_used_in_group_metadata(*, env: str, address_dir: Path, metadat
     out_path = metadata_dir / "fw_address2group.yaml"
     write_yaml_dict(out_path, addr2groups, sort_keys=True)
     return {"ok": True, "env": env, "output_file": str(out_path), "address_total": len(addr_names)}
+
+
+def build_group_used_in_group_metadata(*, env: str, groups_dir: Path, metadata_dir: Path) -> Dict[str, Any]:
+    groups_dir.mkdir(parents=True, exist_ok=True)
+    metadata_dir.mkdir(parents=True, exist_ok=True)
+
+    group_names: set[str] = set()
+    for p in list_yaml_files(groups_dir):
+        doc = read_yaml_dict(p)
+        if not isinstance(doc, dict):
+            continue
+        groups = doc.get("groups")
+        if not isinstance(groups, dict):
+            continue
+        for k in groups.keys():
+            name = str(k or "").strip()
+            if name:
+                group_names.add(name)
+
+    fm_groups_dict = read_fortimgr_groups_for_env(env=env)
+    group_names_lc = {n.lower(): n for n in group_names}
+    group2groups: Dict[str, List[str]] = {orig: [] for orig in group_names_lc.values()}
+
+    for parent_group, members in fm_groups_dict.items():
+        pg = str(parent_group or "").strip()
+        if not pg:
+            continue
+        for m in members:
+            mlc = str(m or "").strip().lower()
+            if not mlc:
+                continue
+            child_key = group_names_lc.get(mlc)
+            if not child_key:
+                continue
+            group2groups.setdefault(child_key, []).append(pg)
+
+    for k, v in list(group2groups.items()):
+        seen: set[str] = set()
+        deduped: List[str] = []
+        for x in v:
+            s = str(x or "").strip()
+            if not s:
+                continue
+            slc = s.lower()
+            if slc in seen:
+                continue
+            seen.add(slc)
+            deduped.append(s)
+        group2groups[k] = deduped
+
+    out_path = metadata_dir / "fw_group2group.yaml"
+    write_yaml_dict(out_path, group2groups, sort_keys=True)
+    return {"ok": True, "env": env, "output_file": str(out_path), "group_total": len(group_names)}

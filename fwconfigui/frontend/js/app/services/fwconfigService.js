@@ -275,6 +275,14 @@ async function checkAddrUsedInGroups(env) {
   return await postJson(url, {});
 }
 
+async function checkGroupUsedInGroups(env) {
+  const product = getCurrentProduct();
+  if (!isNonEmptyString(product)) throw new Error("Select a product first");
+  const e = requireEnv(env);
+  const url = `/api/v1/products/${encodeURIComponent(product)}/groups/${encodeURIComponent(e)}/check-used`;
+  return await postJson(url, {});
+}
+
 async function listIpInventory(env) {
   const product = getCurrentProduct();
   if (!isNonEmptyString(product)) throw new Error("Select a product first");

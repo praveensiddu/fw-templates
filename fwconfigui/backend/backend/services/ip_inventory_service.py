@@ -8,6 +8,7 @@ from backend.models import SaveItemRequest
 from backend.services.common_service import (
     build_address_used_in_group_metadata,
     build_fortimgr_matched_groups_for_env,
+    build_group_used_in_group_metadata,
     read_existing_addresses,
     read_existing_group_names,
     read_fortimgr_addrs_for_env,
@@ -288,6 +289,12 @@ class IpInventoryService:
 
         out_groups_path = groups_dir / "fm_extract_groups.yaml"
         write_yaml_dict(out_groups_path, {"groups": matched_groups}, sort_keys=True)
+
+        build_group_used_in_group_metadata(
+            env=e,
+            groups_dir=groups_dir,
+            metadata_dir=envgenfolder / "metadata" / "groups",
+        )
 
         return {
             "ok": True,
