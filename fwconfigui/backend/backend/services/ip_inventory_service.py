@@ -220,8 +220,13 @@ class IpInventoryService:
         existing_address_dict = read_existing_addresses(address_dir=address_dir)
         name_override_to_key: Dict[str, str] = {}
         for k, v in existing_address_dict.items():
-            no = str(v.get("name-override") or "").strip()
-            if no:
+            raw_no = v.get("name-override")
+            if isinstance(raw_no, list):
+                overrides = [str(x or "").strip() for x in raw_no]
+                overrides = [x for x in overrides if x]
+            else:
+                overrides = []
+            for no in overrides:
                 name_override_to_key[no] = k
 
         excluded_addr_names: set[str] = set()

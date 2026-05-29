@@ -69,6 +69,18 @@ def check_used(request: Request, product: str, env: str, service: AddressesServi
     return service.build_address_used_in_group_metadata(env=env)
 
 
+@router.get("/used-in-groups")
+def used_in_groups(
+    request: Request,
+    product: str,
+    env: str,
+    name: str,
+    service: AddressesService = Depends(get_service),
+) -> Dict[str, Any]:
+    items = service.get_address_used_in_groups(env=env, name=name)
+    return {"ok": True, "env": env, "name": name, "items": items}
+
+
 @router.post("/exclude")
 def exclude_from_import(
     request: Request,

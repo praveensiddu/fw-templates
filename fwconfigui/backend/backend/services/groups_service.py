@@ -86,9 +86,12 @@ class GroupsService:
 
         name_override = payload.get("name-override")
         if name_override is not None:
-            no = str(name_override or "").strip()
-            if no:
-                out["name-override"] = no
+            if not isinstance(name_override, list):
+                raise ValidationError("data.name-override", "must be a list")
+            cleaned = [str(x or "").strip() for x in name_override]
+            cleaned = [x for x in cleaned if x]
+            if cleaned:
+                out["name-override"] = cleaned
 
         in_firewall = payload.get("in-firewall")
         if in_firewall is not None:
@@ -158,8 +161,8 @@ class GroupsService:
                 v = groups.get(k)
                 data = dict(v) if isinstance(v, dict) else {}
                 parents = group2groups_lc.get(name.lower())
-                if parents is not None:
-                    data["used-in-grp"] = bool(parents)
+                if parents:
+                    data["used-in-grp"] = len(parents)
                 items.append({"filename": p.name, "name": name, "data": data})
         return items
 
@@ -171,6 +174,24 @@ class GroupsService:
             groups_dir=self._env_groups_dir(e),
             metadata_dir=self._env_groups_metadata_dir(e),
         )
+
+    def get_group_used_in_groups(self, *, env: str, name: str) -> List[str]:
+        self._validate_env_exists(env)
+        e = self._normalize_env(env)
+        n = str(name or "").strip()
+        if not n:
+            raise ValidationError("name", "is required")
+
+        group2groups_path = self._env_groups_metadata_dir(e) / "fw_group2group.yaml"
+        raw_any = read_yaml_dict(group2groups_path) if group2groups_path.exists() else {}
+        raw = raw_any if isinstance(raw_any, dict) else {}
+        for k, v in raw.items():
+            if str(k or "").strip().lower() != n.lower():
+                continue
+            if isinstance(v, list):
+                return [str(x or "").strip() for x in v if str(x or "").strip()]
+            return []
+        return []
 
     def _find_existing(self, *, env: str, name: str) -> Optional[Tuple[str, str]]:
         root = self._env_groups_dir(env)

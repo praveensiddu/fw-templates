@@ -1,4 +1,4 @@
-function AddrsTableView({ env, rows, filters, setFilters, onAdd, onCheckUsed, onEdit, onDelete, onExclude, onExcludeEnvCommon, editingKey, draft, setDraft, canSubmit, onCancelEdit, onSave }) {
+function AddrsTableView({ env, rows, filters, setFilters, onAdd, onCheckUsed, onShowUsedInGroups, usedInGrpModal, setUsedInGrpModal, onEdit, onDelete, onExclude, onExcludeEnvCommon, editingKey, draft, setDraft, canSubmit, onCancelEdit, onSave }) {
   function normalizeName(v) {
     return String(v || "")
       .toLowerCase()
@@ -12,6 +12,121 @@ function AddrsTableView({ env, rows, filters, setFilters, onAdd, onCheckUsed, on
 
   return (
     <div className="card" style={{ padding: 12 }}>
+      {usedInGrpModal?.isOpen ? (
+        <div
+          style={{ position: "fixed", top: 0, left: 0, width: "100%", height: "100%", background: "rgba(0,0,0,0.5)", display: "flex", alignItems: "center", justifyContent: "center", zIndex: 10000 }}
+          onClick={(e) => {
+            if (e.target === e.currentTarget) setUsedInGrpModal({ isOpen: false, name: "", items: [], loading: false, error: "" });
+          }}
+        >
+          <div style={{ background: "white", padding: 24, borderRadius: 12, width: "min(720px, calc(100vw - 32px))", maxHeight: "80vh", overflow: "auto", boxShadow: "0 4px 20px rgba(0,0,0,0.15)" }}>
+            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 16, borderBottom: "2px solid #e9ecef", paddingBottom: 12 }}>
+              <h3 style={{ margin: 0, fontSize: 20, fontWeight: 600, color: "#0d6efd" }}>{`Used in groups: ${safeTrim(usedInGrpModal?.name)}`}</h3>
+              <button onClick={() => setUsedInGrpModal({ isOpen: false, name: "", items: [], loading: false, error: "" })} style={{ border: "none", background: "none", fontSize: 24, cursor: "pointer", color: "#6c757d" }}>
+                &times;
+              </button>
+            </div>
+
+            {usedInGrpModal?.loading ? <div className="muted">Loading...</div> : null}
+            {!usedInGrpModal?.loading && isNonEmptyString(safeTrim(usedInGrpModal?.error)) ? <div className="muted">{safeTrim(usedInGrpModal?.error)}</div> : null}
+            {!usedInGrpModal?.loading && !isNonEmptyString(safeTrim(usedInGrpModal?.error)) ? (
+              <pre className="muted" style={{ whiteSpace: "pre-wrap" }}>{(Array.isArray(usedInGrpModal?.items) ? usedInGrpModal.items : []).map((x) => safeTrim(x)).filter(Boolean).join("\n") || "(none)"}</pre>
+            ) : null}
+
+            <div style={{ marginTop: 16, textAlign: "right" }}>
+              <button onClick={() => setUsedInGrpModal({ isOpen: false, name: "", items: [], loading: false, error: "" })} style={{ padding: "8px 16px", background: "#0d6efd", color: "white", border: "none", borderRadius: 6, cursor: "pointer", fontWeight: 500 }}>
+                Close
+              </button>
+            </div>
+          </div>
+        </div>
+      ) : null}
+
+      {isNonEmptyString(editingKey) ? (
+        <div
+          style={{ position: "fixed", top: 0, left: 0, width: "100%", height: "100%", background: "rgba(0,0,0,0.25)", zIndex: 9999 }}
+          onClick={(e) => {
+            if (e.target === e.currentTarget) onCancelEdit();
+          }}
+        >
+          <div
+            style={{ position: "absolute", top: 0, right: 0, height: "100%", width: "min(520px, 96vw)", background: "white", boxShadow: "-4px 0 20px rgba(0,0,0,0.12)", padding: 16, overflow: "auto" }}
+            onClick={(e) => e.stopPropagation()}
+          >
+            {(() => {
+              const isNew = editingKey === "__new__";
+              const currentRow = !isNew
+                ? (rows || []).find((r) => `${safeTrim(r.filename) || "addresses.yaml"}::${r.name}` === editingKey)
+                : null;
+              const usedInGrpRaw = currentRow?.data?.["used-in-grp"];
+              const usedInRuleRaw = currentRow?.data?.["used-in-rule"];
+              const usedInGrpDisplay = usedInGrpRaw === null || usedInGrpRaw === undefined ? "empty" : String(usedInGrpRaw);
+              const usedInRuleDisplay = usedInRuleRaw === null || usedInRuleRaw === undefined ? "empty" : String(usedInRuleRaw);
+
+              return (
+                <>
+                  <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: 12, marginBottom: 12 }}>
+                    <div style={{ fontWeight: 600, fontSize: 16 }}>{isNew ? "Add address" : `Edit address: ${safeTrim(currentRow?.name)}`}</div>
+                    <button type="button" className="iconBtn" title="Close" onClick={onCancelEdit}>
+                      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                        <path d="M18 6L6 18" />
+                        <path d="M6 6l12 12" />
+                      </svg>
+                    </button>
+                  </div>
+
+                  <div style={{ display: "grid", gap: 10 }}>
+                    <div>
+                      <div className="muted" style={{ marginBottom: 4 }}>name</div>
+                      <input className="filterInput" autoFocus value={draft.name} onChange={(e) => setDraft((p) => ({ ...p, name: normalizeName(e.target.value) }))} placeholder="name" />
+                    </div>
+
+                    <div>
+                      <div className="muted" style={{ marginBottom: 4 }}>value</div>
+                      <input className="filterInput" value={draft.value} onChange={(e) => setDraft((p) => ({ ...p, value: e.target.value }))} placeholder="1.1.1.1 or 1.1.1.1-1.1.1.340 or 1.1.1.1/24" />
+                    </div>
+
+                    <div>
+                      <div className="muted" style={{ marginBottom: 4 }}>name-override</div>
+                      <textarea
+                        className="filterInput"
+                        value={String(draft.nameOverrideText || "")}
+                        onChange={(e) =>
+                          setDraft((p) => ({
+                            ...p,
+                            nameOverrideText: String(e.target.value || ""),
+                            nameOverride: String(e.target.value || "")
+                              .split(/[\s,]+/)
+                              .map((s) => safeTrim(s))
+                              .filter(Boolean),
+                          }))
+                        }
+                        placeholder="optional (comma or whitespace separated)"
+                        rows={4}
+                        style={{ resize: "vertical" }}
+                      />
+                    </div>
+
+                    <div>
+                      <div className="muted" style={{ marginBottom: 4 }}>file</div>
+                      <input className="filterInput" value={draft.filename} onChange={(e) => setDraft((p) => ({ ...p, filename: normalizeFilename(e.target.value) }))} placeholder="addresses.yaml" />
+                    </div>
+                  </div>
+
+                  <div style={{ display: "flex", justifyContent: "flex-end", gap: 8, marginTop: 16 }}>
+                    <button type="button" className="iconBtn iconBtn-primary" title="Save" disabled={!canSubmit} onClick={onSave}>
+                      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                        <polyline points="20 6 9 17 4 12" />
+                      </svg>
+                    </button>
+                  </div>
+                </>
+              );
+            })()}
+          </div>
+        </div>
+      ) : null}
+
       <div className="actions">
         <div className="muted">
           addrs{isNonEmptyString(env) ? ` / ${env}` : ""} ({Array.isArray(rows) ? rows.length : 0})
@@ -114,107 +229,12 @@ function AddrsTableView({ env, rows, filters, setFilters, onAdd, onCheckUsed, on
           </tr>
         </thead>
         <tbody>
-          {editingKey === "__new__" ? (
-            <tr key="__new__">
-              <td>
-                <input
-                  className="filterInput"
-                  autoFocus
-                  value={draft.name}
-                  onChange={(e) => setDraft((p) => ({ ...p, name: normalizeName(e.target.value) }))}
-                  placeholder="name"
-                />
-              </td>
-              <td>
-                <input
-                  className="filterInput"
-                  value={draft.value}
-                  onChange={(e) => setDraft((p) => ({ ...p, value: e.target.value }))}
-                  placeholder="1.1.1.1 or 1.1.1.1-1.1.1.340 or 1.1.1.1/24"
-                />
-              </td>
-              <td>
-                <input className="filterInput" value={draft.nameOverride} onChange={(e) => setDraft((p) => ({ ...p, nameOverride: e.target.value }))} placeholder="optional" />
-              </td>
-              <td>
-                <input
-                  className="filterInput"
-                  value={draft.inFirewall}
-                  onChange={(e) => setDraft((p) => ({ ...p, inFirewall: e.target.value }))}
-                  placeholder="empty/true/false"
-                />
-              </td>
-              <td>
-                <input
-                  className="filterInput"
-                  value={draft.filename}
-                  onChange={(e) => setDraft((p) => ({ ...p, filename: normalizeFilename(e.target.value) }))}
-                  placeholder="addresses.yaml"
-                />
-              </td>
-              <td>
-                <button className="iconBtn iconBtn-primary" title="Save" disabled={!canSubmit} onClick={onSave}>
-                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                    <polyline points="20 6 9 17 4 12" />
-                  </svg>
-                </button>
-                <button className="iconBtn" title="Cancel" onClick={onCancelEdit}>
-                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                    <path d="M18 6L6 18" />
-                    <path d="M6 6l12 12" />
-                  </svg>
-                </button>
-              </td>
-            </tr>
-          ) : null}
-
           {rows.map((r, idx) =>
             (() => {
               const rowKey = `${safeTrim(r.filename) || "addresses.yaml"}::${r.name || idx}`;
-              const isEditingRow = editingKey === rowKey;
-              if (isEditingRow) {
-                return (
-                  <tr key={rowKey}>
-                    <td>
-                      <input
-                        className="filterInput"
-                        value={draft.name}
-                        onChange={(e) => setDraft((p) => ({ ...p, name: normalizeName(e.target.value) }))}
-                      />
-                    </td>
-                    <td>
-                      <input className="filterInput" value={draft.value} onChange={(e) => setDraft((p) => ({ ...p, value: e.target.value }))} />
-                    </td>
-                    <td>
-                      <input className="filterInput" value={draft.nameOverride} onChange={(e) => setDraft((p) => ({ ...p, nameOverride: e.target.value }))} />
-                    </td>
-                    <td>
-                      <input className="filterInput" value={draft.inFirewall} onChange={(e) => setDraft((p) => ({ ...p, inFirewall: e.target.value }))} />
-                    </td>
-                    <td>
-                      <input
-                        className="filterInput"
-                        value={draft.filename}
-                        onChange={(e) => setDraft((p) => ({ ...p, filename: normalizeFilename(e.target.value) }))}
-                      />
-                    </td>
-                    <td>
-                      <button className="iconBtn iconBtn-primary" title="Save" disabled={!canSubmit} onClick={onSave}>
-                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                          <polyline points="20 6 9 17 4 12" />
-                        </svg>
-                      </button>
-                      <button className="iconBtn" title="Cancel" onClick={onCancelEdit}>
-                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                          <path d="M18 6L6 18" />
-                          <path d="M6 6l12 12" />
-                        </svg>
-                      </button>
-                    </td>
-                  </tr>
-                );
-              }
-              const nameOverride = safeTrim(r?.data?.["name-override"]) || "empty";
+              const nameOverrideDisplay = Array.isArray(r?.data?.["name-override"])
+                ? r.data["name-override"].map((x) => safeTrim(x)).filter(Boolean).join("\n") || "empty"
+                : "empty";
               const inFirewall = (() => {
                 const v = r?.data?.["in-firewall"];
                 if (v === true) return "true";
@@ -224,10 +244,10 @@ function AddrsTableView({ env, rows, filters, setFilters, onAdd, onCheckUsed, on
               })();
               const usedInGrp = (() => {
                 const v = r?.data?.["used-in-grp"];
-                if (v === true) return "true";
-                if (v === false) return "false";
-                const s = safeTrim(v).toLowerCase();
-                return s || "empty";
+                if (v === null || v === undefined) return "";
+                const n = Number(v);
+                if (!Number.isFinite(n) || n <= 0) return "";
+                return String(n);
               })();
               const usedInRule = (() => {
                 const v = r?.data?.["used-in-rule"];
@@ -258,9 +278,22 @@ function AddrsTableView({ env, rows, filters, setFilters, onAdd, onCheckUsed, on
                     </div>
                   </td>
                   <td className="muted">{safeTrim(r?.data?.ip) || safeTrim(r?.data?.range) || safeTrim(r?.data?.subnet)}</td>
-                  <td className="muted">{nameOverride}</td>
+                  <td className="muted" style={{ whiteSpace: "pre-line" }}>{nameOverrideDisplay}</td>
                   <td className="muted">{inFirewall}</td>
-                  <td className="muted">{usedInGrp}</td>
+                  <td className="muted">
+                    {isNonEmptyString(usedInGrp) ? (
+                      <button
+                        type="button"
+                        title="Show groups"
+                        onClick={() => onShowUsedInGroups(r)}
+                        style={{ padding: 0, height: "auto", border: "none", background: "none", color: "#0d6efd", cursor: "pointer", textDecoration: "underline" }}
+                      >
+                        {usedInGrp}
+                      </button>
+                    ) : (
+                      "empty"
+                    )}
+                  </td>
                   <td className="muted">{usedInRule}</td>
                   <td className="muted">{safeTrim(r.filename) || "addresses.yaml"}</td>
                   <td>

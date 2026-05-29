@@ -283,6 +283,26 @@ async function checkGroupUsedInGroups(env) {
   return await postJson(url, {});
 }
 
+async function getAddrUsedInGroups(env, name) {
+  const product = getCurrentProduct();
+  if (!isNonEmptyString(product)) throw new Error("Select a product first");
+  const e = requireEnv(env);
+  const n = safeTrim(name);
+  if (!n) throw new Error("name is required");
+  const url = `/api/v1/products/${encodeURIComponent(product)}/addrs/${encodeURIComponent(e)}/used-in-groups?name=${encodeURIComponent(n)}`;
+  return await fetchJson(url);
+}
+
+async function getGroupUsedInGroups(env, name) {
+  const product = getCurrentProduct();
+  if (!isNonEmptyString(product)) throw new Error("Select a product first");
+  const e = requireEnv(env);
+  const n = safeTrim(name);
+  if (!n) throw new Error("name is required");
+  const url = `/api/v1/products/${encodeURIComponent(product)}/groups/${encodeURIComponent(e)}/used-in-groups?name=${encodeURIComponent(n)}`;
+  return await fetchJson(url);
+}
+
 async function listIpInventory(env) {
   const product = getCurrentProduct();
   if (!isNonEmptyString(product)) throw new Error("Select a product first");

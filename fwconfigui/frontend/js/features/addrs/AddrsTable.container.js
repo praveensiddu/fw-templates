@@ -1,11 +1,13 @@
 function AddrsTable({ env, setLoading, setError }) {
   const [items, setItems] = React.useState([]);
   const [editingKey, setEditingKey] = React.useState("");
+  const [usedInGrpModal, setUsedInGrpModal] = React.useState({ isOpen: false, name: "", items: [], loading: false, error: "" });
   const [draft, setDraft] = React.useState({
     filename: "addresses.yaml",
     name: "",
     value: "",
-    nameOverride: "",
+    nameOverride: [],
+    nameOverrideText: "",
     inFirewall: "",
   });
   const [originalRef, setOriginalRef] = React.useState({ filename: "addresses.yaml", name: "" });
@@ -26,7 +28,7 @@ function AddrsTable({ env, setLoading, setError }) {
 
   React.useEffect(() => {
     setEditingKey("");
-    setDraft({ filename: "addresses.yaml", name: "", value: "", nameOverride: "", inFirewall: "" });
+    setDraft({ filename: "addresses.yaml", name: "", value: "", nameOverride: [], nameOverrideText: "", inFirewall: "" });
     setOriginalRef({ filename: "addresses.yaml", name: "" });
     setConfirmDelete({ show: false, row: null });
     load();
@@ -56,7 +58,7 @@ function AddrsTable({ env, setLoading, setError }) {
       filename: safeTrim(row.filename),
       name: safeTrim(row.name),
       value: safeTrim(row?.data?.ip) || safeTrim(row?.data?.range) || safeTrim(row?.data?.subnet),
-      nameOverride: safeTrim(row?.data?.["name-override"]) || "empty",
+      nameOverride: Array.isArray(row?.data?.["name-override"]) ? row.data["name-override"].map((x) => safeTrim(x)).filter(Boolean).join("\n") : "empty",
       inFirewall: (() => {
         const v = row?.data?.["in-firewall"];
         if (v === true) return "true";
@@ -66,10 +68,10 @@ function AddrsTable({ env, setLoading, setError }) {
       })(),
       usedInGrp: (() => {
         const v = row?.data?.["used-in-grp"];
-        if (v === true) return "true";
-        if (v === false) return "false";
-        const s = safeTrim(v).toLowerCase();
-        return s || "empty";
+        if (v === null || v === undefined) return "empty";
+        const n = Number(v);
+        if (!Number.isFinite(n) || n <= 0) return "empty";
+        return String(n);
       })(),
       usedInRule: (() => {
         const v = row?.data?.["used-in-rule"];
@@ -88,7 +90,7 @@ function AddrsTable({ env, setLoading, setError }) {
   });
 
   const onAdd = React.useCallback(() => {
-    setDraft({ filename: "addresses.yaml", name: "", value: "", nameOverride: "", inFirewall: "" });
+    setDraft({ filename: "addresses.yaml", name: "", value: "", nameOverride: [], nameOverrideText: "", inFirewall: "" });
     setOriginalRef({ filename: "addresses.yaml", name: "" });
     setEditingKey("__new__");
   }, []);
@@ -100,11 +102,14 @@ function AddrsTable({ env, setLoading, setError }) {
     const value = safeTrim(data.ip) || safeTrim(data.range) || safeTrim(data.subnet);
     const rawInFirewall = data["in-firewall"];
     const inFirewall = rawInFirewall === true ? "true" : rawInFirewall === false ? "false" : safeTrim(rawInFirewall);
+    const rawNo = data["name-override"];
+    const nameOverride = Array.isArray(rawNo) ? rawNo.map((x) => safeTrim(x)).filter(Boolean) : [];
     setDraft({
       filename: fn,
       name: n,
       value,
-      nameOverride: safeTrim(data["name-override"]),
+      nameOverride,
+      nameOverrideText: nameOverride.join(" "),
       inFirewall,
     });
     setOriginalRef({ filename: fn, name: n });
@@ -123,7 +128,7 @@ function AddrsTable({ env, setLoading, setError }) {
 
   const onCancelEdit = React.useCallback(() => {
     setEditingKey("");
-    setDraft({ filename: "addresses.yaml", name: "", value: "", nameOverride: "", inFirewall: "" });
+    setDraft({ filename: "addresses.yaml", name: "", value: "", nameOverride: [], nameOverrideText: "", inFirewall: "" });
     setOriginalRef({ filename: "addresses.yaml", name: "" });
   }, []);
 
@@ -147,12 +152,10 @@ function AddrsTable({ env, setLoading, setError }) {
 
       const data = {
         ...inferred,
-        ...(isNonEmptyString(safeTrim(draft.nameOverride)) ? { "name-override": safeTrim(draft.nameOverride) } : {}),
+        ...(Array.isArray(draft.nameOverride) && draft.nameOverride.map((x) => safeTrim(x)).filter(Boolean).length > 0
+          ? { "name-override": draft.nameOverride.map((x) => safeTrim(x)).filter(Boolean) }
+          : {}),
       };
-
-      const inFirewallRaw = safeTrim(draft.inFirewall).toLowerCase();
-      if (inFirewallRaw === "true") data["in-firewall"] = true;
-      if (inFirewallRaw === "false") data["in-firewall"] = false;
 
       await saveAddr(env, {
         filename: nextFilename,
@@ -217,6 +220,22 @@ function AddrsTable({ env, setLoading, setError }) {
     [env, setLoading, setError, load]
   );
 
+  const onShowUsedInGroups = React.useCallback(
+    async (row) => {
+      const name = safeTrim(row?.name);
+      if (!name) return;
+      try {
+        setUsedInGrpModal({ isOpen: true, name, items: [], loading: true, error: "" });
+        const resp = await getAddrUsedInGroups(env, name);
+        const list = Array.isArray(resp?.items) ? resp.items : [];
+        setUsedInGrpModal({ isOpen: true, name, items: list, loading: false, error: "" });
+      } catch (e) {
+        setUsedInGrpModal({ isOpen: true, name, items: [], loading: false, error: formatError(e) });
+      }
+    },
+    [env]
+  );
+
   return (
     <>
       <AddrsTableView
@@ -226,6 +245,9 @@ function AddrsTable({ env, setLoading, setError }) {
         setFilters={setFilters}
         onAdd={onAdd}
         onCheckUsed={onCheckUsed}
+        onShowUsedInGroups={onShowUsedInGroups}
+        usedInGrpModal={usedInGrpModal}
+        setUsedInGrpModal={setUsedInGrpModal}
         onEdit={onEdit}
         onDelete={onDelete}
         onExclude={onExclude}

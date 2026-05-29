@@ -2,7 +2,8 @@ function GroupsTable({ env, setLoading, setError }) {
   const [items, setItems] = React.useState([]);
   const [memberOptions, setMemberOptions] = React.useState([]);
   const [editingKey, setEditingKey] = React.useState("");
-  const [draft, setDraft] = React.useState({ filename: "groups.yaml", name: "", members: [], nameOverride: "", inFirewall: "" });
+  const [usedInGrpModal, setUsedInGrpModal] = React.useState({ isOpen: false, name: "", items: [], loading: false, error: "" });
+  const [draft, setDraft] = React.useState({ filename: "groups.yaml", name: "", members: [], nameOverride: [], nameOverrideText: "", inFirewall: "" });
   const [originalRef, setOriginalRef] = React.useState({ filename: "groups.yaml", name: "" });
   const [confirmDelete, setConfirmDelete] = React.useState({ show: false, row: null });
 
@@ -27,7 +28,7 @@ function GroupsTable({ env, setLoading, setError }) {
 
   React.useEffect(() => {
     setEditingKey("");
-    setDraft({ filename: "groups.yaml", name: "", members: [], nameOverride: "", inFirewall: "" });
+    setDraft({ filename: "groups.yaml", name: "", members: [], nameOverride: [], nameOverrideText: "", inFirewall: "" });
     setOriginalRef({ filename: "groups.yaml", name: "" });
     setConfirmDelete({ show: false, row: null });
     load();
@@ -57,7 +58,7 @@ function GroupsTable({ env, setLoading, setError }) {
       name: safeTrim(row.name),
       filename: safeTrim(row.filename),
       members: Array.isArray(row?.data?.members) ? row.data.members.map((m) => safeTrim(m)).filter(Boolean).join("\n") : "",
-      nameOverride: safeTrim(row?.data?.["name-override"]) || "empty",
+      nameOverride: Array.isArray(row?.data?.["name-override"]) ? row.data["name-override"].map((x) => safeTrim(x)).filter(Boolean).join("\n") : "empty",
       inFirewall: (() => {
         const v = row?.data?.["in-firewall"];
         if (v === true) return "true";
@@ -67,10 +68,10 @@ function GroupsTable({ env, setLoading, setError }) {
       })(),
       usedInGrp: (() => {
         const v = row?.data?.["used-in-grp"];
-        if (v === true) return "true";
-        if (v === false) return "false";
-        const s = safeTrim(v).toLowerCase();
-        return s || "empty";
+        if (v === null || v === undefined) return "empty";
+        const n = Number(v);
+        if (!Number.isFinite(n) || n <= 0) return "empty";
+        return String(n);
       })(),
       usedInRule: (() => {
         const v = row?.data?.["used-in-rule"];
@@ -84,7 +85,7 @@ function GroupsTable({ env, setLoading, setError }) {
   });
 
   const onAdd = React.useCallback(() => {
-    setDraft({ filename: "groups.yaml", name: "", members: [], nameOverride: "", inFirewall: "" });
+    setDraft({ filename: "groups.yaml", name: "", members: [], nameOverride: [], nameOverrideText: "", inFirewall: "" });
     setOriginalRef({ filename: "groups.yaml", name: "" });
     setEditingKey("__new__");
   }, []);
@@ -94,10 +95,11 @@ function GroupsTable({ env, setLoading, setError }) {
     const fn = safeTrim(row.filename) || "groups.yaml";
     const members = Array.isArray(row?.data?.members) ? row.data.members : [];
     const cleanedMembers = (members || []).map((m) => safeTrim(m)).filter(Boolean);
-    const no = safeTrim(row?.data?.["name-override"]);
     const rawInFirewall = row?.data?.["in-firewall"];
     const inFirewall = rawInFirewall === true ? "true" : rawInFirewall === false ? "false" : safeTrim(rawInFirewall);
-    setDraft({ filename: fn, name: n, members: cleanedMembers, nameOverride: no, inFirewall });
+    const rawNo = row?.data?.["name-override"];
+    const nameOverride = Array.isArray(rawNo) ? rawNo.map((x) => safeTrim(x)).filter(Boolean) : [];
+    setDraft({ filename: fn, name: n, members: cleanedMembers, nameOverride, nameOverrideText: nameOverride.join(" "), inFirewall });
     setOriginalRef({ filename: fn, name: n });
     setEditingKey(`${fn}::${n}`);
   }, []);
@@ -113,7 +115,7 @@ function GroupsTable({ env, setLoading, setError }) {
 
   const onCancelEdit = React.useCallback(() => {
     setEditingKey("");
-    setDraft({ filename: "groups.yaml", name: "", members: [], nameOverride: "", inFirewall: "" });
+    setDraft({ filename: "groups.yaml", name: "", members: [], nameOverride: [], nameOverrideText: "", inFirewall: "" });
     setOriginalRef({ filename: "groups.yaml", name: "" });
   }, []);
 
@@ -130,9 +132,7 @@ function GroupsTable({ env, setLoading, setError }) {
       const members = (Array.isArray(draft.members) ? draft.members : [])
         .map((m) => safeTrim(m))
         .filter(Boolean);
-      const nameOverride = safeTrim(draft.nameOverride);
-      const inFirewallRaw = safeTrim(draft.inFirewall).toLowerCase();
-      const inFirewall = inFirewallRaw === "true" ? true : inFirewallRaw === "false" ? false : "";
+      const nameOverride = (Array.isArray(draft.nameOverride) ? draft.nameOverride : []).map((x) => safeTrim(x)).filter(Boolean);
 
       await saveGroup(env, {
         filename,
@@ -140,8 +140,7 @@ function GroupsTable({ env, setLoading, setError }) {
         original_name: safeTrim(originalRef.name) || undefined,
         data: {
           members,
-          ...(isNonEmptyString(nameOverride) ? { "name-override": nameOverride } : {}),
-          ...(inFirewallRaw === "true" || inFirewallRaw === "false" ? { "in-firewall": inFirewall } : {}),
+          ...(nameOverride.length > 0 ? { "name-override": nameOverride } : {}),
         },
       });
 
@@ -185,6 +184,22 @@ function GroupsTable({ env, setLoading, setError }) {
     [env, setLoading, setError, load]
   );
 
+  const onShowUsedInGroups = React.useCallback(
+    async (row) => {
+      const name = safeTrim(row?.name);
+      if (!name) return;
+      try {
+        setUsedInGrpModal({ isOpen: true, name, items: [], loading: true, error: "" });
+        const resp = await getGroupUsedInGroups(env, name);
+        const list = Array.isArray(resp?.items) ? resp.items : [];
+        setUsedInGrpModal({ isOpen: true, name, items: list, loading: false, error: "" });
+      } catch (e) {
+        setUsedInGrpModal({ isOpen: true, name, items: [], loading: false, error: formatError(e) });
+      }
+    },
+    [env]
+  );
+
   const onExcludeEnvCommon = React.useCallback(
     async (row) => {
       try {
@@ -210,6 +225,9 @@ function GroupsTable({ env, setLoading, setError }) {
         setFilters={setFilters}
         onAdd={onAdd}
         onCheckUsed={onCheckUsed}
+        onShowUsedInGroups={onShowUsedInGroups}
+        usedInGrpModal={usedInGrpModal}
+        setUsedInGrpModal={setUsedInGrpModal}
         onEdit={onEdit}
         onDelete={onDelete}
         onExclude={onExclude}
