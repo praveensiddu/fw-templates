@@ -1,7 +1,6 @@
 #!/usr/bin/env python3
 
 from datetime import datetime
-import logging
 from pathlib import Path
 from typing import Any, Callable, Dict, List, Optional, Tuple
 
@@ -59,7 +58,6 @@ def create_rolemgmt_router(
 ) -> APIRouter:
 
     router = APIRouter(tags=["RoleManagement"])
-    logger = logging.getLogger("RoleManagementAPI")
 
     class RoleAssignmentRequest(BaseModel):
         product: str
@@ -89,7 +87,7 @@ def create_rolemgmt_router(
                 "status": "success",
                 "message": "Role refreshed successfully",
             }
-        except Exception as e:
+        except Exception:
             # Unexpected failures
             raise HTTPException(
                 status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,

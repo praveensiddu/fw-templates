@@ -12,7 +12,7 @@ from typing import Any, Dict
 
 from fastapi import APIRouter, Depends, Request
 
-from backend.models import ListItemsResponse, SaveItemRequest
+from backend.models import SaveItemRequest
 from backend.services.sites_service import SitesService
 
 router = APIRouter(prefix="/api/v1/infra/sites", tags=["sites"])

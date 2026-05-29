@@ -4,7 +4,7 @@ from typing import Any, Dict, List, Optional, Tuple
 
 from backend.exceptions.custom import ValidationError
 from backend.utils.yaml_utils import list_yaml_files
-from backend.utils.workspace import get_product_templates_repo, get_fwconfigfiles_root
+from backend.utils.workspace import get_product_templates_repo
 from backend.utils.yaml_utils import read_yaml_dict, write_yaml_dict
 
 _PORT_PROTOCOL_FILENAME = "port-protocol.yaml"

@@ -14,7 +14,7 @@ from backend.services.common_service import (
     read_fortimgr_addrs_for_env,
 )
 from backend.utils.workspace import get_product_templates_repo, get_product_generated_repo, get_settings_yaml_path
-from backend.utils.yaml_utils import list_yaml_files, read_yaml_dict, write_yaml_dict
+from backend.utils.yaml_utils import read_yaml_dict, write_yaml_dict
 
 
 class IpInventoryService:

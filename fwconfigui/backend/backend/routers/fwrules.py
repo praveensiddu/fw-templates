@@ -12,7 +12,6 @@ from backend.models import (
     ListYamlFilesResponse,
     MoveFwRuleRequest,
     SaveFwRuleRequest,
-    SaveItemRequest,
     UpdateFwRuleFieldsRequest,
     VerifyAndCommitRequest,
 )

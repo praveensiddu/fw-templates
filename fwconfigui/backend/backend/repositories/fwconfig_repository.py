@@ -2,7 +2,7 @@
 
 import logging
 from pathlib import Path
-from typing import Any, Dict, Iterable, List, Optional, Tuple
+from typing import Any, Dict, List, Optional, Tuple
 
 from backend.exceptions.custom import NotFoundError, ValidationError
 from backend.utils.yaml_utils import list_yaml_files, read_yaml_dict, write_yaml_dict

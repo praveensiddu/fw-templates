@@ -16,7 +16,7 @@ from fastapi import APIRouter, Depends, Request
 from pydantic import BaseModel
 
 from backend.exceptions.custom import AlreadyExistsError, ValidationError
-from backend.models import ListItemsResponse, SaveItemRequest
+from backend.models import SaveItemRequest
 from backend.services.env_service import EnvService
 from backend.utils.workspace import get_settings_yaml_path
 from backend.utils.yaml_utils import read_yaml_dict, write_yaml_dict

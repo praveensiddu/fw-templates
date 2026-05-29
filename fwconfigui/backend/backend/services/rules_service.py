@@ -7,7 +7,7 @@ import yaml
 from backend.exceptions.custom import ValidationError
 from backend.services.common_service import get_generated_folder_prefix, get_product_templates_repo_name
 from backend.utils.workspace import get_fwconfigfiles_root, get_settings_yaml_path
-from backend.utils.yaml_utils import list_yaml_files, read_yaml_dict
+from backend.utils.yaml_utils import list_yaml_files
 
 
 class RulesService:
