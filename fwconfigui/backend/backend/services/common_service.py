@@ -4,6 +4,7 @@ from pathlib import Path
 from typing import Any, Dict, List
 
 from backend.exceptions.custom import ValidationError
+from backend.utils.workspace import get_settings_yaml_path
 from backend.utils.yaml_utils import list_yaml_files, read_yaml_dict, write_yaml_dict
 
 
@@ -18,6 +19,59 @@ def list_yaml_files_recursive(root: Path) -> List[Path]:
             continue
         out.append(p)
     return out
+
+
+def get_generated_folder_prefix() -> str:
+    prefix = str(os.getenv("GENERATED_FOLDER_PREFIX", "") or "").strip()
+    if not prefix:
+        raise ValidationError("GENERATED_FOLDER_PREFIX", "env var is required")
+    return prefix
+
+
+def get_product_generated_repo_name(*, product: str) -> str:
+    raw = read_yaml_dict(get_settings_yaml_path("products.yaml"))
+    if not isinstance(raw, dict):
+        raw = {}
+
+    prod_key = str(product or "").strip().upper()
+    prod = raw.get(prod_key) if prod_key else None
+    if not isinstance(prod, dict):
+        prod = {}
+
+    generated_repo = str(prod.get("generated-repo") or "").strip()
+    if not generated_repo:
+        raise ValidationError("generated-repo", "is required on product")
+
+    parts = [p for p in generated_repo.split("/") if p]
+    if not parts:
+        raise ValidationError("generated-repo", "invalid format")
+    repo_name = str(parts[-1]).strip()
+    if not repo_name:
+        raise ValidationError("generated-repo", "invalid format")
+    return repo_name
+
+
+def get_product_templates_repo_name(*, product: str) -> str:
+    raw = read_yaml_dict(get_settings_yaml_path("products.yaml"))
+    if not isinstance(raw, dict):
+        raw = {}
+
+    prod_key = str(product or "").strip().upper()
+    prod = raw.get(prod_key) if prod_key else None
+    if not isinstance(prod, dict):
+        prod = {}
+
+    templates_repo = str(prod.get("templates-repo") or "").strip()
+    if not templates_repo:
+        raise ValidationError("templates-repo", "is required on product")
+
+    parts = [p for p in templates_repo.split("/") if p]
+    if not parts:
+        raise ValidationError("templates-repo", "invalid format")
+    repo_name = str(parts[-1]).strip()
+    if not repo_name:
+        raise ValidationError("templates-repo", "invalid format")
+    return repo_name
 
 
 def read_fortimgr_addrs_dict(fm_addrs_dir: Path) -> Dict[str, str]:

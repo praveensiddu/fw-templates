@@ -3,7 +3,7 @@ from pathlib import Path
 from typing import Any, Dict, List, Optional, Tuple
 
 from backend.exceptions.custom import AlreadyExistsError, ValidationError
-from backend.services.common_service import build_group_used_in_group_metadata
+from backend.services.common_service import build_group_used_in_group_metadata, get_generated_folder_prefix, get_product_generated_repo_name, get_product_templates_repo_name
 from backend.utils.workspace import get_fwconfigfiles_root, get_settings_yaml_path
 from backend.utils.yaml_utils import list_yaml_files, read_yaml_dict, write_yaml_dict
 
@@ -18,54 +18,13 @@ class GroupsService:
         return get_settings_yaml_path("products.yaml")
 
     def _get_generated_repo_name(self) -> str:
-        raw = read_yaml_dict(self._products_path())
-        if not isinstance(raw, dict):
-            raw = {}
-
-        prod_key = str(self._product or "").strip().upper()
-        prod = raw.get(prod_key) if prod_key else None
-        if not isinstance(prod, dict):
-            prod = {}
-
-        generated_repo = str(prod.get("generated-repo") or "").strip()
-        if not generated_repo:
-            raise ValidationError("generated-repo", "is required on product")
-
-        parts = [p for p in generated_repo.split("/") if p]
-        if not parts:
-            raise ValidationError("generated-repo", "invalid format")
-        repo_name = str(parts[-1]).strip()
-        if not repo_name:
-            raise ValidationError("generated-repo", "invalid format")
-        return generated_repo
+        return get_product_generated_repo_name(product=str(self._product or ""))
 
     def _get_templates_repo_name(self) -> str:
-        raw = read_yaml_dict(self._products_path())
-        if not isinstance(raw, dict):
-            raw = {}
-
-        prod_key = str(self._product or "").strip().upper()
-        prod = raw.get(prod_key) if prod_key else None
-        if not isinstance(prod, dict):
-            prod = {}
-
-        templates_repo = str(prod.get("templates-repo") or "").strip()
-        if not templates_repo:
-            raise ValidationError("templates-repo", "is required on product")
-
-        parts = [p for p in templates_repo.split("/") if p]
-        if not parts:
-            raise ValidationError("templates-repo", "invalid format")
-        repo_name = str(parts[-1]).strip()
-        if not repo_name:
-            raise ValidationError("templates-repo", "invalid format")
-        return repo_name
+        return get_product_templates_repo_name(product=str(self._product or ""))
 
     def _get_generated_folder_prefix(self) -> str:
-        prefix = str(os.getenv("GENERATED_FOLDER_PREFIX", "") or "").strip()
-        if not prefix:
-            raise ValidationError("GENERATED_FOLDER_PREFIX", "env var is required")
-        return prefix
+        return get_generated_folder_prefix()
 
     @staticmethod
     def _normalize_env(env: str) -> str:

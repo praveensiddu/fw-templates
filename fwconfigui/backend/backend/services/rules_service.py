@@ -5,6 +5,7 @@ from typing import Any, Dict, List, Optional
 import yaml
 
 from backend.exceptions.custom import ValidationError
+from backend.services.common_service import get_generated_folder_prefix, get_product_templates_repo_name
 from backend.utils.workspace import get_fwconfigfiles_root, get_settings_yaml_path
 from backend.utils.yaml_utils import list_yaml_files, read_yaml_dict
 
@@ -24,32 +25,10 @@ class RulesService:
         return get_settings_yaml_path("products.yaml")
 
     def _get_templates_repo_name(self) -> str:
-        raw = read_yaml_dict(self._products_path())
-        if not isinstance(raw, dict):
-            raw = {}
-
-        prod_key = str(self._product or "").strip().upper()
-        prod = raw.get(prod_key) if prod_key else None
-        if not isinstance(prod, dict):
-            prod = {}
-
-        templates_repo = str(prod.get("templates-repo") or "").strip()
-        if not templates_repo:
-            raise ValidationError("templates-repo", "is required on product")
-
-        parts = [p for p in templates_repo.split("/") if p]
-        if not parts:
-            raise ValidationError("templates-repo", "invalid format")
-        repo_name = str(parts[-1]).strip()
-        if not repo_name:
-            raise ValidationError("templates-repo", "invalid format")
-        return repo_name
+        return get_product_templates_repo_name(product=str(self._product or ""))
 
     def _get_generated_folder_prefix(self) -> str:
-        prefix = str(os.getenv("GENERATED_FOLDER_PREFIX", "") or "").strip()
-        if not prefix:
-            raise ValidationError("GENERATED_FOLDER_PREFIX", "env var is required")
-        return prefix
+        return get_generated_folder_prefix()
 
     def _env_flows_dir(self, env: str) -> Path:
         e = self._normalize_env(env)
