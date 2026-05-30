@@ -198,6 +198,19 @@ class AddressesService:
             else:
                 addr2groups_lc[key] = []
 
+        addr2rules_path = self._env_address_metadata_dir(env) / "fw_address2rule.yaml"
+        raw_addr2rules = read_yaml_dict(addr2rules_path) if addr2rules_path.exists() else {}
+        addr2rules: Dict[str, List[str]] = raw_addr2rules if isinstance(raw_addr2rules, dict) else {}
+        addr2rules_lc: Dict[str, List[str]] = {}
+        for k, v in addr2rules.items():
+            key = str(k or "").strip().lower()
+            if not key:
+                continue
+            if isinstance(v, list):
+                addr2rules_lc[key] = [str(x or "").strip() for x in v if str(x or "").strip()]
+            else:
+                addr2rules_lc[key] = []
+
         items: List[Dict[str, Any]] = []
         for p in list_yaml_files(root):
             raw = self._read_addresses_file(p)
@@ -213,6 +226,9 @@ class AddressesService:
                 groups = addr2groups_lc.get(name.lower())
                 if groups:
                     data["used-in-grp"] = len(groups)
+                rules = addr2rules_lc.get(name.lower())
+                if rules:
+                    data["used-in-rule"] = len(rules)
                 items.append({"filename": p.name, "name": name, "data": data})
 
         items.sort(key=lambda d: (str(d.get("filename", "") or "").lower(), str(d.get("name", "") or "").lower()))

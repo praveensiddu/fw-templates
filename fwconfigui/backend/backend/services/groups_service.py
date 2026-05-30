@@ -147,6 +147,19 @@ class GroupsService:
             else:
                 group2groups_lc[key] = []
 
+        group2rules_path = self._env_groups_metadata_dir(env) / "fw_group2rule.yaml"
+        raw_group2rules = read_yaml_dict(group2rules_path) if group2rules_path.exists() else {}
+        group2rules: Dict[str, List[str]] = raw_group2rules if isinstance(raw_group2rules, dict) else {}
+        group2rules_lc: Dict[str, List[str]] = {}
+        for k, v in group2rules.items():
+            key = str(k or "").strip().lower()
+            if not key:
+                continue
+            if isinstance(v, list):
+                group2rules_lc[key] = [str(x or "").strip() for x in v if str(x or "").strip()]
+            else:
+                group2rules_lc[key] = []
+
         for p in list_yaml_files(root):
             raw = self._read_groups_file(p)
             groups = raw.get("groups", {})
@@ -162,6 +175,9 @@ class GroupsService:
                 parents = group2groups_lc.get(name.lower())
                 if parents:
                     data["used-in-grp"] = len(parents)
+                rules = group2rules_lc.get(name.lower())
+                if rules:
+                    data["used-in-rule"] = len(rules)
                 items.append({"filename": p.name, "name": name, "data": data})
         return items
 
