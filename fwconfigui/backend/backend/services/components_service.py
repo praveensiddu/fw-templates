@@ -3,7 +3,8 @@ from pathlib import Path
 from typing import Any, Dict, List, Optional
 
 from backend.exceptions.custom import ValidationError
-from backend.utils.workspace import get_product_templates_repo
+from backend.services.common_service import get_product_templates_repo_name
+from backend.utils.workspace import get_fwconfigfiles_root
 from backend.utils.yaml_utils import list_yaml_files, read_yaml_dict, write_yaml_dict
 
 _COMPONENTS_FILENAME = "components.yaml"
@@ -14,8 +15,14 @@ class ComponentsService:
     def __init__(self, product: Optional[str] = None):
         self._product = product
 
+    def _repo_root(self) -> Path:
+        if not str(self._product or "").strip():
+            return get_fwconfigfiles_root(None)
+        repo_name = get_product_templates_repo_name(product=str(self._product or ""))
+        return get_fwconfigfiles_root(None) / "cloned-repositories" / repo_name
+
     def _path(self) -> Path:
-        return get_product_templates_repo(self._product) / _COMPONENTS_FILENAME
+        return self._repo_root() / _COMPONENTS_FILENAME
 
     @staticmethod
     def _normalize_component_name(name: str) -> str:
@@ -115,7 +122,7 @@ class ComponentsService:
             if prev not in existing_keys:
                 raise ValidationError("original_name", "does not exist")
 
-            fw_rules_root = get_product_templates_repo(self._product) / "fw-rules"
+            fw_rules_root = self._repo_root() / "fw-rules"
             fw_rules_root.mkdir(parents=True, exist_ok=True)
 
             def _rewrite_group(group: Any) -> str:

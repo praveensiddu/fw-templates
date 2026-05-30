@@ -2,7 +2,8 @@ import re
 from typing import Any, Dict, List, Optional
 
 from backend.exceptions.custom import ValidationError
-from backend.utils.workspace import get_product_templates_repo
+from backend.services.common_service import get_product_templates_repo_name
+from backend.utils.workspace import get_fwconfigfiles_root
 from backend.utils.yaml_utils import read_yaml_dict, write_yaml_dict
 from pathlib import Path
 
@@ -11,6 +12,12 @@ _KEYWORDS_FILENAME = "keywords.yaml"
 class KeywordsService:
     def __init__(self, product: Optional[str] = None):
         self._product = product
+
+    def _repo_root(self) -> Path:
+        if not str(self._product or "").strip():
+            return get_fwconfigfiles_root(None)
+        repo_name = get_product_templates_repo_name(product=str(self._product or ""))
+        return get_fwconfigfiles_root(None) / "cloned-repositories" / repo_name
 
     @staticmethod
     def _normalize_keyword_name(name: str) -> str:
@@ -22,7 +29,7 @@ class KeywordsService:
 
     def list_items(self) -> List[Dict[str, Any]]:
         out: List[Dict[str, Any]] = []
-        kfilename = get_product_templates_repo(self._product) / _KEYWORDS_FILENAME
+        kfilename = self._repo_root() / _KEYWORDS_FILENAME
         if not Path(kfilename).exists():
             return out
         
@@ -38,7 +45,7 @@ class KeywordsService:
         return out
 
     def save_item(self, *, name: str) -> None:
-        kfilename = get_product_templates_repo(self._product) / _KEYWORDS_FILENAME
+        kfilename = self._repo_root() / _KEYWORDS_FILENAME
         key = self._normalize_keyword_name(name)
         raw = read_yaml_dict(kfilename)
         if not isinstance(raw, dict):
@@ -47,7 +54,7 @@ class KeywordsService:
         write_yaml_dict(kfilename, raw, sort_keys=True)
 
     def delete_item(self, *, name: str) -> None:
-        kfilename = get_product_templates_repo(self._product) / _KEYWORDS_FILENAME
+        kfilename = self._repo_root() / _KEYWORDS_FILENAME
         raw = read_yaml_dict(kfilename)
         if not isinstance(raw, dict):
             raw = {}

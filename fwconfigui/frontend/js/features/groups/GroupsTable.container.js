@@ -170,13 +170,22 @@ function GroupsTable({ env, setLoading, setError }) {
 
   const onExclude = React.useCallback(
     async (row) => {
+      const n = safeTrim(row?.name);
+      const fn = safeTrim(row?.filename) || "groups.yaml";
       try {
         setLoading(true);
         setError("");
-        await excludeGroupFromImport(env, row?.name);
-        await load();
+        setItems((prev) =>
+          (Array.isArray(prev) ? prev : []).filter((it) => {
+            const itName = safeTrim(it?.name);
+            const itFn = safeTrim(it?.filename) || "groups.yaml";
+            return !(itName === n && itFn === fn);
+          })
+        );
+        await deleteGroup(env, n, fn);
       } catch (e) {
         setError(formatError(e));
+        await load();
       } finally {
         setLoading(false);
       }
@@ -202,13 +211,22 @@ function GroupsTable({ env, setLoading, setError }) {
 
   const onExcludeEnvCommon = React.useCallback(
     async (row) => {
+      const n = safeTrim(row?.name);
+      const fn = safeTrim(row?.filename) || "groups.yaml";
       try {
         setLoading(true);
         setError("");
-        await excludeGroupFromEnvCommon(env, row?.name);
-        await load();
+        setItems((prev) =>
+          (Array.isArray(prev) ? prev : []).filter((it) => {
+            const itName = safeTrim(it?.name);
+            const itFn = safeTrim(it?.filename) || "groups.yaml";
+            return !(itName === n && itFn === fn);
+          })
+        );
+        await deleteGroup(env, n, fn);
       } catch (e) {
         setError(formatError(e));
+        await load();
       } finally {
         setLoading(false);
       }

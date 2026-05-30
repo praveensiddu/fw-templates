@@ -5,6 +5,8 @@ function IpInventoryTable({ env, setLoading, setError }) {
   const [originalName, setOriginalName] = React.useState("");
   const [confirmDelete, setConfirmDelete] = React.useState({ show: false, row: null });
 
+  const [bulkUpload, setBulkUpload] = React.useState({ isOpen: false, text: "" });
+
   const [importResult, setImportResult] = React.useState({ show: false, data: null });
 
   const load = React.useCallback(async () => {
@@ -25,6 +27,7 @@ function IpInventoryTable({ env, setLoading, setError }) {
     setDraft({ name: "" });
     setOriginalName("");
     setConfirmDelete({ show: false, row: null });
+    setBulkUpload({ isOpen: false, text: "" });
     load();
   }, [env, load]);
 
@@ -118,6 +121,28 @@ function IpInventoryTable({ env, setLoading, setError }) {
     }
   }, [env, setLoading, setError, load]);
 
+  const onOpenBulkUpload = React.useCallback(() => {
+    setBulkUpload({ isOpen: true, text: "" });
+  }, []);
+
+  const onCloseBulkUpload = React.useCallback(() => {
+    setBulkUpload({ isOpen: false, text: "" });
+  }, []);
+
+  const onSubmitBulkUpload = React.useCallback(async () => {
+    try {
+      setLoading(true);
+      setError("");
+      await bulkUploadIpInventory(env, bulkUpload.text);
+      onCloseBulkUpload();
+      await load();
+    } catch (e) {
+      setError(formatError(e));
+    } finally {
+      setLoading(false);
+    }
+  }, [env, bulkUpload, setLoading, setError, load, onCloseBulkUpload]);
+
   return (
     <>
       <IpInventoryTableView
@@ -126,6 +151,11 @@ function IpInventoryTable({ env, setLoading, setError }) {
         filters={filters}
         setFilters={setFilters}
         onImport={onImport}
+        onOpenBulkUpload={onOpenBulkUpload}
+        bulkUpload={bulkUpload}
+        setBulkUpload={setBulkUpload}
+        onCloseBulkUpload={onCloseBulkUpload}
+        onSubmitBulkUpload={onSubmitBulkUpload}
         onAdd={onAdd}
         onEdit={onEdit}
         onDelete={onDelete}

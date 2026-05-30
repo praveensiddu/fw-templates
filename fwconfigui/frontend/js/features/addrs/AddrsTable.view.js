@@ -232,6 +232,7 @@ function AddrsTableView({ env, rows, filters, setFilters, onAdd, onCheckUsed, on
           {rows.map((r, idx) =>
             (() => {
               const rowKey = `${safeTrim(r.filename) || "addresses.yaml"}::${r.name || idx}`;
+              const isFmExtract = safeTrim(r.filename) === "fm_extract_address.yaml";
               const nameOverrideDisplay = Array.isArray(r?.data?.["name-override"])
                 ? r.data["name-override"].map((x) => safeTrim(x)).filter(Boolean).join("\n") || "empty"
                 : "empty";
@@ -261,20 +262,22 @@ function AddrsTableView({ env, rows, filters, setFilters, onAdd, onCheckUsed, on
                   <td>
                     <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 8 }}>
                       <span>{r.name}</span>
-                      <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
-                        <button className="iconBtn" title="Exclude from import" onClick={() => onExclude(r)}>
-                          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                            <circle cx="12" cy="12" r="10" />
-                            <line x1="8" y1="12" x2="16" y2="12" />
-                          </svg>
-                        </button>
-                        <button className="iconBtn" title="Exclude from env common" onClick={() => onExcludeEnvCommon(r)}>
-                          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                            <rect x="3" y="3" width="18" height="18" rx="2" ry="2" />
-                            <path d="M8 12h8" />
-                          </svg>
-                        </button>
-                      </div>
+                      {isFmExtract ? (
+                        <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
+                          <button className="iconBtn iconBtn-danger" title="Exclude from import" onClick={() => onExclude(r)}>
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                              <circle cx="12" cy="12" r="10" />
+                              <line x1="8" y1="12" x2="16" y2="12" />
+                            </svg>
+                          </button>
+                          <button className="iconBtn iconBtn-danger" title="Exclude from env common" onClick={() => onExcludeEnvCommon(r)}>
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                              <rect x="3" y="3" width="18" height="18" rx="2" ry="2" />
+                              <path d="M8 12h8" />
+                            </svg>
+                          </button>
+                        </div>
+                      ) : null}
                     </div>
                   </td>
                   <td className="muted">{safeTrim(r?.data?.ip) || safeTrim(r?.data?.range) || safeTrim(r?.data?.subnet)}</td>

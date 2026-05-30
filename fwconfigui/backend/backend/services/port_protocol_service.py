@@ -4,7 +4,8 @@ from typing import Any, Dict, List, Optional, Tuple
 
 from backend.exceptions.custom import ValidationError
 from backend.utils.yaml_utils import list_yaml_files
-from backend.utils.workspace import get_product_templates_repo
+from backend.services.common_service import get_product_templates_repo_name
+from backend.utils.workspace import get_fwconfigfiles_root
 from backend.utils.yaml_utils import read_yaml_dict, write_yaml_dict
 
 _PORT_PROTOCOL_FILENAME = "port-protocol.yaml"
@@ -13,6 +14,12 @@ _PORT_PROTOCOL_FILENAME = "port-protocol.yaml"
 class PortProtocolService:
     def __init__(self, product: Optional[str] = None):
         self._product = product
+
+    def _repo_root(self) -> Path:
+        if not str(self._product or "").strip():
+            return get_fwconfigfiles_root(None)
+        repo_name = get_product_templates_repo_name(product=str(self._product or ""))
+        return get_fwconfigfiles_root(None) / "cloned-repositories" / repo_name
 
     @staticmethod
     def _normalize_name(name: str) -> str:
@@ -34,10 +41,10 @@ class PortProtocolService:
         return {"port": port, "service": service}
 
     def _path(self) -> Path:
-        return get_product_templates_repo(self._product) / _PORT_PROTOCOL_FILENAME
+        return self._repo_root() / _PORT_PROTOCOL_FILENAME
 
     def _overrides_path(self) -> Path:
-        return get_product_templates_repo(self._product) / "overrides" / "flows" / "port_protocol_overrides.yaml"
+        return self._repo_root() / "overrides" / "flows" / "port_protocol_overrides.yaml"
 
     def list_items(self) -> List[Dict[str, Any]]:
         path = self._path()
@@ -69,7 +76,7 @@ class PortProtocolService:
             if prev not in existing_keys:
                 raise ValidationError("original_name", "does not exist")
 
-            fw_rules_root = get_product_templates_repo(self._product) / "fw-rules"
+            fw_rules_root = self._repo_root() / "fw-rules"
             fw_rules_root.mkdir(parents=True, exist_ok=True)
 
             for fpath in list_yaml_files(fw_rules_root):
@@ -176,7 +183,7 @@ class PortProtocolService:
         updated_files = 0
         updated_refs = 0
 
-        fw_rules_root = get_product_templates_repo(self._product) / "fw-rules"
+        fw_rules_root = self._repo_root() / "fw-rules"
         fw_rules_root.mkdir(parents=True, exist_ok=True)
 
         for path in list_yaml_files(fw_rules_root):

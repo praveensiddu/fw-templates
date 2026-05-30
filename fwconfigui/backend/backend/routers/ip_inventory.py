@@ -64,3 +64,14 @@ def import_from_fortimgr(
     service: IpInventoryService = Depends(get_service),
 ) -> Dict[str, Any]:
     return service.import_fortimgr(env=env)
+
+
+@router.post("/bulk-upload")
+def bulk_upload(
+    request: Request,
+    product: str,
+    env: str,
+    payload: Dict[str, Any],
+    service: IpInventoryService = Depends(get_service),
+) -> Dict[str, Any]:
+    return service.bulk_upload(env=env, raw_text=str(payload.get("text") or ""))

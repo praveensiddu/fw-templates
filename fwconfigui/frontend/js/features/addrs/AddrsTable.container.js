@@ -190,13 +190,22 @@ function AddrsTable({ env, setLoading, setError }) {
 
   const onExclude = React.useCallback(
     async (row) => {
+      const n = safeTrim(row?.name);
+      const fn = safeTrim(row?.filename) || "addresses.yaml";
       try {
         setLoading(true);
         setError("");
-        await excludeAddrFromImport(env, row?.name);
-        await load();
+        setItems((prev) =>
+          (Array.isArray(prev) ? prev : []).filter((it) => {
+            const itName = safeTrim(it?.name);
+            const itFn = safeTrim(it?.filename) || "addresses.yaml";
+            return !(itName === n && itFn === fn);
+          })
+        );
+        await deleteAddr(env, n, fn);
       } catch (e) {
         setError(formatError(e));
+        await load();
       } finally {
         setLoading(false);
       }
@@ -206,13 +215,22 @@ function AddrsTable({ env, setLoading, setError }) {
 
   const onExcludeEnvCommon = React.useCallback(
     async (row) => {
+      const n = safeTrim(row?.name);
+      const fn = safeTrim(row?.filename) || "addresses.yaml";
       try {
         setLoading(true);
         setError("");
-        await excludeAddrFromEnvCommon(env, row?.name);
-        await load();
+        setItems((prev) =>
+          (Array.isArray(prev) ? prev : []).filter((it) => {
+            const itName = safeTrim(it?.name);
+            const itFn = safeTrim(it?.filename) || "addresses.yaml";
+            return !(itName === n && itFn === fn);
+          })
+        );
+        await deleteAddr(env, n, fn);
       } catch (e) {
         setError(formatError(e));
+        await load();
       } finally {
         setLoading(false);
       }

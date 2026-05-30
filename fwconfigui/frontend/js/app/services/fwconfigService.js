@@ -353,6 +353,14 @@ async function importIpInventoryFromFortimgr(env) {
   return await postJson(url, {});
 }
 
+async function bulkUploadIpInventory(env, text) {
+  const product = getCurrentProduct();
+  if (!isNonEmptyString(product)) throw new Error("Select a product first");
+  const e = requireEnv(env);
+  const url = `/api/v1/products/${encodeURIComponent(product)}/ip_inventory/${encodeURIComponent(e)}/bulk-upload`;
+  return await postJson(url, { text: String(text || "") });
+}
+
 async function dedupePortProtocol(duplicateName, originalName) {
   const product = getCurrentProduct();
   if (!isNonEmptyString(product)) throw new Error("Select a product first");

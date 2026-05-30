@@ -1,5 +1,6 @@
 import ipaddress
 import os
+import re
 from pathlib import Path
 from typing import Any, Dict, List, Optional, Tuple
 
@@ -9,11 +10,13 @@ from backend.services.common_service import (
     build_address_used_in_group_metadata,
     build_fortimgr_matched_groups_for_env,
     build_group_used_in_group_metadata,
+    get_product_templates_repo_name,
+    get_product_generated_repo_name,
     read_existing_addresses,
     read_existing_group_names,
     read_fortimgr_addrs_for_env,
 )
-from backend.utils.workspace import get_product_templates_repo, get_product_generated_repo, get_settings_yaml_path
+from backend.utils.workspace import get_fwconfigfiles_root, get_settings_yaml_path
 from backend.utils.yaml_utils import read_yaml_dict, write_yaml_dict
 
 
@@ -39,9 +42,15 @@ class IpInventoryService:
         if e not in raw:
             raise ValidationError("env", f"unknown env '{e}'")
 
+    def _repo_root(self) -> Path:
+        if not str(self._product or "").strip():
+            return get_fwconfigfiles_root(None)
+        repo_name = get_product_templates_repo_name(product=str(self._product or ""))
+        return get_fwconfigfiles_root(None) / "cloned-repositories" / repo_name
+
     def _path(self, *, env: str) -> Path:
         e = self._normalize_env(env)
-        root = get_product_templates_repo(self._product) / "ip_inventory" / e
+        root = self._repo_root() / "ip_inventory" / e
         root.mkdir(parents=True, exist_ok=True)
         return root / self._FILENAME
 
@@ -213,7 +222,13 @@ class IpInventoryService:
                 product_addr_match_dict[name] = val
 
         generated_prefix = self._get_generated_folder_prefix()
-        envgenfolder = get_product_generated_repo(self._product) / e / generated_prefix
+        if not str(self._product or "").strip():
+            repo_root = get_fwconfigfiles_root(None)
+        else:
+            repo_name = get_product_generated_repo_name(product=str(self._product or ""))
+            repo_root = get_fwconfigfiles_root(None) / "cloned-repositories" / repo_name
+
+        envgenfolder = repo_root / e / generated_prefix
         address_dir = envgenfolder / "address"
         address_dir.mkdir(parents=True, exist_ok=True)
 
@@ -235,7 +250,7 @@ class IpInventoryService:
             common_excluded_path = Path(pfc_repo_raw).expanduser() / "settings" / "import" / e / "common_address_excluded_from_import.yaml"
             self._add_yaml_dict_keys_to_set(common_excluded_path, excluded_addr_names)
 
-        excluded_addr_path = get_product_templates_repo(self._product) / "overrides" / e / "address_excluded_from_import.yaml"
+        excluded_addr_path = self._repo_root() / "overrides" / e / "address_excluded_from_import.yaml"
         self._add_yaml_dict_keys_to_set(excluded_addr_path, excluded_addr_names)
 
         addr_unmatch_dict: Dict[str, Dict[str, Any]] = {}
@@ -279,7 +294,7 @@ class IpInventoryService:
             common_excluded_groups_path = Path(pfc_repo_raw).expanduser() / "settings" / "import" / e / "common_groups_excluded_from_import.yaml"
             self._add_yaml_dict_keys_to_set(common_excluded_groups_path, excluded_group_names)
 
-        excluded_groups_path = get_product_templates_repo(self._product) / "overrides" / e / "groups_excluded_from_import.yaml"
+        excluded_groups_path = self._repo_root() / "overrides" / e / "groups_excluded_from_import.yaml"
         self._add_yaml_dict_keys_to_set(excluded_groups_path, excluded_group_names)
 
         for k in list(matched_groups.keys()):
@@ -355,3 +370,52 @@ class IpInventoryService:
 
         raw.pop(key, None)
         write_yaml_dict(path, raw, sort_keys=True)
+
+    def bulk_upload(self, *, env: str, raw_text: str) -> Dict[str, Any]:
+        self._validate_env_exists(env)
+        text = str(raw_text or "")
+        if not text.strip():
+            raise ValidationError("text", "is required")
+
+        # Split by any whitespace or commas.
+        # Also strip common quoting characters around each token.
+        tokens = re.split(r"[\s,]+", text)
+        cleaned: List[str] = []
+        for t in tokens:
+            v = str(t or "").strip()
+            if not v:
+                continue
+            v = v.replace('"', "").replace("'", "").strip()
+            if not v:
+                continue
+            cleaned.append(v)
+
+        normalized: List[str] = []
+        seen: set[str] = set()
+        for v in cleaned:
+            key = self._normalize_key(v)
+            if key in seen:
+                continue
+            seen.add(key)
+            normalized.append(key)
+
+        path = self._path(env=env)
+        raw = read_yaml_dict(path)
+        if not isinstance(raw, dict):
+            raw = {}
+
+        added = 0
+        for k in normalized:
+            if k not in raw:
+                raw[k] = {}
+                added += 1
+
+        write_yaml_dict(path, raw, sort_keys=True)
+        return {
+            "ok": True,
+            "env": str(env),
+            "submitted_total": len(normalized),
+            "added_total": added,
+            "final_total": len(raw),
+            "output_file": str(path),
+        }

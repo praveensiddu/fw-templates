@@ -2,7 +2,8 @@ from pathlib import Path
 from typing import Any, Dict, List, Optional
 
 from backend.exceptions.custom import ValidationError
-from backend.utils.workspace import get_product_templates_repo
+from backend.services.common_service import get_product_templates_repo_name
+from backend.utils.workspace import get_fwconfigfiles_root
 from backend.utils.yaml_utils import read_yaml_dict, write_yaml_dict
 
 _RULE_FILES_FILENAME = "rule-files.yaml"
@@ -12,8 +13,14 @@ class RuleFilesService:
     def __init__(self, product: Optional[str] = None):
         self._product = product
 
+    def _repo_root(self) -> Path:
+        if not str(self._product or "").strip():
+            return get_fwconfigfiles_root(None)
+        repo_name = get_product_templates_repo_name(product=str(self._product or ""))
+        return get_fwconfigfiles_root(None) / "cloned-repositories" / repo_name
+
     def _path(self) -> Path:
-        return get_product_templates_repo(self._product) / _RULE_FILES_FILENAME
+        return self._repo_root() / _RULE_FILES_FILENAME
 
     @staticmethod
     def _normalize_rule_filename(name: str) -> str:

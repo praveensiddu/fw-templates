@@ -71,6 +71,7 @@ function App() {
   });
 
   const lastAllowedPathRef = React.useRef("/rule-templates");
+  const fetchProductRecordRetryRef = React.useRef(0);
 
   const canNavigateAway = React.useCallback(async () => {
     const guard = window.__fwRulesNavGuard;
@@ -293,8 +294,26 @@ function App() {
     if (activeTab !== "products") return;
     if (productSubTab !== "groups" && productSubTab !== "addrs" && productSubTab !== "rules" && productSubTab !== "ip_inventory") return;
 
+    const productRow = (productItems || []).find((it) => safeTrim(it?.name) === currentProduct);
+    const fromList = (Array.isArray(productRow?.data?.envs) ? productRow.data.envs : [])
+      .map((x) => safeTrim(x))
+      .filter(Boolean);
+    if (fromList.length) {
+      setProductEnvOptions(fromList);
+      return;
+    }
+
     const fn = typeof window !== "undefined" ? window.fetchProductRecord : null;
-    if (typeof fn !== "function") return;
+    if (typeof fn !== "function") {
+      if (fetchProductRecordRetryRef.current < 10) {
+        fetchProductRecordRetryRef.current += 1;
+        const t = setTimeout(() => setRouteVersion((v) => v + 1), 50);
+        return () => clearTimeout(t);
+      }
+      return;
+    }
+
+    fetchProductRecordRetryRef.current = 0;
 
     let cancelled = false;
     (async () => {
@@ -313,7 +332,7 @@ function App() {
     return () => {
       cancelled = true;
     };
-  }, [activeTab, productSubTab, routeVersion, getProductFromPath]);
+  }, [activeTab, productSubTab, routeVersion, getProductFromPath, productItems]);
 
   React.useEffect(() => {
     if (activeTab !== "products") return;

@@ -1,4 +1,4 @@
-function IpInventoryTableView({ env, rows, filters, setFilters, onImport, onAdd, onEdit, onDelete, editingKey, draft, setDraft, canSubmit, onCancelEdit, onSave }) {
+function IpInventoryTableView({ env, rows, filters, setFilters, onImport, onOpenBulkUpload, bulkUpload, setBulkUpload, onCloseBulkUpload, onSubmitBulkUpload, onAdd, onEdit, onDelete, editingKey, draft, setDraft, canSubmit, onCancelEdit, onSave }) {
   return (
     <div className="card" style={{ padding: 12 }}>
       <div className="actions">
@@ -13,6 +13,13 @@ function IpInventoryTableView({ env, rows, filters, setFilters, onImport, onAdd,
               <path d="M4 21h16" />
             </svg>
           </button>
+          <button className="iconBtn" title="Bulk upload" onClick={onOpenBulkUpload}>
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+              <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
+              <polyline points="17 8 12 3 7 8" />
+              <line x1="12" y1="3" x2="12" y2="15" />
+            </svg>
+          </button>
           <button className="iconBtn iconBtn-primary" title="Add" onClick={onAdd}>
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
               <path d="M12 5v14" />
@@ -21,6 +28,52 @@ function IpInventoryTableView({ env, rows, filters, setFilters, onImport, onAdd,
           </button>
         </div>
       </div>
+
+      {bulkUpload?.isOpen ? (
+        <div
+          style={{ position: "fixed", top: 0, left: 0, width: "100%", height: "100%", background: "rgba(0,0,0,0.25)", zIndex: 9999 }}
+          onClick={(e) => {
+            if (e.target === e.currentTarget) onCloseBulkUpload();
+          }}
+        >
+          <div
+            style={{ position: "absolute", top: 0, right: 0, height: "100%", width: "min(640px, 96vw)", background: "white", boxShadow: "-4px 0 20px rgba(0,0,0,0.12)", padding: 16, overflow: "auto" }}
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: 12, marginBottom: 12 }}>
+              <div style={{ fontWeight: 600, fontSize: 16 }}>Bulk upload</div>
+              <button type="button" className="iconBtn" title="Close" onClick={onCloseBulkUpload}>
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                  <path d="M18 6L6 18" />
+                  <path d="M6 6l12 12" />
+                </svg>
+              </button>
+            </div>
+
+            <div style={{ display: "grid", gap: 10 }}>
+              <div>
+                <div className="muted" style={{ marginBottom: 4 }}>ipinventory</div>
+                <textarea
+                  className="filterInput"
+                  rows={10}
+                  style={{ resize: "vertical" }}
+                  value={String(bulkUpload?.text || "")}
+                  onChange={(e) => setBulkUpload((p) => ({ ...(p || {}), isOpen: true, text: String(e.target.value || "") }))}
+                  placeholder="Paste IPs, ranges, or CIDRs. Comma or whitespace separated. Quotes will be stripped."
+                />
+              </div>
+            </div>
+
+            <div style={{ display: "flex", justifyContent: "flex-end", gap: 8, marginTop: 16 }}>
+              <button type="button" className="iconBtn iconBtn-primary" title="Save" onClick={onSubmitBulkUpload}>
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                  <polyline points="20 6 9 17 4 12" />
+                </svg>
+              </button>
+            </div>
+          </div>
+        </div>
+      ) : null}
 
       <table>
         <thead>

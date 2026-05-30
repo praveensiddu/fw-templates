@@ -5,8 +5,9 @@ from pathlib import Path
 from typing import Any, Dict, List, Optional, Tuple
 
 from backend.exceptions.custom import NotFoundError, ValidationError
+from backend.services.common_service import get_product_templates_repo_name
 from backend.utils.yaml_utils import list_yaml_files, read_yaml_dict, write_yaml_dict
-from backend.utils.workspace import get_product_templates_repo, get_fwconfigfiles_root
+from backend.utils.workspace import get_fwconfigfiles_root
 
 logger = logging.getLogger("uvicorn.error")
 
@@ -34,7 +35,11 @@ class FwConfigRepository:
     """Data access for fwconfig YAML types."""
 
     def __init__(self, product: Optional[str] = None):
-        self._base_root = get_product_templates_repo(product) if product is not None else get_fwconfigfiles_root(None)
+        if product is None or not str(product or "").strip():
+            self._base_root = get_fwconfigfiles_root(None)
+        else:
+            repo_name = get_product_templates_repo_name(product=str(product or ""))
+            self._base_root = get_fwconfigfiles_root(None) / "cloned-repositories" / repo_name
 
     def find_item_file(self, yaml_type: str, name: str) -> Optional[str]:
         item_name = str(name or "").strip()

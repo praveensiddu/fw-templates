@@ -8,8 +8,9 @@ from typing import Any, Dict, Optional
 from fastapi import APIRouter, Depends, Request
 
 from backend.models import SaveItemRequest
+from backend.services.common_service import get_product_generated_repo_name
 from backend.services.groups_service import GroupsService
-from backend.utils.workspace import get_product_templates_repo
+from backend.utils.workspace import get_fwconfigfiles_root
 from backend.utils.yaml_utils import read_yaml_dict, write_yaml_dict
 
 router = APIRouter(prefix="/api/v1/products/{product}/groups/{env}", tags=["groups"])
@@ -91,7 +92,14 @@ def exclude_from_import(
     name = str(payload.name or "").strip()
     if not name:
         return {"ok": False, "error": "name is required"}
-    path = get_product_templates_repo(product) / "overrides" / str(env or "").strip().lower() / "groups_excluded_from_import.yaml"
+
+    if not str(product or "").strip():
+        repo_root = get_fwconfigfiles_root(None)
+    else:
+        repo_name = get_product_generated_repo_name(product=str(product or ""))
+        repo_root = get_fwconfigfiles_root(None) / "cloned-repositories" / repo_name
+
+    path = repo_root / "overrides" / str(env or "").strip().lower() / "groups_excluded_from_import.yaml"
     raw = read_yaml_dict(path)
     if not isinstance(raw, dict):
         raw = {}

@@ -206,7 +206,7 @@ def build_address_used_in_group_metadata(*, env: str, address_dir: Path, metadat
     address_dir.mkdir(parents=True, exist_ok=True)
     metadata_dir.mkdir(parents=True, exist_ok=True)
 
-    addr_names: set[str] = set()
+    addr_names: Dict[str, str] = {}
     for p in list_yaml_files(address_dir):
         doc = read_yaml_dict(p)
         if not isinstance(doc, dict):
@@ -217,49 +217,35 @@ def build_address_used_in_group_metadata(*, env: str, address_dir: Path, metadat
         for k in addrs.keys():
             name = str(k or "").strip()
             if name:
-                addr_names.add(name)
+                addr_names[name] = name
 
     fm_groups_dict = read_fortimgr_groups_for_env(env=env)
-    addr_names_lc = {n.lower(): n for n in addr_names}
-    addr2groups: Dict[str, List[str]] = {orig: [] for orig in addr_names_lc.values()}
+    addr2groups: Dict[str, List[str]] = {}
 
-    for gname, members in fm_groups_dict.items():
-        g = str(gname or "").strip()
+    for fm_gname, fm_members in fm_groups_dict.items():
+        g = str(fm_gname or "").strip()
         if not g:
             continue
-        for m in members:
-            mlc = str(m or "").strip().lower()
-            if not mlc:
-                continue
-            addr_key = addr_names_lc.get(mlc)
-            if not addr_key:
-                continue
-            addr2groups.setdefault(addr_key, []).append(g)
+        if "-CG_" in g:
+            continue
+        for fm_member in fm_members:
+            fm_member = str(fm_member or "").strip()
+            if fm_member in addr_names:
+                addr2groups.setdefault(fm_member, []).append(g)
 
     for k, v in list(addr2groups.items()):
-        seen: set[str] = set()
-        deduped: List[str] = []
-        for x in v:
-            s = str(x or "").strip()
-            if not s:
-                continue
-            slc = s.lower()
-            if slc in seen:
-                continue
-            seen.add(slc)
-            deduped.append(s)
-        addr2groups[k] = deduped
+        addr2groups[k] = sorted({str(x or "").strip() for x in (v or []) if str(x or "").strip()})
 
     out_path = metadata_dir / "fw_address2group.yaml"
     write_yaml_dict(out_path, addr2groups, sort_keys=True)
-    return {"ok": True, "env": env, "output_file": str(out_path), "address_total": len(addr_names)}
+    return {"ok": True, "env": env, "output_file": str(out_path), "address_total": len(addr_names.keys())}
 
 
 def build_group_used_in_group_metadata(*, env: str, groups_dir: Path, metadata_dir: Path) -> Dict[str, Any]:
     groups_dir.mkdir(parents=True, exist_ok=True)
     metadata_dir.mkdir(parents=True, exist_ok=True)
 
-    group_names: set[str] = set()
+    group_names: Dict[str, str] = {}
     for p in list_yaml_files(groups_dir):
         doc = read_yaml_dict(p)
         if not isinstance(doc, dict):
@@ -270,39 +256,26 @@ def build_group_used_in_group_metadata(*, env: str, groups_dir: Path, metadata_d
         for k in groups.keys():
             name = str(k or "").strip()
             if name:
-                group_names.add(name)
+                group_names[name] = name
 
     fm_groups_dict = read_fortimgr_groups_for_env(env=env)
-    group_names_lc = {n.lower(): n for n in group_names}
-    group2groups: Dict[str, List[str]] = {orig: [] for orig in group_names_lc.values()}
+    group2groups: Dict[str, List[str]] = {}
 
-    for parent_group, members in fm_groups_dict.items():
+    for parent_group, fm_members in fm_groups_dict.items():
         pg = str(parent_group or "").strip()
         if not pg:
             continue
-        for m in members:
-            mlc = str(m or "").strip().lower()
-            if not mlc:
-                continue
-            child_key = group_names_lc.get(mlc)
-            if not child_key:
-                continue
-            group2groups.setdefault(child_key, []).append(pg)
+        if "-CG_" in pg:
+            continue
+        for fm_member in fm_members:
+            fm_member = str(fm_member or "").strip()
+            if fm_member in group_names:
+                group2groups.setdefault(fm_member, []).append(pg)
+
 
     for k, v in list(group2groups.items()):
-        seen: set[str] = set()
-        deduped: List[str] = []
-        for x in v:
-            s = str(x or "").strip()
-            if not s:
-                continue
-            slc = s.lower()
-            if slc in seen:
-                continue
-            seen.add(slc)
-            deduped.append(s)
-        group2groups[k] = deduped
+        group2groups[k] = sorted({str(x or "").strip() for x in (v or []) if str(x or "").strip()})
 
     out_path = metadata_dir / "fw_group2group.yaml"
     write_yaml_dict(out_path, group2groups, sort_keys=True)
-    return {"ok": True, "env": env, "output_file": str(out_path), "group_total": len(group_names)}
+    return {"ok": True, "env": env, "output_file": str(out_path), "group_total": len(group_names.keys())}
