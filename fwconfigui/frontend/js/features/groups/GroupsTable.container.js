@@ -3,6 +3,7 @@ function GroupsTable({ env, setLoading, setError }) {
   const [memberOptions, setMemberOptions] = React.useState([]);
   const [editingKey, setEditingKey] = React.useState("");
   const [usedInGrpModal, setUsedInGrpModal] = React.useState({ isOpen: false, name: "", items: [], loading: false, error: "" });
+  const [usedInRuleModal, setUsedInRuleModal] = React.useState({ isOpen: false, name: "", items: [], loading: false, error: "" });
   const [draft, setDraft] = React.useState({ filename: "groups.yaml", name: "", members: [], nameOverride: [], nameOverrideText: "", inFirewall: "" });
   const [originalRef, setOriginalRef] = React.useState({ filename: "groups.yaml", name: "" });
   const [confirmDelete, setConfirmDelete] = React.useState({ show: false, row: null });
@@ -31,6 +32,8 @@ function GroupsTable({ env, setLoading, setError }) {
     setDraft({ filename: "groups.yaml", name: "", members: [], nameOverride: [], nameOverrideText: "", inFirewall: "" });
     setOriginalRef({ filename: "groups.yaml", name: "" });
     setConfirmDelete({ show: false, row: null });
+    setUsedInGrpModal({ isOpen: false, name: "", items: [], loading: false, error: "" });
+    setUsedInRuleModal({ isOpen: false, name: "", items: [], loading: false, error: "" });
     load();
   }, [env, load]);
 
@@ -210,6 +213,22 @@ function GroupsTable({ env, setLoading, setError }) {
     [env]
   );
 
+  const onShowUsedInRules = React.useCallback(
+    async (row) => {
+      const name = safeTrim(row?.name);
+      if (!name) return;
+      try {
+        setUsedInRuleModal({ isOpen: true, name, items: [], loading: true, error: "" });
+        const resp = await getGroupUsedInRules(env, name);
+        const list = Array.isArray(resp?.items) ? resp.items : [];
+        setUsedInRuleModal({ isOpen: true, name, items: list, loading: false, error: "" });
+      } catch (e) {
+        setUsedInRuleModal({ isOpen: true, name, items: [], loading: false, error: formatError(e) });
+      }
+    },
+    [env]
+  );
+
   const onExcludeEnvCommon = React.useCallback(
     async (row) => {
       const n = safeTrim(row?.name);
@@ -246,8 +265,11 @@ function GroupsTable({ env, setLoading, setError }) {
         onAdd={onAdd}
         onCheckUsed={onCheckUsed}
         onShowUsedInGroups={onShowUsedInGroups}
+        onShowUsedInRules={onShowUsedInRules}
         usedInGrpModal={usedInGrpModal}
         setUsedInGrpModal={setUsedInGrpModal}
+        usedInRuleModal={usedInRuleModal}
+        setUsedInRuleModal={setUsedInRuleModal}
         onEdit={onEdit}
         onDelete={onDelete}
         onExclude={onExclude}

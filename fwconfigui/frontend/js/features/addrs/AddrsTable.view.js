@@ -1,4 +1,4 @@
-function AddrsTableView({ env, rows, filters, setFilters, onAdd, onCheckUsed, onShowUsedInGroups, usedInGrpModal, setUsedInGrpModal, onEdit, onDelete, onExclude, onExcludeEnvCommon, editingKey, draft, setDraft, canSubmit, onCancelEdit, onSave }) {
+function AddrsTableView({ env, rows, filters, setFilters, onAdd, onCheckUsed, onShowUsedInGroups, onShowUsedInRules, usedInGrpModal, setUsedInGrpModal, usedInRuleModal, setUsedInRuleModal, onEdit, onDelete, onExclude, onExcludeEnvCommon, editingKey, draft, setDraft, canSubmit, onCancelEdit, onSave }) {
   function normalizeName(v) {
     return String(v || "")
       .toLowerCase()
@@ -32,9 +32,38 @@ function AddrsTableView({ env, rows, filters, setFilters, onAdd, onCheckUsed, on
             {!usedInGrpModal?.loading && !isNonEmptyString(safeTrim(usedInGrpModal?.error)) ? (
               <pre className="muted" style={{ whiteSpace: "pre-wrap" }}>{(Array.isArray(usedInGrpModal?.items) ? usedInGrpModal.items : []).map((x) => safeTrim(x)).filter(Boolean).join("\n") || "(none)"}</pre>
             ) : null}
-
             <div style={{ marginTop: 16, textAlign: "right" }}>
               <button onClick={() => setUsedInGrpModal({ isOpen: false, name: "", items: [], loading: false, error: "" })} style={{ padding: "8px 16px", background: "#0d6efd", color: "white", border: "none", borderRadius: 6, cursor: "pointer", fontWeight: 500 }}>
+                Close
+              </button>
+            </div>
+          </div>
+        </div>
+      ) : null}
+
+      {usedInRuleModal?.isOpen ? (
+        <div
+          style={{ position: "fixed", top: 0, left: 0, width: "100%", height: "100%", background: "rgba(0,0,0,0.5)", display: "flex", alignItems: "center", justifyContent: "center", zIndex: 10000 }}
+          onClick={(e) => {
+            if (e.target === e.currentTarget) setUsedInRuleModal({ isOpen: false, name: "", items: [], loading: false, error: "" });
+          }}
+        >
+          <div style={{ background: "white", padding: 24, borderRadius: 12, width: "min(720px, calc(100vw - 32px))", maxHeight: "80vh", overflow: "auto", boxShadow: "0 4px 20px rgba(0,0,0,0.15)" }}>
+            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 16, borderBottom: "2px solid #e9ecef", paddingBottom: 12 }}>
+              <h3 style={{ margin: 0, fontSize: 20, fontWeight: 600, color: "#0d6efd" }}>{`Used in rules: ${safeTrim(usedInRuleModal?.name)}`}</h3>
+              <button onClick={() => setUsedInRuleModal({ isOpen: false, name: "", items: [], loading: false, error: "" })} style={{ border: "none", background: "none", fontSize: 24, cursor: "pointer", color: "#6c757d" }}>
+                &times;
+              </button>
+            </div>
+
+            {usedInRuleModal?.loading ? <div className="muted">Loading...</div> : null}
+            {!usedInRuleModal?.loading && isNonEmptyString(safeTrim(usedInRuleModal?.error)) ? <div className="muted">{safeTrim(usedInRuleModal?.error)}</div> : null}
+            {!usedInRuleModal?.loading && !isNonEmptyString(safeTrim(usedInRuleModal?.error)) ? (
+              <pre className="muted" style={{ whiteSpace: "pre-wrap" }}>{(Array.isArray(usedInRuleModal?.items) ? usedInRuleModal.items : []).map((x) => safeTrim(x)).filter(Boolean).join("\n") || "(none)"}</pre>
+            ) : null}
+
+            <div style={{ marginTop: 16, textAlign: "right" }}>
+              <button onClick={() => setUsedInRuleModal({ isOpen: false, name: "", items: [], loading: false, error: "" })} style={{ padding: "8px 16px", background: "#0d6efd", color: "white", border: "none", borderRadius: 6, cursor: "pointer", fontWeight: 500 }}>
                 Close
               </button>
             </div>
@@ -252,10 +281,10 @@ function AddrsTableView({ env, rows, filters, setFilters, onAdd, onCheckUsed, on
               })();
               const usedInRule = (() => {
                 const v = r?.data?.["used-in-rule"];
-                if (v === true) return "true";
-                if (v === false) return "false";
-                const s = safeTrim(v).toLowerCase();
-                return s || "empty";
+                if (v === null || v === undefined) return "";
+                const n = Number(v);
+                if (!Number.isFinite(n) || n <= 0) return "";
+                return String(n);
               })();
               return (
                 <tr key={`${safeTrim(r.filename) || "addresses.yaml"}::${r.name || idx}`}>
@@ -297,7 +326,20 @@ function AddrsTableView({ env, rows, filters, setFilters, onAdd, onCheckUsed, on
                       "empty"
                     )}
                   </td>
-                  <td className="muted">{usedInRule}</td>
+                  <td className="muted">
+                    {isNonEmptyString(usedInRule) ? (
+                      <button
+                        type="button"
+                        title="Show rules"
+                        onClick={() => onShowUsedInRules(r)}
+                        style={{ padding: 0, height: "auto", border: "none", background: "none", color: "#0d6efd", cursor: "pointer", textDecoration: "underline" }}
+                      >
+                        {usedInRule}
+                      </button>
+                    ) : (
+                      "empty"
+                    )}
+                  </td>
                   <td className="muted">{safeTrim(r.filename) || "addresses.yaml"}</td>
                   <td>
                     <button className="iconBtn" title="Edit" onClick={() => onEdit(r)}>

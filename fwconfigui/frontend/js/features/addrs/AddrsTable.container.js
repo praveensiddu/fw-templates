@@ -2,6 +2,7 @@ function AddrsTable({ env, setLoading, setError }) {
   const [items, setItems] = React.useState([]);
   const [editingKey, setEditingKey] = React.useState("");
   const [usedInGrpModal, setUsedInGrpModal] = React.useState({ isOpen: false, name: "", items: [], loading: false, error: "" });
+  const [usedInRuleModal, setUsedInRuleModal] = React.useState({ isOpen: false, name: "", items: [], loading: false, error: "" });
   const [draft, setDraft] = React.useState({
     filename: "addresses.yaml",
     name: "",
@@ -31,6 +32,8 @@ function AddrsTable({ env, setLoading, setError }) {
     setDraft({ filename: "addresses.yaml", name: "", value: "", nameOverride: [], nameOverrideText: "", inFirewall: "" });
     setOriginalRef({ filename: "addresses.yaml", name: "" });
     setConfirmDelete({ show: false, row: null });
+    setUsedInGrpModal({ isOpen: false, name: "", items: [], loading: false, error: "" });
+    setUsedInRuleModal({ isOpen: false, name: "", items: [], loading: false, error: "" });
     load();
   }, [env, load]);
 
@@ -256,6 +259,22 @@ function AddrsTable({ env, setLoading, setError }) {
     [env]
   );
 
+  const onShowUsedInRules = React.useCallback(
+    async (row) => {
+      const name = safeTrim(row?.name);
+      if (!name) return;
+      try {
+        setUsedInRuleModal({ isOpen: true, name, items: [], loading: true, error: "" });
+        const resp = await getAddrUsedInRules(env, name);
+        const list = Array.isArray(resp?.items) ? resp.items : [];
+        setUsedInRuleModal({ isOpen: true, name, items: list, loading: false, error: "" });
+      } catch (e) {
+        setUsedInRuleModal({ isOpen: true, name, items: [], loading: false, error: formatError(e) });
+      }
+    },
+    [env]
+  );
+
   return (
     <>
       <AddrsTableView
@@ -266,8 +285,11 @@ function AddrsTable({ env, setLoading, setError }) {
         onAdd={onAdd}
         onCheckUsed={onCheckUsed}
         onShowUsedInGroups={onShowUsedInGroups}
+        onShowUsedInRules={onShowUsedInRules}
         usedInGrpModal={usedInGrpModal}
         setUsedInGrpModal={setUsedInGrpModal}
+        usedInRuleModal={usedInRuleModal}
+        setUsedInRuleModal={setUsedInRuleModal}
         onEdit={onEdit}
         onDelete={onDelete}
         onExclude={onExclude}
