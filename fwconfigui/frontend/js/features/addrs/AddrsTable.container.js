@@ -140,9 +140,7 @@ function AddrsTable({ env, setLoading, setError }) {
       setLoading(true);
       setError("");
 
-      const nextName = safeTrim(draft.name)
-        .toLowerCase()
-        .replace(/[^a-z0-9_-]/g, "");
+      const nextName = safeTrim(draft.name);
 
       const nextFilename = safeTrim(draft.filename) || "addresses.yaml";
 

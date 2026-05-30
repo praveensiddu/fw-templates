@@ -1,6 +1,7 @@
 function GroupsTable({ env, setLoading, setError }) {
   const [items, setItems] = React.useState([]);
   const [memberOptions, setMemberOptions] = React.useState([]);
+  const [componentItems, setComponentItems] = React.useState([]);
   const [editingKey, setEditingKey] = React.useState("");
   const [usedInGrpModal, setUsedInGrpModal] = React.useState({ isOpen: false, name: "", items: [], loading: false, error: "" });
   const [usedInRuleModal, setUsedInRuleModal] = React.useState({ isOpen: false, name: "", items: [], loading: false, error: "" });
@@ -12,8 +13,9 @@ function GroupsTable({ env, setLoading, setError }) {
     try {
       setLoading(true);
       setError("");
-      const [groupsResp, addrsResp] = await Promise.all([listGroups(env), listAddrs(env)]);
+      const [groupsResp, addrsResp, compResp] = await Promise.all([listGroups(env), listAddrs(env), listFwConfigItems("components")]);
       setItems(groupsResp?.items || []);
+      setComponentItems(compResp?.items || []);
 
       const opts = (addrsResp?.items || [])
         .map((it) => safeTrim(it?.name))
@@ -26,6 +28,31 @@ function GroupsTable({ env, setLoading, setError }) {
       setLoading(false);
     }
   }, [env, setLoading, setError]);
+
+  const groupNameOptions = React.useMemo(() => {
+    const seen = new Set();
+    const out = [];
+
+    for (const it of Array.isArray(componentItems) ? componentItems : []) {
+      const comp = safeTrim(it?.name);
+      const sites = it?.data?.sites && typeof it.data.sites === "object" ? it.data.sites : {};
+      if (!comp) continue;
+
+      for (const envKey of Object.keys(sites || {})) {
+        const lst = Array.isArray(sites?.[envKey]) ? sites[envKey] : [];
+        for (const s of lst) {
+          const site = safeTrim(s);
+          if (!site) continue;
+          const val = `${site}-${comp}-<ES>`;
+          if (seen.has(val)) continue;
+          seen.add(val);
+          out.push(val);
+        }
+      }
+    }
+
+    return out.sort((a, b) => String(a).localeCompare(String(b)));
+  }, [componentItems]);
 
   React.useEffect(() => {
     setEditingKey("");
@@ -127,9 +154,7 @@ function GroupsTable({ env, setLoading, setError }) {
       setLoading(true);
       setError("");
 
-      const nextName = safeTrim(draft.name)
-        .toLowerCase()
-        .replace(/[^a-z0-9_-]/g, "");
+      const nextName = safeTrim(draft.name);
 
       const filename = safeTrim(draft.filename) || "groups.yaml";
       const members = (Array.isArray(draft.members) ? draft.members : [])
@@ -277,6 +302,7 @@ function GroupsTable({ env, setLoading, setError }) {
         editingKey={editingKey}
         draft={draft}
         setDraft={setDraft}
+        groupNameOptions={groupNameOptions}
         memberOptions={memberOptions}
         canSubmit={canSubmit}
         onCancelEdit={onCancelEdit}

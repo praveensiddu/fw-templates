@@ -169,24 +169,21 @@ function FwRuleDetailsView({
                   >
                     <div className="field">
                       <div className="muted">Group</div>
-                      <input
-                        className="input"
-                        list={`fw-rule-source-group-options-${idx}`}
+                      <SingleSelectPicker
+                        options={groupChoices}
                         value={safeTrim(it?.group)}
-                        onChange={(e) => {
-                          const v = e.target.value;
+                        onChange={(v) => {
                           setForm((p) => {
                             const next = Array.isArray(p?.sourceItems) ? [...p.sourceItems] : [];
                             next[idx] = { ...(next[idx] || {}), group: v };
                             return { ...p, sourceItems: next };
                           });
                         }}
+                        placeholder="Type to filter..."
+                        inputTestId={`fw-rule-edit-source-group-${idx}`}
+                        allowEmpty={true}
+                        emptyLabel="Select..."
                       />
-                      <datalist id={`fw-rule-source-group-options-${idx}`}>
-                        {groupChoices.map((opt) => (
-                          <option key={opt} value={opt} />
-                        ))}
-                      </datalist>
                     </div>
                     <div className="field">
                       <div className="muted">Envs where this source group is needed</div>
@@ -288,24 +285,21 @@ function FwRuleDetailsView({
                   >
                     <div className="field">
                       <div className="muted">Group</div>
-                      <input
-                        className="input"
-                        list={`fw-rule-destination-group-options-${idx}`}
+                      <SingleSelectPicker
+                        options={groupChoices}
                         value={safeTrim(it?.group)}
-                        onChange={(e) => {
-                          const v = e.target.value;
+                        onChange={(v) => {
                           setForm((p) => {
                             const next = Array.isArray(p?.destinationItems) ? [...p.destinationItems] : [];
                             next[idx] = { ...(next[idx] || {}), group: v };
                             return { ...p, destinationItems: next };
                           });
                         }}
+                        placeholder="Type to filter..."
+                        inputTestId={`fw-rule-edit-destination-group-${idx}`}
+                        allowEmpty={true}
+                        emptyLabel="Select..."
                       />
-                      <datalist id={`fw-rule-destination-group-options-${idx}`}>
-                        {groupChoices.map((opt) => (
-                          <option key={opt} value={opt} />
-                        ))}
-                      </datalist>
                     </div>
                     <div className="field">
                       <div className="muted">Envs where this destination group is needed</div>

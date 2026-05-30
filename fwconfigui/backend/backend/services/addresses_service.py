@@ -32,8 +32,7 @@ class AddressesService:
 
     @staticmethod
     def _normalize_name(name: str) -> str:
-        v = str(name or "").strip().lower()
-        v = "".join([c for c in v if c.isalnum() or c in {"_", "-"}])
+        v = str(name or "").strip()
         if not v:
             raise ValidationError("name", "is required")
         return v
@@ -162,23 +161,33 @@ class AddressesService:
     def _find_existing(self, *, env: str, name: str) -> Optional[Tuple[str, str]]:
         root = self._env_addrs_dir(env)
         key = self._normalize_name(name)
+        key_lc = key.lower()
         for p in list_yaml_files(root):
             raw = self._read_addresses_file(p)
             addrs = raw.get("addresses", {})
-            if key in {str(k or "").strip().lower() for k in addrs.keys()}:
-                return (p.name, key)
+            if not isinstance(addrs, dict):
+                continue
+            for k in addrs.keys():
+                kk = str(k or "").strip()
+                if kk and kk.lower() == key_lc:
+                    return (p.name, kk)
         return None
 
     def _remove_key_from_all_files(self, *, env: str, key: str) -> None:
         root = self._env_addrs_dir(env)
+        key_lc = str(key or "").strip().lower()
         for p in list_yaml_files(root):
             raw = self._read_addresses_file(p)
             addrs = raw.get("addresses", {})
             if not isinstance(addrs, dict):
                 addrs = {}
-            if key in {str(k or "").strip().lower() for k in addrs.keys()}:
-                # remove by exact match (case-insensitive keys are normalized already)
-                addrs.pop(key, None)
+            removed = False
+            for k in list(addrs.keys()):
+                kk = str(k or "").strip()
+                if kk and kk.lower() == key_lc:
+                    addrs.pop(k, None)
+                    removed = True
+            if removed:
                 self._write_addresses_file(p, addrs)
 
     def list_items(self, *, env: str) -> List[Dict[str, Any]]:
@@ -305,11 +314,13 @@ class AddressesService:
 
         existing = self._find_existing(env=env, name=key)
         # Creating new or renaming to a new key: enforce global uniqueness across files.
-        if existing and (not prev or prev != key):
-            raise AlreadyExistsError("Address", key)
+        if existing:
+            (_, existing_key) = existing
+            if existing_key.lower() == key.lower() and (not prev or prev.lower() != key.lower()):
+                raise AlreadyExistsError("Address", existing_key)
 
         # If renaming, ensure the old key is removed wherever it lives.
-        if prev and prev != key:
+        if prev and prev.lower() != key.lower():
             self._remove_key_from_all_files(env=env, key=prev)
 
         root = self._env_addrs_dir(env)
@@ -319,8 +330,11 @@ class AddressesService:
         if not isinstance(addrs, dict):
             addrs = {}
 
-        if prev and prev != key:
-            addrs.pop(prev, None)
+        if prev and prev.lower() != key.lower():
+            for k in list(addrs.keys()):
+                kk = str(k or "").strip()
+                if kk and kk.lower() == prev.lower():
+                    addrs.pop(k, None)
 
         addrs[key] = entry
         self._write_addresses_file(path, addrs)
@@ -329,6 +343,7 @@ class AddressesService:
         self._validate_env_exists(env)
         file_name = self._normalize_filename(filename)
         key = self._normalize_name(name)
+        key_lc = key.lower()
 
         root = self._env_addrs_dir(env)
         path = root / file_name
@@ -337,5 +352,8 @@ class AddressesService:
         if not isinstance(addrs, dict):
             addrs = {}
 
-        addrs.pop(key, None)
+        for k in list(addrs.keys()):
+            kk = str(k or "").strip()
+            if kk and kk.lower() == key_lc:
+                addrs.pop(k, None)
         self._write_addresses_file(path, addrs)

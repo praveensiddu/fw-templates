@@ -34,8 +34,7 @@ class GroupsService:
 
     @staticmethod
     def _normalize_name(name: str) -> str:
-        v = str(name or "").strip().lower()
-        v = "".join([c for c in v if c.isalnum() or c in {"_", "-"}])
+        v = str(name or "").strip()
         if not v:
             raise ValidationError("name", "is required")
         return v
@@ -238,24 +237,33 @@ class GroupsService:
     def _find_existing(self, *, env: str, name: str) -> Optional[Tuple[str, str]]:
         root = self._env_groups_dir(env)
         key = self._normalize_name(name)
+        key_lc = key.lower()
         for p in list_yaml_files(root):
             raw = self._read_groups_file(p)
             groups = raw.get("groups", {})
             if not isinstance(groups, dict):
                 continue
-            if key in {str(k or "").strip().lower() for k in groups.keys()}:
-                return (p.name, key)
+            for k in groups.keys():
+                kk = str(k or "").strip()
+                if kk and kk.lower() == key_lc:
+                    return (p.name, kk)
         return None
 
     def _remove_key_from_all_files(self, *, env: str, key: str) -> None:
         root = self._env_groups_dir(env)
+        key_lc = str(key or "").strip().lower()
         for p in list_yaml_files(root):
             raw = self._read_groups_file(p)
             groups = raw.get("groups", {})
             if not isinstance(groups, dict):
                 groups = {}
-            if key in {str(k or "").strip().lower() for k in groups.keys()}:
-                groups.pop(key, None)
+            removed = False
+            for k in list(groups.keys()):
+                kk = str(k or "").strip()
+                if kk and kk.lower() == key_lc:
+                    groups.pop(k, None)
+                    removed = True
+            if removed:
                 self._write_groups_file(p, groups)
 
     def save_item(
@@ -277,10 +285,10 @@ class GroupsService:
         existing = self._find_existing(env=env, name=key)
         if existing:
             (existing_file, existing_key) = existing
-            if existing_key == key and (not prev or prev != key):
-                raise AlreadyExistsError("name", f"'{key}' already exists in {existing_file}")
+            if existing_key.lower() == key.lower() and (not prev or prev.lower() != key.lower()):
+                raise AlreadyExistsError("name", f"'{existing_key}' already exists in {existing_file}")
 
-        if prev and prev != key:
+        if prev and prev.lower() != key.lower():
             self._remove_key_from_all_files(env=env, key=prev)
 
         root = self._env_groups_dir(env)
@@ -290,8 +298,11 @@ class GroupsService:
         if not isinstance(groups, dict):
             groups = {}
 
-        if prev and prev != key:
-            groups.pop(prev, None)
+        if prev and prev.lower() != key.lower():
+            for k in list(groups.keys()):
+                kk = str(k or "").strip()
+                if kk and kk.lower() == prev.lower():
+                    groups.pop(k, None)
 
         groups[key] = entry
         self._write_groups_file(path, groups)
@@ -300,6 +311,7 @@ class GroupsService:
         self._validate_env_exists(env)
         file_name = self._normalize_filename(filename)
         key = self._normalize_name(name)
+        key_lc = key.lower()
 
         root = self._env_groups_dir(env)
         path = root / file_name
@@ -308,5 +320,8 @@ class GroupsService:
         if not isinstance(groups, dict):
             groups = {}
 
-        groups.pop(key, None)
+        for k in list(groups.keys()):
+            kk = str(k or "").strip()
+            if kk and kk.lower() == key_lc:
+                groups.pop(k, None)
         self._write_groups_file(path, groups)

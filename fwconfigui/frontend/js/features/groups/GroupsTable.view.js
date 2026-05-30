@@ -1,10 +1,4 @@
-function GroupsTableView({ env, rows, filters, setFilters, onAdd, onCheckUsed, onShowUsedInGroups, onShowUsedInRules, usedInGrpModal, setUsedInGrpModal, usedInRuleModal, setUsedInRuleModal, onEdit, onDelete, onExclude, onExcludeEnvCommon, editingKey, draft, setDraft, memberOptions, canSubmit, onCancelEdit, onSave }) {
-  function normalizeName(v) {
-    return String(v || "")
-      .toLowerCase()
-      .replace(/[^a-z0-9_-]/g, "");
-  }
-
+function GroupsTableView({ env, rows, filters, setFilters, onAdd, onCheckUsed, onShowUsedInGroups, onShowUsedInRules, usedInGrpModal, setUsedInGrpModal, usedInRuleModal, setUsedInRuleModal, onEdit, onDelete, onExclude, onExcludeEnvCommon, editingKey, draft, setDraft, groupNameOptions, memberOptions, canSubmit, onCancelEdit, onSave }) {
   function normalizeFilename(v) {
     const s = String(v || "").trim();
     return s || "groups.yaml";
@@ -108,7 +102,15 @@ function GroupsTableView({ env, rows, filters, setFilters, onAdd, onCheckUsed, o
                   <div style={{ display: "grid", gap: 10 }}>
                     <div>
                       <div className="muted" style={{ marginBottom: 4 }}>name</div>
-                      <input className="filterInput" autoFocus value={draft.name} onChange={(e) => setDraft((p) => ({ ...p, name: normalizeName(e.target.value) }))} placeholder="name" />
+                      <SingleSelectPicker
+                        options={Array.isArray(groupNameOptions) ? groupNameOptions : []}
+                        value={safeTrim(draft.name)}
+                        onChange={(v) => setDraft((p) => ({ ...p, name: v }))}
+                        placeholder="Type to filter..."
+                        inputTestId="groups-panel-name"
+                        allowEmpty={true}
+                        emptyLabel="Select..."
+                      />
                     </div>
 
                     <div>

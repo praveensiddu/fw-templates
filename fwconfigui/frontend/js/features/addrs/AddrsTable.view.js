@@ -1,10 +1,4 @@
 function AddrsTableView({ env, rows, filters, setFilters, onAdd, onCheckUsed, onShowUsedInGroups, onShowUsedInRules, usedInGrpModal, setUsedInGrpModal, usedInRuleModal, setUsedInRuleModal, onEdit, onDelete, onExclude, onExcludeEnvCommon, editingKey, draft, setDraft, canSubmit, onCancelEdit, onSave }) {
-  function normalizeName(v) {
-    return String(v || "")
-      .toLowerCase()
-      .replace(/[^a-z0-9_-]/g, "");
-  }
-
   function normalizeFilename(v) {
     const s = String(v || "").trim();
     return s || "addresses.yaml";
@@ -107,7 +101,7 @@ function AddrsTableView({ env, rows, filters, setFilters, onAdd, onCheckUsed, on
                   <div style={{ display: "grid", gap: 10 }}>
                     <div>
                       <div className="muted" style={{ marginBottom: 4 }}>name</div>
-                      <input className="filterInput" autoFocus value={draft.name} onChange={(e) => setDraft((p) => ({ ...p, name: normalizeName(e.target.value) }))} placeholder="name" />
+                      <input className="filterInput" autoFocus value={draft.name} onChange={(e) => setDraft((p) => ({ ...p, name: e.target.value }))} placeholder="name" />
                     </div>
 
                     <div>
