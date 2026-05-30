@@ -201,6 +201,24 @@ class GroupsService:
             return []
         return []
 
+    def get_group_used_in_rules(self, *, env: str, name: str) -> List[str]:
+        self._validate_env_exists(env)
+        e = self._normalize_env(env)
+        n = str(name or "").strip()
+        if not n:
+            raise ValidationError("name", "is required")
+
+        group2rules_path = self._env_groups_metadata_dir(e) / "fw_group2rule.yaml"
+        raw_any = read_yaml_dict(group2rules_path) if group2rules_path.exists() else {}
+        raw = raw_any if isinstance(raw_any, dict) else {}
+        for k, v in raw.items():
+            if str(k or "").strip().lower() != n.lower():
+                continue
+            if isinstance(v, list):
+                return [str(x or "").strip() for x in v if str(x or "").strip()]
+            return []
+        return []
+
     def _find_existing(self, *, env: str, name: str) -> Optional[Tuple[str, str]]:
         root = self._env_groups_dir(env)
         key = self._normalize_name(name)

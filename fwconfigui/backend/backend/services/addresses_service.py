@@ -254,6 +254,24 @@ class AddressesService:
             return []
         return []
 
+    def get_address_used_in_rules(self, *, env: str, name: str) -> List[str]:
+        self._validate_env_exists(env)
+        e = self._normalize_env(env)
+        n = str(name or "").strip()
+        if not n:
+            raise ValidationError("name", "is required")
+
+        addr2rules_path = self._env_address_metadata_dir(e) / "fw_address2rule.yaml"
+        raw_any = read_yaml_dict(addr2rules_path) if addr2rules_path.exists() else {}
+        raw = raw_any if isinstance(raw_any, dict) else {}
+        for k, v in raw.items():
+            if str(k or "").strip().lower() != n.lower():
+                continue
+            if isinstance(v, list):
+                return [str(x or "").strip() for x in v if str(x or "").strip()]
+            return []
+        return []
+
     def save_item(
         self,
         *,

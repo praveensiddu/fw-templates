@@ -84,6 +84,18 @@ def used_in_groups(
     return {"ok": True, "env": env, "name": name, "items": items}
 
 
+@router.get("/used-in-rules")
+def used_in_rules(
+    request: Request,
+    product: str,
+    env: str,
+    name: str,
+    service: GroupsService = Depends(get_service),
+) -> Dict[str, Any]:
+    items = service.get_group_used_in_rules(env=env, name=name)
+    return {"ok": True, "env": env, "name": name, "items": items}
+
+
 @router.post("/exclude")
 def exclude_from_import(
     request: Request,
