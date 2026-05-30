@@ -2,7 +2,7 @@ from pathlib import Path
 from typing import Any, Dict, List, Optional, Tuple
 
 from backend.exceptions.custom import AlreadyExistsError, ValidationError
-from backend.services.common_service import build_group_used_in_group_metadata, get_generated_folder_prefix, get_product_generated_repo_name, get_product_templates_repo_name
+from backend.services.common_service import build_group_used_in_group_metadata, build_group_used_in_rule_metadata, get_generated_folder_prefix, get_product_generated_repo_name, get_product_templates_repo_name
 from backend.utils.workspace import get_fwconfigfiles_root, get_settings_yaml_path
 from backend.utils.yaml_utils import list_yaml_files, read_yaml_dict, write_yaml_dict
 
@@ -173,6 +173,15 @@ class GroupsService:
             groups_dir=self._env_groups_dir(e),
             metadata_dir=self._env_groups_metadata_dir(e),
         )
+    def build_group_used_in_rule_metadata(self, *, env: str) -> Dict[str, Any]:
+        self._validate_env_exists(env)
+        e = self._normalize_env(env)
+        return build_group_used_in_rule_metadata(
+            env=e,
+            groups_dir=self._env_groups_dir(e),
+            metadata_dir=self._env_groups_metadata_dir(e),
+        )
+        
 
     def get_group_used_in_groups(self, *, env: str, name: str) -> List[str]:
         self._validate_env_exists(env)

@@ -27,13 +27,10 @@ class RulesService:
     def _get_templates_repo_name(self) -> str:
         return get_product_templates_repo_name(product=str(self._product or ""))
 
-    def _get_generated_folder_prefix(self) -> str:
-        return get_generated_folder_prefix()
-
     def _env_flows_dir(self, env: str) -> Path:
         e = self._normalize_env(env)
         repo_name = self._get_templates_repo_name()
-        generated_prefix = self._get_generated_folder_prefix()
+        generated_prefix = get_generated_folder_prefix()
         root = get_fwconfigfiles_root(None) / "cloned-repositories" / repo_name / e / generated_prefix / "flows"
         return root
 

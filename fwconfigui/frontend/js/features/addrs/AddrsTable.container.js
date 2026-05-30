@@ -195,6 +195,7 @@ function AddrsTable({ env, setLoading, setError }) {
       try {
         setLoading(true);
         setError("");
+        await excludeAddrFromImport(env, n);
         setItems((prev) =>
           (Array.isArray(prev) ? prev : []).filter((it) => {
             const itName = safeTrim(it?.name);
@@ -220,6 +221,7 @@ function AddrsTable({ env, setLoading, setError }) {
       try {
         setLoading(true);
         setError("");
+        await excludeAddrFromEnvCommon(env, n);
         setItems((prev) =>
           (Array.isArray(prev) ? prev : []).filter((it) => {
             const itName = safeTrim(it?.name);

@@ -10,6 +10,7 @@ from backend.services.common_service import (
     build_address_used_in_group_metadata,
     build_fortimgr_matched_groups_for_env,
     build_group_used_in_group_metadata,
+    get_generated_folder_prefix,
     get_product_templates_repo_name,
     get_product_generated_repo_name,
     read_existing_addresses,
@@ -17,7 +18,7 @@ from backend.services.common_service import (
     read_fortimgr_addrs_for_env,
 )
 from backend.utils.workspace import get_fwconfigfiles_root, get_settings_yaml_path
-from backend.utils.yaml_utils import read_yaml_dict, write_yaml_dict
+from backend.utils.yaml_utils import list_yaml_files, read_yaml_dict, write_yaml_dict
 
 
 class IpInventoryService:
@@ -89,12 +90,6 @@ class IpInventoryService:
         except Exception:
             raise ValidationError("name", "must be a valid IP address")
         return v
-
-    def _get_generated_folder_prefix(self) -> str:
-        prefix = str(os.getenv("GENERATED_FOLDER_PREFIX", "") or "").strip()
-        if not prefix:
-            raise ValidationError("GENERATED_FOLDER_PREFIX", "env var is required")
-        return prefix
 
     @staticmethod
     def _to_ip_range_from_inventory_key(value: str) -> Tuple[int, int, int]:
@@ -206,7 +201,7 @@ class IpInventoryService:
             except Exception:
                 continue
 
-        product_addr_match_dict: Dict[str, str] = {}
+        fm_addr_match_dict: Dict[str, str] = {}
         for name, val in fortimgr_addrs_dict.items():
             try:
                 fm_range = self._to_ip_range_from_fortimgr_value(val)[:3]
@@ -219,9 +214,9 @@ class IpInventoryService:
                     matched = True
                     break
             if matched:
-                product_addr_match_dict[name] = val
+                fm_addr_match_dict[name] = val
 
-        generated_prefix = self._get_generated_folder_prefix()
+        generated_prefix = get_generated_folder_prefix()
         if not str(self._product or "").strip():
             repo_root = get_fwconfigfiles_root(None)
         else:
@@ -233,7 +228,7 @@ class IpInventoryService:
         address_dir.mkdir(parents=True, exist_ok=True)
 
         existing_address_dict = read_existing_addresses(address_dir=address_dir)
-        name_override_to_key: Dict[str, str] = {}
+        addr_name_override_to_key: Dict[str, str] = {}
         for k, v in existing_address_dict.items():
             raw_no = v.get("name-override")
             if isinstance(raw_no, list):
@@ -242,7 +237,7 @@ class IpInventoryService:
             else:
                 overrides = []
             for no in overrides:
-                name_override_to_key[no] = k
+                addr_name_override_to_key[no] = k
 
         excluded_addr_names: set[str] = set()
         pfc_repo_raw = str(os.getenv("PFC_REPO", "") or "").strip()
@@ -250,17 +245,21 @@ class IpInventoryService:
             common_excluded_path = Path(pfc_repo_raw).expanduser() / "settings" / "import" / e / "common_address_excluded_from_import.yaml"
             self._add_yaml_dict_keys_to_set(common_excluded_path, excluded_addr_names)
 
-        excluded_addr_path = self._repo_root() / "overrides" / e / "address_excluded_from_import.yaml"
+        excluded_addr_path = repo_root / "overrides" / e / "address_excluded_from_import.yaml"
         self._add_yaml_dict_keys_to_set(excluded_addr_path, excluded_addr_names)
 
         addr_unmatch_dict: Dict[str, Dict[str, Any]] = {}
         existing_conflict_updates = 0
         existing_match_count = 0
 
-        for fm_name, fm_val in product_addr_match_dict.items():
+        fm_addr_filtered_dict: Dict[str, str] = {}
+        for fm_name, fm_val in fm_addr_match_dict.items():
             if fm_name in excluded_addr_names:
                 continue
-            existing_key = fm_name if fm_name in existing_address_dict else name_override_to_key.get(fm_name)
+            fm_addr_filtered_dict[fm_name]= fm_val
+
+        for fm_name, fm_val in fm_addr_filtered_dict.items():
+            existing_key = fm_name if fm_name in existing_address_dict else addr_name_override_to_key.get(fm_name)
             fm_data = self._fortimgr_value_to_address_data(fm_val)
 
             if existing_key:
@@ -283,7 +282,7 @@ class IpInventoryService:
             metadata_dir=envgenfolder / "metadata" / "address",
         )
 
-        matched_groups = build_fortimgr_matched_groups_for_env(env=e, product_addr_match_dict=product_addr_match_dict)
+        matched_groups = build_fortimgr_matched_groups_for_env(env=e, product_addr_match_dict=fm_addr_filtered_dict)
 
         groups_dir = envgenfolder / "groups"
         groups_dir.mkdir(parents=True, exist_ok=True)
@@ -294,17 +293,19 @@ class IpInventoryService:
             common_excluded_groups_path = Path(pfc_repo_raw).expanduser() / "settings" / "import" / e / "common_groups_excluded_from_import.yaml"
             self._add_yaml_dict_keys_to_set(common_excluded_groups_path, excluded_group_names)
 
-        excluded_groups_path = self._repo_root() / "overrides" / e / "groups_excluded_from_import.yaml"
+        excluded_groups_path = repo_root / "overrides" / e / "groups_excluded_from_import.yaml"
         self._add_yaml_dict_keys_to_set(excluded_groups_path, excluded_group_names)
 
         for k in list(matched_groups.keys()):
             if k in excluded_group_names:
                 matched_groups.pop(k, None)
 
-        existing_group_names = read_existing_group_names(groups_dir=groups_dir)
+        group_index = read_existing_group_names(groups_dir=groups_dir)
+        existing_group_names = group_index.get("names") if isinstance(group_index, dict) else set()
+        group_name_override_to_key = group_index.get("name_override_to_key") if isinstance(group_index, dict) else {}
 
         for k in list(matched_groups.keys()):
-            if k in existing_group_names:
+            if k in existing_group_names or k in group_name_override_to_key:
                 matched_groups.pop(k, None)
 
         out_groups_path = groups_dir / "fm_extract_groups.yaml"
@@ -321,7 +322,8 @@ class IpInventoryService:
             "env": e,
             "fortimgr_total": len(fortimgr_addrs_dict),
             "inventory_total": len(inventory_iprange_list),
-            "matched_total": len(product_addr_match_dict),
+            "matched_total": len(fm_addr_match_dict),
+            "matched_after_excluded_total": len(fm_addr_filtered_dict),
             "existing_matched_total": existing_match_count,
             "existing_conflict_updates": existing_conflict_updates,
             "unmatched_written_total": len(addr_unmatch_dict),

@@ -67,7 +67,9 @@ def delete_item(
 
 @router.post("/check-used")
 def check_used(request: Request, product: str, env: str, service: GroupsService = Depends(get_service)) -> Dict[str, Any]:
-    return service.build_group_used_in_group_metadata(env=env)
+    service.build_group_used_in_group_metadata(env=env)
+    service.build_group_used_in_rule_metadata(env=env)
+    return {"ok": True}
 
 
 @router.get("/used-in-groups")

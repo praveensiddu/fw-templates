@@ -119,6 +119,62 @@ def read_fortimgr_groups_dict(fm_groups_dir: Path) -> Dict[str, List[str]]:
     return fm_groups_dict
 
 
+def read_fortimgr_rules_dict(fm_rules_dir: Path) -> Dict[str, Dict[str, List[str]]]:
+    fm_rules_dict: Dict[str, Dict[str, List[str]]] = {}
+    if not fm_rules_dir.exists() or not fm_rules_dir.is_dir():
+        return fm_rules_dict
+
+    for p in list_yaml_files_recursive(fm_rules_dir):
+        doc = read_yaml_dict(p)
+        if not isinstance(doc, dict):
+            continue
+
+        for rule_name, rule_raw in doc.items():
+            r = str(rule_name or "").strip()
+            if not r:
+                continue
+            if not isinstance(rule_raw, dict):
+                continue
+
+            src_vals_raw = rule_raw.get("srcaddr")
+            if isinstance(src_vals_raw, list):
+                srcaddr = [str(x or "").strip() for x in src_vals_raw]
+                srcaddr = [x for x in srcaddr if x]
+            else:
+                srcaddr = []
+
+            dst_vals_raw = rule_raw.get("dstaddr")
+            if isinstance(dst_vals_raw, list):
+                dstaddr = [str(x or "").strip() for x in dst_vals_raw]
+                dstaddr = [x for x in dstaddr if x]
+            else:
+                dstaddr = []
+
+            dest_vals_raw = rule_raw.get("destaddr")
+            if isinstance(dest_vals_raw, list):
+                destaddr = [str(x or "").strip() for x in dest_vals_raw]
+                destaddr = [x for x in destaddr if x]
+            else:
+                destaddr = []
+
+            service_vals_raw = rule_raw.get("service")
+            if isinstance(service_vals_raw, list):
+                service = [str(x or "").strip() for x in service_vals_raw]
+                service = [x for x in service if x]
+            else:
+                service = []
+
+            if srcaddr or dstaddr or destaddr or service:
+                fm_rules_dict[r] = {
+                    "srcaddr": srcaddr,
+                    "dstaddr": dstaddr,
+                    "destaddr": destaddr,
+                    "service": service,
+                }
+
+    return fm_rules_dict
+
+
 def read_fortimgr_addrs_for_env(*, env: str) -> Dict[str, str]:
     fm_root_raw = str(os.getenv("FORTIMGR_EXTRACT_REPO", "") or "").strip()
     if not fm_root_raw:
@@ -134,6 +190,14 @@ def read_fortimgr_addrs_for_env(*, env: str) -> Dict[str, str]:
 
     return read_fortimgr_addrs_dict(fm_addrs_dir)
 
+def read_fortimgr_rules_for_env(*, env: str) -> Dict[str, Dict[str, List[str]]]:
+    fm_root_raw = str(os.getenv("FORTIMGR_EXTRACT_REPO", "") or "").strip()
+    if not fm_root_raw:
+        raise ValidationError("FORTIMGR_EXTRACT_REPO", "env var is required")
+
+    fm_root = Path(fm_root_raw).expanduser()
+    fm_rules_dir = fm_root / env / "flows"
+    return read_fortimgr_rules_dict(fm_rules_dir)
 
 def read_fortimgr_groups_for_env(*, env: str) -> Dict[str, List[str]]:
     fm_root_raw = str(os.getenv("FORTIMGR_EXTRACT_REPO", "") or "").strip()
@@ -163,8 +227,10 @@ def build_fortimgr_matched_groups_for_env(*, env: str, product_addr_match_dict: 
     return matched_groups
 
 
-def read_existing_group_names(*, groups_dir: Path, excluded_filenames: set[str] | None = None) -> set[str]:
+def read_existing_group_names(*, groups_dir: Path, excluded_filenames: set[str] | None = None) -> Dict[str, Any]:
     existing_group_names: set[str] = set()
+    name_override_to_key: Dict[str, str] = {}
+
     exclude = {str(x).strip().lower() for x in (excluded_filenames or {"fm_extract_groups.yaml"}) if str(x).strip()}
     for p in list_yaml_files(groups_dir):
         if str(p.name).strip().lower() in exclude:
@@ -175,11 +241,27 @@ def read_existing_group_names(*, groups_dir: Path, excluded_filenames: set[str] 
         groups = doc.get("groups")
         if not isinstance(groups, dict):
             continue
-        for k in groups.keys():
+
+        for k, v in groups.items():
             name = str(k or "").strip()
-            if name:
-                existing_group_names.add(name)
-    return existing_group_names
+            if not name:
+                continue
+            existing_group_names.add(name)
+
+            data = v if isinstance(v, dict) else {}
+            raw_no = data.get("name-override")
+            if isinstance(raw_no, list):
+                overrides = [str(x or "").strip() for x in raw_no]
+                overrides = [x for x in overrides if x]
+            else:
+                overrides = []
+            for no in overrides:
+                name_override_to_key[no] = name
+
+    return {
+        "names": existing_group_names,
+        "name_override_to_key": name_override_to_key,
+    }
 
 
 def read_existing_addresses(*, address_dir: Path, excluded_filenames: set[str] | None = None) -> Dict[str, Dict[str, Any]]:
@@ -202,10 +284,7 @@ def read_existing_addresses(*, address_dir: Path, excluded_filenames: set[str] |
     return existing
 
 
-def build_address_used_in_group_metadata(*, env: str, address_dir: Path, metadata_dir: Path) -> Dict[str, Any]:
-    address_dir.mkdir(parents=True, exist_ok=True)
-    metadata_dir.mkdir(parents=True, exist_ok=True)
-
+def read_address_names(*, address_dir: Path) -> Dict[str, str]:
     addr_names: Dict[str, str] = {}
     for p in list_yaml_files(address_dir):
         doc = read_yaml_dict(p)
@@ -218,33 +297,10 @@ def build_address_used_in_group_metadata(*, env: str, address_dir: Path, metadat
             name = str(k or "").strip()
             if name:
                 addr_names[name] = name
-
-    fm_groups_dict = read_fortimgr_groups_for_env(env=env)
-    addr2groups: Dict[str, List[str]] = {}
-
-    for fm_gname, fm_members in fm_groups_dict.items():
-        g = str(fm_gname or "").strip()
-        if not g:
-            continue
-        if "-CG_" in g:
-            continue
-        for fm_member in fm_members:
-            fm_member = str(fm_member or "").strip()
-            if fm_member in addr_names:
-                addr2groups.setdefault(fm_member, []).append(g)
-
-    for k, v in list(addr2groups.items()):
-        addr2groups[k] = sorted({str(x or "").strip() for x in (v or []) if str(x or "").strip()})
-
-    out_path = metadata_dir / "fw_address2group.yaml"
-    write_yaml_dict(out_path, addr2groups, sort_keys=True)
-    return {"ok": True, "env": env, "output_file": str(out_path), "address_total": len(addr_names.keys())}
+    return addr_names
 
 
-def build_group_used_in_group_metadata(*, env: str, groups_dir: Path, metadata_dir: Path) -> Dict[str, Any]:
-    groups_dir.mkdir(parents=True, exist_ok=True)
-    metadata_dir.mkdir(parents=True, exist_ok=True)
-
+def read_group_names(*, groups_dir: Path) -> Dict[str, str]:
     group_names: Dict[str, str] = {}
     for p in list_yaml_files(groups_dir):
         doc = read_yaml_dict(p)
@@ -257,25 +313,117 @@ def build_group_used_in_group_metadata(*, env: str, groups_dir: Path, metadata_d
             name = str(k or "").strip()
             if name:
                 group_names[name] = name
+    return group_names
 
-    fm_groups_dict = read_fortimgr_groups_for_env(env=env)
-    group2groups: Dict[str, List[str]] = {}
 
-    for parent_group, fm_members in fm_groups_dict.items():
-        pg = str(parent_group or "").strip()
-        if not pg:
+def build_member_used_in_group_metadata(*, fm_groups_dict: Dict[str, List[str]], member_names: Dict[str, str]) -> Dict[str, List[str]]:
+    member2groups: Dict[str, List[str]] = {}
+
+    for fm_gname, fm_members in fm_groups_dict.items():
+        g = str(fm_gname or "").strip()
+        if not g:
             continue
-        if "-CG_" in pg:
+        if "-CG_" in g:
             continue
         for fm_member in fm_members:
-            fm_member = str(fm_member or "").strip()
-            if fm_member in group_names:
-                group2groups.setdefault(fm_member, []).append(pg)
+            m = str(fm_member or "").strip()
+            if not m:
+                continue
+            if m in member_names:
+                member2groups.setdefault(m, []).append(g)
+
+    for k, v in list(member2groups.items()):
+        member2groups[k] = sorted({str(x or "").strip() for x in (v or []) if str(x or "").strip()})
+
+    return member2groups
 
 
-    for k, v in list(group2groups.items()):
-        group2groups[k] = sorted({str(x or "").strip() for x in (v or []) if str(x or "").strip()})
+def build_member_used_in_rule_metadata(
+    *,
+    fm_rules_dict: Dict[str, Dict[str, List[str]]],
+    member_names: Dict[str, str],
+) -> Dict[str, List[str]]:
+    member2rules: Dict[str, List[str]] = {}
+
+    for rule_id, rule_data in fm_rules_dict.items():
+        if not isinstance(rule_data, dict):
+            continue
+
+        src = rule_data.get("srcaddr")
+        if not isinstance(src, list):
+            src = []
+        dst = rule_data.get("dstaddr")
+        if not isinstance(dst, list):
+            dst = []
+        dest = rule_data.get("destaddr")
+        if not isinstance(dest, list):
+            dest = []
+
+        for member in list(src) + list(dst) + list(dest):
+            m = str(member or "").strip()
+            if not m:
+                continue
+            if m not in member_names:
+                continue
+            member2rules.setdefault(m, []).append(str(rule_id))
+
+    for k, v in list(member2rules.items()):
+        member2rules[k] = sorted({str(x or "").strip() for x in (v or []) if str(x or "").strip()})
+
+    return member2rules
+
+
+def build_address_used_in_rule_metadata(*, env: str, address_dir: Path, metadata_dir: Path) -> Dict[str, Any]:
+    address_dir.mkdir(parents=True, exist_ok=True)
+    metadata_dir.mkdir(parents=True, exist_ok=True)
+
+    addr_names = read_address_names(address_dir=address_dir)
+    fm_rules_dict = read_fortimgr_rules_for_env(env=env)
+    addr2rule = build_member_used_in_rule_metadata(fm_rules_dict=fm_rules_dict, member_names=addr_names)
+
+    out_path = metadata_dir / "fw_address2rule.yaml"
+    write_yaml_dict(out_path, addr2rule, sort_keys=True)
+    return {"ok": True, "env": env, "output_file": str(out_path), "address_total": len(addr_names.keys())}
+
+
+
+def build_address_used_in_group_metadata(*, env: str, address_dir: Path, metadata_dir: Path) -> Dict[str, Any]:
+    address_dir.mkdir(parents=True, exist_ok=True)
+    metadata_dir.mkdir(parents=True, exist_ok=True)
+
+    addr_names = read_address_names(address_dir=address_dir)
+
+    fm_groups_dict = read_fortimgr_groups_for_env(env=env)
+    addr2groups = build_member_used_in_group_metadata(fm_groups_dict=fm_groups_dict, member_names=addr_names)
+
+    out_path = metadata_dir / "fw_address2group.yaml"
+    write_yaml_dict(out_path, addr2groups, sort_keys=True)
+    return {"ok": True, "env": env, "output_file": str(out_path), "address_total": len(addr_names.keys())}
+
+
+def build_group_used_in_group_metadata(*, env: str, groups_dir: Path, metadata_dir: Path) -> Dict[str, Any]:
+    groups_dir.mkdir(parents=True, exist_ok=True)
+    metadata_dir.mkdir(parents=True, exist_ok=True)
+
+    group_names = read_group_names(groups_dir=groups_dir)
+
+    fm_groups_dict = read_fortimgr_groups_for_env(env=env)
+    group2groups = build_member_used_in_group_metadata(fm_groups_dict=fm_groups_dict, member_names=group_names)
 
     out_path = metadata_dir / "fw_group2group.yaml"
     write_yaml_dict(out_path, group2groups, sort_keys=True)
+    return {"ok": True, "env": env, "output_file": str(out_path), "group_total": len(group_names.keys())}
+
+
+def build_group_used_in_rule_metadata(*, env: str, groups_dir: Path, metadata_dir: Path) -> Dict[str, Any]:
+    groups_dir.mkdir(parents=True, exist_ok=True)
+    metadata_dir.mkdir(parents=True, exist_ok=True)
+
+    group_names = read_group_names(groups_dir=groups_dir)
+
+    fm_rules_dict = read_fortimgr_rules_for_env(env=env)
+    group2rules = build_member_used_in_rule_metadata(fm_rules_dict=fm_rules_dict, member_names=group_names)
+
+    out_path = metadata_dir / "fw_group2rule.yaml"
+    write_yaml_dict(out_path, group2rules, sort_keys=True)
     return {"ok": True, "env": env, "output_file": str(out_path), "group_total": len(group_names.keys())}

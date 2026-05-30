@@ -175,6 +175,7 @@ function GroupsTable({ env, setLoading, setError }) {
       try {
         setLoading(true);
         setError("");
+        await excludeGroupFromImport(env, n);
         setItems((prev) =>
           (Array.isArray(prev) ? prev : []).filter((it) => {
             const itName = safeTrim(it?.name);
@@ -216,6 +217,7 @@ function GroupsTable({ env, setLoading, setError }) {
       try {
         setLoading(true);
         setError("");
+        await excludeGroupFromEnvCommon(env, n);
         setItems((prev) =>
           (Array.isArray(prev) ? prev : []).filter((it) => {
             const itName = safeTrim(it?.name);
