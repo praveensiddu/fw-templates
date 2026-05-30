@@ -284,7 +284,7 @@ def read_existing_addresses(*, address_dir: Path, excluded_filenames: set[str] |
     return existing
 
 
-def read_address_names(*, address_dir: Path) -> Dict[str, str]:
+def read_address_names(*, address_dir: Path, include_name_override: bool = False) -> Dict[str, str]:
     addr_names: Dict[str, str] = {}
     for p in list_yaml_files(address_dir):
         doc = read_yaml_dict(p)
@@ -293,14 +293,28 @@ def read_address_names(*, address_dir: Path) -> Dict[str, str]:
         addrs = doc.get("addresses")
         if not isinstance(addrs, dict):
             continue
-        for k in addrs.keys():
+        for k, v in addrs.items():
             name = str(k or "").strip()
-            if name:
-                addr_names[name] = name
+            if not name:
+                continue
+
+            addr_names[name] = name
+
+            if include_name_override:
+                data = v if isinstance(v, dict) else {}
+                raw_no = data.get("name-override")
+                if isinstance(raw_no, list):
+                    overrides = [str(x or "").strip() for x in raw_no]
+                    overrides = [x for x in overrides if x]
+                else:
+                    overrides = []
+
+                for no in overrides:
+                    addr_names[no] = name
     return addr_names
 
 
-def read_group_names(*, groups_dir: Path) -> Dict[str, str]:
+def read_group_names(*, groups_dir: Path, include_name_override: bool = False) -> Dict[str, str]:
     group_names: Dict[str, str] = {}
     for p in list_yaml_files(groups_dir):
         doc = read_yaml_dict(p)
@@ -309,10 +323,24 @@ def read_group_names(*, groups_dir: Path) -> Dict[str, str]:
         groups = doc.get("groups")
         if not isinstance(groups, dict):
             continue
-        for k in groups.keys():
+        for k, v in groups.items():
             name = str(k or "").strip()
-            if name:
-                group_names[name] = name
+            if not name:
+                continue
+
+            group_names[name] = name
+
+            if include_name_override:
+                data = v if isinstance(v, dict) else {}
+                raw_no = data.get("name-override")
+                if isinstance(raw_no, list):
+                    overrides = [str(x or "").strip() for x in raw_no]
+                    overrides = [x for x in overrides if x]
+                else:
+                    overrides = []
+
+                for no in overrides:
+                    group_names[no] = name
     return group_names
 
 
@@ -330,7 +358,7 @@ def build_member_used_in_group_metadata(*, fm_groups_dict: Dict[str, List[str]],
             if not m:
                 continue
             if m in member_names:
-                member2groups.setdefault(m, []).append(g)
+                member2groups.setdefault(member_names[m], []).append(g)
 
     for k, v in list(member2groups.items()):
         member2groups[k] = sorted({str(x or "").strip() for x in (v or []) if str(x or "").strip()})
@@ -365,7 +393,8 @@ def build_member_used_in_rule_metadata(
                 continue
             if m not in member_names:
                 continue
-            member2rules.setdefault(m, []).append(str(rule_id))
+            # must use member_names[m] as key so that the nameoverride name is converted to original name
+            member2rules.setdefault(member_names[m], []).append(str(rule_id))
 
     for k, v in list(member2rules.items()):
         member2rules[k] = sorted({str(x or "").strip() for x in (v or []) if str(x or "").strip()})
@@ -377,7 +406,7 @@ def build_address_used_in_rule_metadata(*, env: str, address_dir: Path, metadata
     address_dir.mkdir(parents=True, exist_ok=True)
     metadata_dir.mkdir(parents=True, exist_ok=True)
 
-    addr_names = read_address_names(address_dir=address_dir)
+    addr_names = read_address_names(address_dir=address_dir, include_name_override=True)
     fm_rules_dict = read_fortimgr_rules_for_env(env=env)
     addr2rule = build_member_used_in_rule_metadata(fm_rules_dict=fm_rules_dict, member_names=addr_names)
 
@@ -391,7 +420,7 @@ def build_address_used_in_group_metadata(*, env: str, address_dir: Path, metadat
     address_dir.mkdir(parents=True, exist_ok=True)
     metadata_dir.mkdir(parents=True, exist_ok=True)
 
-    addr_names = read_address_names(address_dir=address_dir)
+    addr_names = read_address_names(address_dir=address_dir, include_name_override=True)
 
     fm_groups_dict = read_fortimgr_groups_for_env(env=env)
     addr2groups = build_member_used_in_group_metadata(fm_groups_dict=fm_groups_dict, member_names=addr_names)
@@ -405,7 +434,7 @@ def build_group_used_in_group_metadata(*, env: str, groups_dir: Path, metadata_d
     groups_dir.mkdir(parents=True, exist_ok=True)
     metadata_dir.mkdir(parents=True, exist_ok=True)
 
-    group_names = read_group_names(groups_dir=groups_dir)
+    group_names = read_group_names(groups_dir=groups_dir, include_name_override=True)
 
     fm_groups_dict = read_fortimgr_groups_for_env(env=env)
     group2groups = build_member_used_in_group_metadata(fm_groups_dict=fm_groups_dict, member_names=group_names)
@@ -419,7 +448,7 @@ def build_group_used_in_rule_metadata(*, env: str, groups_dir: Path, metadata_di
     groups_dir.mkdir(parents=True, exist_ok=True)
     metadata_dir.mkdir(parents=True, exist_ok=True)
 
-    group_names = read_group_names(groups_dir=groups_dir)
+    group_names = read_group_names(groups_dir=groups_dir, include_name_override=True)
 
     fm_rules_dict = read_fortimgr_rules_for_env(env=env)
     group2rules = build_member_used_in_rule_metadata(fm_rules_dict=fm_rules_dict, member_names=group_names)
