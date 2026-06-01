@@ -255,7 +255,7 @@ function ProductsTable({ setLoading, setError }) {
         if (!name) return;
         setLoading(true);
         setError("");
-        await postJson("/api/v1/fwconfig/products/import", { name });
+        await postJson("/api/v1/fwconfig/products/importsicg", { name });
         await load();
       } catch (e) {
         setError(formatError(e));

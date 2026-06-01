@@ -369,7 +369,7 @@ async function importIpInventoryFromFortimgr(env) {
   const product = getCurrentProduct();
   if (!isNonEmptyString(product)) throw new Error("Select a product first");
   const e = requireEnv(env);
-  const url = `/api/v1/products/${encodeURIComponent(product)}/ip_inventory/${encodeURIComponent(e)}/import`;
+  const url = `/api/v1/products/${encodeURIComponent(product)}/ip_inventory/${encodeURIComponent(e)}/importfortimgr`;
   return await postJson(url, {});
 }
 

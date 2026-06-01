@@ -1,4 +1,4 @@
-function IpInventoryTableView({ env, rows, filters, setFilters, onImport, onOpenBulkUpload, bulkUpload, setBulkUpload, onCloseBulkUpload, onSubmitBulkUpload, onAdd, onEdit, onDelete, editingKey, draft, setDraft, canSubmit, onCancelEdit, onSave }) {
+function IpInventoryTableView({ env, rows, filters, setFilters, onImport, isImporting, onOpenBulkUpload, bulkUpload, setBulkUpload, onCloseBulkUpload, onSubmitBulkUpload, onAdd, onEdit, onDelete, editingKey, draft, setDraft, canSubmit, onCancelEdit, onSave }) {
   return (
     <div className="card" style={{ padding: 12 }}>
       <div className="actions">
@@ -6,7 +6,13 @@ function IpInventoryTableView({ env, rows, filters, setFilters, onImport, onOpen
           ip_inventory{isNonEmptyString(env) ? ` / ${env}` : ""} ({Array.isArray(rows) ? rows.length : 0})
         </div>
         <div style={{ display: "flex", gap: 10, alignItems: "center" }}>
-          <button className="iconBtn" title="Import FortiMgr" onClick={onImport}>
+          <button
+            className="iconBtn"
+            title={isImporting ? "Importing..." : "Import FortiMgr"}
+            onClick={onImport}
+            disabled={!!isImporting}
+            style={isImporting ? { opacity: 0.6, cursor: "not-allowed" } : undefined}
+          >
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
               <path d="M12 3v12" />
               <path d="M8 11l4 4 4-4" />

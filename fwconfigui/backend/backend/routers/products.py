@@ -264,7 +264,7 @@ def update_item(
     return {"ok": True}
 
 
-@router.post("/import")
+@router.post("/importsicg")
 def import_product_components(
     request: Request,
     payload: ImportProductRequest,

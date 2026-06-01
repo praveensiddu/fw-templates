@@ -1,4 +1,4 @@
-function AddrsTableView({ env, rows, filters, setFilters, onAdd, onCheckUsed, onShowUsedInGroups, onShowUsedInRules, usedInGrpModal, setUsedInGrpModal, usedInRuleModal, setUsedInRuleModal, onEdit, onDelete, onExclude, onExcludeEnvCommon, editingKey, draft, setDraft, canSubmit, onCancelEdit, onSave }) {
+function AddrsTableView({ env, rows, filters, setFilters, onAdd, onCheckUsed, isCheckingUsed, onShowUsedInGroups, onShowUsedInRules, usedInGrpModal, setUsedInGrpModal, usedInRuleModal, setUsedInRuleModal, onEdit, onDelete, onExclude, onExcludeEnvCommon, editingKey, draft, setDraft, canSubmit, onCancelEdit, onSave }) {
   function normalizeFilename(v) {
     const s = String(v || "").trim();
     return s || "addresses.yaml";
@@ -155,7 +155,13 @@ function AddrsTableView({ env, rows, filters, setFilters, onAdd, onCheckUsed, on
           addrs{isNonEmptyString(env) ? ` / ${env}` : ""} ({Array.isArray(rows) ? rows.length : 0})
         </div>
         <div style={{ display: "flex", alignItems: "center", gap: 8, marginLeft: "auto" }}>
-          <button className="iconBtn" title="Check if used" onClick={onCheckUsed}>
+          <button
+            className="iconBtn"
+            title={isCheckingUsed ? "Checking..." : "Check if used"}
+            onClick={onCheckUsed}
+            disabled={!!isCheckingUsed}
+            style={isCheckingUsed ? { opacity: 0.6, cursor: "not-allowed" } : undefined}
+          >
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
               <circle cx="11" cy="11" r="8" />
               <path d="M21 21l-4.35-4.35" />

@@ -56,7 +56,7 @@ def delete_item(
     return {"ok": True}
 
 
-@router.post("/import")
+@router.post("/importfortimgr")
 def import_from_fortimgr(
     request: Request,
     product: str,

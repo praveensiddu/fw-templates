@@ -13,6 +13,7 @@ function AddrsTable({ env, setLoading, setError }) {
   });
   const [originalRef, setOriginalRef] = React.useState({ filename: "addresses.yaml", name: "" });
   const [confirmDelete, setConfirmDelete] = React.useState({ show: false, row: null });
+  const [isCheckingUsed, setIsCheckingUsed] = React.useState(false);
 
   const load = React.useCallback(async () => {
     try {
@@ -38,7 +39,9 @@ function AddrsTable({ env, setLoading, setError }) {
   }, [env, load]);
 
   const onCheckUsed = React.useCallback(async () => {
+    if (isCheckingUsed) return;
     try {
+      setIsCheckingUsed(true);
       setLoading(true);
       setError("");
       await checkAddrUsedInGroups(env);
@@ -47,8 +50,9 @@ function AddrsTable({ env, setLoading, setError }) {
       setError(formatError(e));
     } finally {
       setLoading(false);
+      setIsCheckingUsed(false);
     }
-  }, [env, load, setLoading, setError]);
+  }, [env, isCheckingUsed, load, setLoading, setError]);
 
   const rows = React.useMemo(() => {
     return (items || []).map((it) => ({ ...it }));
@@ -282,6 +286,7 @@ function AddrsTable({ env, setLoading, setError }) {
         setFilters={setFilters}
         onAdd={onAdd}
         onCheckUsed={onCheckUsed}
+        isCheckingUsed={isCheckingUsed}
         onShowUsedInGroups={onShowUsedInGroups}
         onShowUsedInRules={onShowUsedInRules}
         usedInGrpModal={usedInGrpModal}

@@ -5,6 +5,8 @@ function IpInventoryTable({ env, setLoading, setError }) {
   const [originalName, setOriginalName] = React.useState("");
   const [confirmDelete, setConfirmDelete] = React.useState({ show: false, row: null });
 
+  const [isImporting, setIsImporting] = React.useState(false);
+
   const [bulkUpload, setBulkUpload] = React.useState({ isOpen: false, text: "" });
 
   const [importResult, setImportResult] = React.useState({ show: false, data: null });
@@ -108,7 +110,9 @@ function IpInventoryTable({ env, setLoading, setError }) {
   }, [env, confirmDelete, setLoading, setError, load]);
 
   const onImport = React.useCallback(async () => {
+    if (isImporting) return;
     try {
+      setIsImporting(true);
       setLoading(true);
       setError("");
       const resp = await importIpInventoryFromFortimgr(env);
@@ -118,8 +122,9 @@ function IpInventoryTable({ env, setLoading, setError }) {
       setError(formatError(e));
     } finally {
       setLoading(false);
+      setIsImporting(false);
     }
-  }, [env, setLoading, setError, load]);
+  }, [env, isImporting, setLoading, setError, load]);
 
   const onOpenBulkUpload = React.useCallback(() => {
     setBulkUpload({ isOpen: true, text: "" });
@@ -151,6 +156,7 @@ function IpInventoryTable({ env, setLoading, setError }) {
         filters={filters}
         setFilters={setFilters}
         onImport={onImport}
+        isImporting={isImporting}
         onOpenBulkUpload={onOpenBulkUpload}
         bulkUpload={bulkUpload}
         setBulkUpload={setBulkUpload}
