@@ -114,7 +114,11 @@ def read_fortimgr_groups_dict(fm_groups_dir: Path) -> Dict[str, List[str]]:
                     members.append(s)
 
             if members:
-                fm_groups_dict[g] = members
+                existing = fm_groups_dict.get(g)
+                if isinstance(existing, list) and existing:
+                    fm_groups_dict[g] = sorted(set(existing).union(members))
+                else:
+                    fm_groups_dict[g] = sorted(set(members))
 
     return fm_groups_dict
 
