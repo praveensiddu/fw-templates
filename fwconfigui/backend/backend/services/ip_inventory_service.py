@@ -341,6 +341,8 @@ class IpInventoryService:
             groups_dir=groups_dir,
             metadata_dir=envgenfolder / "metadata" / "address",
             fm_product_groups=fm_product_groups,
+            addr_unmatch_dict=addr_unmatch_dict,
+            excluded_group_names=excluded_group_names,
         )
 
         return {

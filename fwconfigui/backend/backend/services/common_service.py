@@ -418,23 +418,41 @@ def build_address_used_in_rule_metadata(*, env: str, address_dir: Path, metadata
     write_yaml_dict(out_path, addr2rule, sort_keys=True)
     return {"ok": True, "env": env, "output_file": str(out_path), "address_total": len(addr_names.keys())}
 
-def cleanup_address_not_used_by_product(*, address_dir: Path, groups_dir: Path, metadata_dir: Path, fm_product_groups: Dict[str, Any]) -> Dict[str, Any]:
+def cleanup_address_not_used_by_product(
+    *,
+    address_dir: Path,
+    groups_dir: Path,
+    metadata_dir: Path,
+    fm_product_groups: Dict[str, Any],
+    addr_unmatch_dict: Dict[str, Any],
+    excluded_group_names: set[str],
+) -> Dict[str, Any]:
     address_dir.mkdir(parents=True, exist_ok=True)
     groups_dir.mkdir(parents=True, exist_ok=True)
     metadata_dir.mkdir(parents=True, exist_ok=True)
 
-    extract_addr_path = address_dir / "fm_extract_address.yaml"
-    raw_any = read_yaml_dict(extract_addr_path) if extract_addr_path.exists() else {}
-    raw = raw_any if isinstance(raw_any, dict) else {}
-    addresses_any = raw.get("addresses")
-    addresses = dict(addresses_any) if isinstance(addresses_any, dict) else {}
+    fm_ext_addr_dict = dict(addr_unmatch_dict) if isinstance(addr_unmatch_dict, dict) else {}
 
     addr2rules_path = metadata_dir / "fw_address2rule.yaml"
     addr2rules_any = read_yaml_dict(addr2rules_path) if addr2rules_path.exists() else {}
     addr2rules = addr2rules_any if isinstance(addr2rules_any, dict) else {}
-    used_in_rules_lc = {str(k or "").strip().lower() for k in addr2rules.keys() if str(k or "").strip()}
+    used_in_fm_rules_lc = {str(k or "").strip().lower() for k in addr2rules.keys() if str(k or "").strip()}
 
-    used_in_groups_lc: set[str] = set()
+    addr2groups_path = metadata_dir / "fw_address2group.yaml"
+    addr2groups_any = read_yaml_dict(addr2groups_path) if addr2groups_path.exists() else {}
+    addr2groups_dict = addr2groups_any if isinstance(addr2groups_any, dict) else {}
+    addr2groups_lc: Dict[str, List[str]] = {}
+    for k, v in addr2groups_dict.items():
+        kk = str(k or "").strip()
+        if not kk:
+            continue
+        groups_any = v if isinstance(v, list) else []
+        groups = [str(x or "").strip() for x in groups_any if str(x or "").strip()]
+        addr2groups_lc[kk.lower()] = groups
+
+    excluded_groups_lc = {str(x or "").strip().lower() for x in (excluded_group_names or set()) if str(x or "").strip()}
+
+    used_in_fm_grps_lc: set[str] = set()
     for _, gdata_any in (fm_product_groups or {}).items():
         gdata = gdata_any if isinstance(gdata_any, dict) else {}
         members_any = gdata.get("members")
@@ -442,32 +460,39 @@ def cleanup_address_not_used_by_product(*, address_dir: Path, groups_dir: Path, 
         for m in members:
             s = str(m or "").strip()
             if s:
-                used_in_groups_lc.add(s.lower())
+                used_in_fm_grps_lc.add(s.lower())
 
     kept: Dict[str, Any] = {}
     removed_total = 0
 
-    for name, data in addresses.items():
-        n = str(name or "").strip()
+    for addr_name, data in fm_ext_addr_dict.items():
+        n = str(addr_name or "").strip()
         if not n:
             continue
         n_lc = n.lower()
 
-        if n_lc in used_in_rules_lc:
+        if n_lc in used_in_fm_rules_lc:
             kept[n] = data
             continue
 
-        if n_lc not in used_in_groups_lc:
+        if n_lc not in used_in_fm_grps_lc:
+            removed_total += 1
+            continue
+
+        # Address is used only in groups that are excluded from import -> treat as unused.
+        addr_groups = addr2groups_lc.get(n_lc) or []
+        if addr_groups and all(str(g or "").strip().lower() in excluded_groups_lc for g in addr_groups):
             removed_total += 1
             continue
 
         kept[n] = data
 
+    extract_addr_path = address_dir / "fm_extract_address.yaml"
     write_yaml_dict(extract_addr_path, {"addresses": kept}, sort_keys=True)
     return {
         "ok": True,
         "output_file": str(extract_addr_path),
-        "before_total": len(addresses.keys()),
+        "before_total": len(fm_ext_addr_dict.keys()),
         "after_total": len(kept.keys()),
         "removed_total": removed_total,
     }
