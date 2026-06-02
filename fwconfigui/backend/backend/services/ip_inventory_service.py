@@ -282,7 +282,7 @@ class IpInventoryService:
 
 
 
-        matched_groups = build_fortimgr_matched_groups_for_env(env=e, product_addr_match_dict=fm_addr_filtered_dict)
+        fm_product_groups = build_fortimgr_matched_groups_for_env(env=e, product_addr_match_dict=fm_addr_filtered_dict)
 
         groups_dir = envgenfolder / "groups"
         groups_dir.mkdir(parents=True, exist_ok=True)
@@ -296,20 +296,18 @@ class IpInventoryService:
         excluded_groups_path = repo_root / "overrides" / e / "groups_excluded_from_import.yaml"
         self._add_yaml_dict_keys_to_set(excluded_groups_path, excluded_group_names)
 
-        for k in list(matched_groups.keys()):
-            if k in excluded_group_names:
-                matched_groups.pop(k, None)
-
         group_index = read_existing_group_names(groups_dir=groups_dir)
         existing_group_names = group_index.get("names") if isinstance(group_index, dict) else set()
         group_name_override_to_key = group_index.get("name_override_to_key") if isinstance(group_index, dict) else {}
 
-        for k in list(matched_groups.keys()):
-            if k in existing_group_names or k in group_name_override_to_key:
-                matched_groups.pop(k, None)
+        fm_grps_not_in_git = {
+            k: v
+            for k, v in (fm_product_groups or {}).items()
+            if k not in excluded_group_names and k not in existing_group_names and k not in group_name_override_to_key
+        }
 
         out_groups_path = groups_dir / "fm_extract_groups.yaml"
-        write_yaml_dict(out_groups_path, {"groups": matched_groups}, sort_keys=True)
+        write_yaml_dict(out_groups_path, {"groups": fm_grps_not_in_git}, sort_keys=True)
 
         if str(self._product or "").strip():
             AddressesService(product=str(self._product or "")).build_addr_used_in_rule_metadata(env=e)
@@ -342,6 +340,7 @@ class IpInventoryService:
             address_dir=address_dir,
             groups_dir=groups_dir,
             metadata_dir=envgenfolder / "metadata" / "address",
+            fm_product_groups=fm_product_groups,
         )
 
         return {

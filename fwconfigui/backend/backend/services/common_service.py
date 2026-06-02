@@ -418,7 +418,7 @@ def build_address_used_in_rule_metadata(*, env: str, address_dir: Path, metadata
     write_yaml_dict(out_path, addr2rule, sort_keys=True)
     return {"ok": True, "env": env, "output_file": str(out_path), "address_total": len(addr_names.keys())}
 
-def cleanup_address_not_used_by_product(*, address_dir: Path, groups_dir: Path, metadata_dir: Path) -> Dict[str, Any]:
+def cleanup_address_not_used_by_product(*, address_dir: Path, groups_dir: Path, metadata_dir: Path, fm_product_groups: Dict[str, Any]) -> Dict[str, Any]:
     address_dir.mkdir(parents=True, exist_ok=True)
     groups_dir.mkdir(parents=True, exist_ok=True)
     metadata_dir.mkdir(parents=True, exist_ok=True)
@@ -434,14 +434,8 @@ def cleanup_address_not_used_by_product(*, address_dir: Path, groups_dir: Path, 
     addr2rules = addr2rules_any if isinstance(addr2rules_any, dict) else {}
     used_in_rules_lc = {str(k or "").strip().lower() for k in addr2rules.keys() if str(k or "").strip()}
 
-    extract_groups_path = groups_dir / "fm_extract_groups.yaml"
-    groups_raw_any = read_yaml_dict(extract_groups_path) if extract_groups_path.exists() else {}
-    groups_raw = groups_raw_any if isinstance(groups_raw_any, dict) else {}
-    groups_any = groups_raw.get("groups")
-    groups = groups_any if isinstance(groups_any, dict) else {}
-
     used_in_groups_lc: set[str] = set()
-    for _, gdata_any in groups.items():
+    for _, gdata_any in (fm_product_groups or {}).items():
         gdata = gdata_any if isinstance(gdata_any, dict) else {}
         members_any = gdata.get("members")
         members = members_any if isinstance(members_any, list) else []
