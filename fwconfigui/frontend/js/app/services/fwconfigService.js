@@ -303,6 +303,14 @@ async function getAddrUsedInRules(env, name) {
   return await fetchJson(url);
 }
 
+async function getAddrCleanupStrategyChoices(env) {
+  const product = getCurrentProduct();
+  if (!isNonEmptyString(product)) throw new Error("Select a product first");
+  const e = requireEnv(env);
+  const url = `/api/v1/products/${encodeURIComponent(product)}/addrs/${encodeURIComponent(e)}/cleanup-strategy-choices`;
+  return await fetchJson(url);
+}
+
 async function getGroupUsedInGroups(env, name) {
   const product = getCurrentProduct();
   if (!isNonEmptyString(product)) throw new Error("Select a product first");
@@ -320,6 +328,14 @@ async function getGroupUsedInRules(env, name) {
   const n = safeTrim(name);
   if (!n) throw new Error("name is required");
   const url = `/api/v1/products/${encodeURIComponent(product)}/groups/${encodeURIComponent(e)}/used-in-rules?name=${encodeURIComponent(n)}`;
+  return await fetchJson(url);
+}
+
+async function getGroupCleanupStrategyChoices(env) {
+  const product = getCurrentProduct();
+  if (!isNonEmptyString(product)) throw new Error("Select a product first");
+  const e = requireEnv(env);
+  const url = `/api/v1/products/${encodeURIComponent(product)}/groups/${encodeURIComponent(e)}/cleanup-strategy-choices`;
   return await fetchJson(url);
 }
 

@@ -6,6 +6,7 @@ function SingleSelectPicker({
   inputTestId,
   allowEmpty,
   emptyLabel,
+  allowCustom,
 }) {
   const normalizedOptions = Array.isArray(options) ? options : [];
   const selectedValue = safeTrim(value);
@@ -74,6 +75,11 @@ function SingleSelectPicker({
             const exact = normalizedOptions.find((x) => String(x).toLowerCase() === String(q).toLowerCase());
             if (exact) {
               chooseValue(exact);
+              return;
+            }
+
+            if (allowCustom) {
+              chooseValue(q);
               return;
             }
 

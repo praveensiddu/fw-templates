@@ -96,6 +96,17 @@ def used_in_rules(
     return {"ok": True, "env": env, "name": name, "items": items}
 
 
+@router.get("/cleanup-strategy-choices")
+def cleanup_strategy_choices(
+    request: Request,
+    product: str,
+    env: str,
+    service: GroupsService = Depends(get_service),
+) -> Dict[str, Any]:
+    items = service.get_cleanup_strategy_choices(env=env)
+    return {"ok": True, "env": env, "items": items}
+
+
 @router.post("/exclude")
 def exclude_from_import(
     request: Request,

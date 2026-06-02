@@ -1,4 +1,4 @@
-function GroupsTableView({ env, rows, filters, setFilters, onAdd, onCheckUsed, isCheckingUsed, onShowUsedInGroups, onShowUsedInRules, usedInGrpModal, setUsedInGrpModal, usedInRuleModal, setUsedInRuleModal, onEdit, onDelete, onExclude, onExcludeEnvCommon, editingKey, draft, setDraft, groupNameOptions, memberOptions, canSubmit, onCancelEdit, onSave }) {
+function GroupsTableView({ env, rows, filters, setFilters, onAdd, onCheckUsed, isCheckingUsed, onShowUsedInGroups, onShowUsedInRules, usedInGrpModal, setUsedInGrpModal, usedInRuleModal, setUsedInRuleModal, onEdit, onDelete, onExclude, onExcludeEnvCommon, editingKey, draft, setDraft, cleanupStrategyOptions, groupNameOptions, memberOptions, canSubmit, onCancelEdit, onSave }) {
   function normalizeFilename(v) {
     const s = String(v || "").trim();
     return s || "groups.yaml";
@@ -128,6 +128,34 @@ function GroupsTableView({ env, rows, filters, setFilters, onAdd, onCheckUsed, i
                     </div>
 
                     <div>
+                      <div className="muted" style={{ marginBottom: 4, display: "flex", alignItems: "center", justifyContent: "space-between", gap: 8 }}>
+                        <span>cleanup strategy</span>
+                        <button
+                          type="button"
+                          className="btn"
+                          style={{ padding: "4px 10px", lineHeight: 1, fontWeight: 650 }}
+                          title="Add cleanup strategy"
+                          onClick={() => {
+                            const v = safeTrim(window.prompt("New cleanup strategy", ""));
+                            if (v) setDraft((p) => ({ ...p, cleanupStrategy: v }));
+                          }}
+                        >
+                          +
+                        </button>
+                      </div>
+                      <SingleSelectPicker
+                        options={Array.isArray(cleanupStrategyOptions) ? cleanupStrategyOptions : []}
+                        value={safeTrim(draft.cleanupStrategy)}
+                        onChange={(v) => setDraft((p) => ({ ...p, cleanupStrategy: v }))}
+                        placeholder="Type to filter or add..."
+                        inputTestId="groups-panel-cleanup-strategy"
+                        allowEmpty={true}
+                        emptyLabel="(none)"
+                        allowCustom={true}
+                      />
+                    </div>
+
+                    <div>
                       <div className="muted" style={{ marginBottom: 4 }}>name-override</div>
                       <textarea
                         className="filterInput"
@@ -208,6 +236,7 @@ function GroupsTableView({ env, rows, filters, setFilters, onAdd, onCheckUsed, i
             <th className="fwTableHeaderCell" style={{ width: 160 }}>in-firewall</th>
             <th className="fwTableHeaderCell" style={{ width: 160 }}>in-fw-grp</th>
             <th className="fwTableHeaderCell" style={{ width: 160 }}>in-fw-rule</th>
+            <th className="fwTableHeaderCell" style={{ width: 220 }}>cleanup strategy</th>
             <th className="fwTableHeaderCell" style={{ width: 200 }}>
               <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 8 }}>
                 <span>File</span>
@@ -266,6 +295,14 @@ function GroupsTableView({ env, rows, filters, setFilters, onAdd, onCheckUsed, i
             </th>
             <th>
               <input
+                className={`filterInput ${isNonEmptyString(filters.cleanupStrategy) ? "filterInput-active" : ""}`}
+                placeholder="Filter cleanup strategy..."
+                value={filters.cleanupStrategy}
+                onChange={(e) => setFilters((p) => ({ ...p, cleanupStrategy: e.target.value }))}
+              />
+            </th>
+            <th>
+              <input
                 className={`filterInput ${isNonEmptyString(filters.filename) ? "filterInput-active" : ""}`}
                 placeholder="Filter file..."
                 value={filters.filename}
@@ -305,6 +342,7 @@ function GroupsTableView({ env, rows, filters, setFilters, onAdd, onCheckUsed, i
                 if (!Number.isFinite(n) || n <= 0) return "";
                 return String(n);
               })();
+              const cleanupStrategy = safeTrim(r?.data?.["cleanup-strategy"]) || "empty";
               return (
                 <tr key={`${safeTrim(r.filename) || "groups.yaml"}::${r.name || idx}`}>
                   <td>
@@ -359,6 +397,7 @@ function GroupsTableView({ env, rows, filters, setFilters, onAdd, onCheckUsed, i
                       "empty"
                     )}
                   </td>
+                  <td className="muted">{cleanupStrategy}</td>
                   <td className="muted">{safeTrim(r.filename) || "groups.yaml"}</td>
                   <td>
                     <button className="iconBtn" title="Edit" onClick={() => onEdit(r)}>
@@ -383,7 +422,7 @@ function GroupsTableView({ env, rows, filters, setFilters, onAdd, onCheckUsed, i
           )}
           {rows.length === 0 ? (
             <tr>
-              <td colSpan={8} className="muted">
+              <td colSpan={9} className="muted">
                 No items
               </td>
             </tr>

@@ -9,6 +9,12 @@ from backend.utils.yaml_utils import list_yaml_files, read_yaml_dict, write_yaml
 
 class GroupsService:
     _DEFAULT_FILENAME = "groups.yaml"
+    _CLEANUP_STRATEGY_FILENAME = "grps_cleanup_strategy.yaml"
+    _DEFAULT_CLEANUP_STRATEGIES = [
+        "delete after onboarding",
+        "fix members",
+        "rename after onboarding",
+    ]
 
     def __init__(self, product: Optional[str] = None):
         self._product = product
@@ -51,6 +57,69 @@ class GroupsService:
         root = get_fwconfigfiles_root(None) / "cloned-repositories" / repo_name / e / generated_prefix / "groups"
         root.mkdir(parents=True, exist_ok=True)
         return root
+
+    def _cleanup_strategy_path(self, env: str) -> Path:
+        return self._env_groups_metadata_dir(env) / self._CLEANUP_STRATEGY_FILENAME
+
+    def _read_cleanup_strategy_index(self, env: str) -> Dict[str, Any]:
+        path = self._cleanup_strategy_path(env)
+        raw_any = read_yaml_dict(path) if path.exists() else {}
+        raw = raw_any if isinstance(raw_any, dict) else {}
+
+        if "strategies" not in raw and "choices" not in raw:
+            strategies = {str(k or "").strip(): str(v or "").strip() for k, v in raw.items() if str(k or "").strip()}
+            strategies = {k: v for k, v in strategies.items() if v}
+            return {"choices": list(self._DEFAULT_CLEANUP_STRATEGIES), "strategies": strategies}
+
+        choices_raw = raw.get("choices")
+        if isinstance(choices_raw, list):
+            choices = [str(x or "").strip() for x in choices_raw]
+            choices = [x for x in choices if x]
+        else:
+            choices = []
+        for x in self._DEFAULT_CLEANUP_STRATEGIES:
+            if x not in choices:
+                choices.append(x)
+
+        strategies_raw = raw.get("strategies")
+        if isinstance(strategies_raw, dict):
+            strategies = {str(k or "").strip(): str(v or "").strip() for k, v in strategies_raw.items() if str(k or "").strip()}
+            strategies = {k: v for k, v in strategies.items() if v}
+        else:
+            strategies = {}
+
+        return {"choices": choices, "strategies": strategies}
+
+    def _write_cleanup_strategy_index(self, env: str, index: Dict[str, Any]) -> None:
+        path = self._cleanup_strategy_path(env)
+        path.parent.mkdir(parents=True, exist_ok=True)
+
+        choices_raw = index.get("choices") if isinstance(index, dict) else None
+        choices = choices_raw if isinstance(choices_raw, list) else []
+        choices = [str(x or "").strip() for x in choices]
+        choices = [x for x in choices if x]
+        for x in self._DEFAULT_CLEANUP_STRATEGIES:
+            if x not in choices:
+                choices.append(x)
+        choices = sorted(set(choices), key=lambda s: s.lower())
+
+        strategies_raw = index.get("strategies") if isinstance(index, dict) else None
+        strategies = strategies_raw if isinstance(strategies_raw, dict) else {}
+        strategies_clean: Dict[str, str] = {}
+        for k, v in strategies.items():
+            kk = str(k or "").strip()
+            vv = str(v or "").strip()
+            if kk and vv:
+                strategies_clean[kk] = vv
+
+        write_yaml_dict(path, {"choices": choices, "strategies": strategies_clean}, sort_keys=True)
+
+    def get_cleanup_strategy_choices(self, *, env: str) -> List[str]:
+        self._validate_env_exists(env)
+        e = self._normalize_env(env)
+        index = self._read_cleanup_strategy_index(e)
+        choices = index.get("choices") if isinstance(index, dict) else []
+        return choices if isinstance(choices, list) else []
 
     def _env_groups_metadata_dir(self, env: str) -> Path:
         e = self._normalize_env(env)
@@ -133,6 +202,11 @@ class GroupsService:
         items: List[Dict[str, Any]] = []
         root = self._env_groups_dir(env)
 
+        cleanup_index = self._read_cleanup_strategy_index(env)
+        cleanup_map = cleanup_index.get("strategies") if isinstance(cleanup_index, dict) else {}
+        cleanup_map = cleanup_map if isinstance(cleanup_map, dict) else {}
+        cleanup_map_lc = {str(k or "").strip().lower(): str(v or "").strip() for k, v in cleanup_map.items() if str(k or "").strip() and str(v or "").strip()}
+
         group2groups_path = self._env_groups_metadata_dir(env) / "fw_group2group.yaml"
         raw_group2groups = read_yaml_dict(group2groups_path) if group2groups_path.exists() else {}
         group2groups: Dict[str, List[str]] = raw_group2groups if isinstance(raw_group2groups, dict) else {}
@@ -177,6 +251,10 @@ class GroupsService:
                 rules = group2rules_lc.get(name.lower())
                 if rules:
                     data["used-in-rule"] = len(rules)
+
+                cs = cleanup_map_lc.get(name.lower())
+                if cs:
+                    data["cleanup-strategy"] = cs
                 items.append({"filename": p.name, "name": name, "data": data})
         return items
 
@@ -280,7 +358,10 @@ class GroupsService:
         key = self._normalize_name(name)
         prev = self._normalize_name(original_name) if str(original_name or "").strip() else ""
 
-        entry = self._validate_group_fields(data)
+        payload = dict(data or {})
+        cleanup_strategy_provided = "cleanup-strategy" in payload
+        cleanup_strategy = str(payload.pop("cleanup-strategy", "") or "").strip()
+        entry = self._validate_group_fields(payload)
 
         existing = self._find_existing(env=env, name=key)
         if existing:
@@ -290,6 +371,20 @@ class GroupsService:
 
         if prev and prev.lower() != key.lower():
             self._remove_key_from_all_files(env=env, key=prev)
+
+            idx = self._read_cleanup_strategy_index(env)
+            strategies = idx.get("strategies") if isinstance(idx, dict) else {}
+            strategies = dict(strategies) if isinstance(strategies, dict) else {}
+            moved = False
+            for k0 in list(strategies.keys()):
+                if str(k0 or "").strip().lower() == prev.lower():
+                    if not cleanup_strategy:
+                        cleanup_strategy = str(strategies.get(k0) or "").strip()
+                    strategies.pop(k0, None)
+                    moved = True
+            if moved:
+                idx["strategies"] = strategies
+                self._write_cleanup_strategy_index(env, idx)
 
         root = self._env_groups_dir(env)
         path = root / file_name
@@ -306,6 +401,32 @@ class GroupsService:
 
         groups[key] = entry
         self._write_groups_file(path, groups)
+
+        if cleanup_strategy_provided and not cleanup_strategy:
+            idx = self._read_cleanup_strategy_index(env)
+            strategies = idx.get("strategies") if isinstance(idx, dict) else {}
+            strategies = dict(strategies) if isinstance(strategies, dict) else {}
+            removed = False
+            for k0 in list(strategies.keys()):
+                if str(k0 or "").strip().lower() == key.lower():
+                    strategies.pop(k0, None)
+                    removed = True
+            if removed:
+                idx["strategies"] = strategies
+                self._write_cleanup_strategy_index(env, idx)
+
+        if cleanup_strategy:
+            idx = self._read_cleanup_strategy_index(env)
+            choices = idx.get("choices") if isinstance(idx, dict) else []
+            choices = list(choices) if isinstance(choices, list) else []
+            if cleanup_strategy not in choices:
+                choices.append(cleanup_strategy)
+            strategies = idx.get("strategies") if isinstance(idx, dict) else {}
+            strategies = dict(strategies) if isinstance(strategies, dict) else {}
+            strategies[key] = cleanup_strategy
+            idx["choices"] = choices
+            idx["strategies"] = strategies
+            self._write_cleanup_strategy_index(env, idx)
 
     def delete_item(self, *, env: str, filename: Optional[str], name: str) -> None:
         self._validate_env_exists(env)
@@ -325,3 +446,15 @@ class GroupsService:
             if kk and kk.lower() == key_lc:
                 groups.pop(k, None)
         self._write_groups_file(path, groups)
+
+        idx = self._read_cleanup_strategy_index(env)
+        strategies = idx.get("strategies") if isinstance(idx, dict) else {}
+        strategies = dict(strategies) if isinstance(strategies, dict) else {}
+        removed = False
+        for k0 in list(strategies.keys()):
+            if str(k0 or "").strip().lower() == key_lc:
+                strategies.pop(k0, None)
+                removed = True
+        if removed:
+            idx["strategies"] = strategies
+            self._write_cleanup_strategy_index(env, idx)
