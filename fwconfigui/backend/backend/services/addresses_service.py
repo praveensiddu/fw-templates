@@ -243,7 +243,7 @@ class AddressesService:
         items.sort(key=lambda d: (str(d.get("filename", "") or "").lower(), str(d.get("name", "") or "").lower()))
         return items
 
-    def build_address_used_in_group_metadata(self, *, env: str) -> Dict[str, Any]:
+    def build_addr_used_in_group_metadata(self, *, env: str) -> Dict[str, Any]:
         self._validate_env_exists(env)
         e = self._normalize_env(env)
 
@@ -252,7 +252,7 @@ class AddressesService:
             address_dir=self._env_addrs_dir(e),
             metadata_dir=self._env_address_metadata_dir(e),
         )
-    def build_address_used_in_rule_metadata(self, *, env: str) -> Dict[str, Any]:
+    def build_addr_used_in_rule_metadata(self, *, env: str) -> Dict[str, Any]:
         self._validate_env_exists(env)
         e = self._normalize_env(env)
 

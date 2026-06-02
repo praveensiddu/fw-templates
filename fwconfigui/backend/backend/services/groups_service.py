@@ -180,7 +180,7 @@ class GroupsService:
                 items.append({"filename": p.name, "name": name, "data": data})
         return items
 
-    def build_group_used_in_group_metadata(self, *, env: str) -> Dict[str, Any]:
+    def build_grp_used_in_group_metadata(self, *, env: str) -> Dict[str, Any]:
         self._validate_env_exists(env)
         e = self._normalize_env(env)
         return build_group_used_in_group_metadata(
@@ -188,7 +188,7 @@ class GroupsService:
             groups_dir=self._env_groups_dir(e),
             metadata_dir=self._env_groups_metadata_dir(e),
         )
-    def build_group_used_in_rule_metadata(self, *, env: str) -> Dict[str, Any]:
+    def build_grp_used_in_rule_metadata(self, *, env: str) -> Dict[str, Any]:
         self._validate_env_exists(env)
         e = self._normalize_env(env)
         return build_group_used_in_rule_metadata(

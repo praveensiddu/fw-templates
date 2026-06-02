@@ -418,7 +418,65 @@ def build_address_used_in_rule_metadata(*, env: str, address_dir: Path, metadata
     write_yaml_dict(out_path, addr2rule, sort_keys=True)
     return {"ok": True, "env": env, "output_file": str(out_path), "address_total": len(addr_names.keys())}
 
+def cleanup_address_not_used_by_product(*, address_dir: Path, groups_dir: Path, metadata_dir: Path) -> Dict[str, Any]:
+    address_dir.mkdir(parents=True, exist_ok=True)
+    groups_dir.mkdir(parents=True, exist_ok=True)
+    metadata_dir.mkdir(parents=True, exist_ok=True)
 
+    extract_addr_path = address_dir / "fm_extract_address.yaml"
+    raw_any = read_yaml_dict(extract_addr_path) if extract_addr_path.exists() else {}
+    raw = raw_any if isinstance(raw_any, dict) else {}
+    addresses_any = raw.get("addresses")
+    addresses = dict(addresses_any) if isinstance(addresses_any, dict) else {}
+
+    addr2rules_path = metadata_dir / "fw_address2rule.yaml"
+    addr2rules_any = read_yaml_dict(addr2rules_path) if addr2rules_path.exists() else {}
+    addr2rules = addr2rules_any if isinstance(addr2rules_any, dict) else {}
+    used_in_rules_lc = {str(k or "").strip().lower() for k in addr2rules.keys() if str(k or "").strip()}
+
+    extract_groups_path = groups_dir / "fm_extract_groups.yaml"
+    groups_raw_any = read_yaml_dict(extract_groups_path) if extract_groups_path.exists() else {}
+    groups_raw = groups_raw_any if isinstance(groups_raw_any, dict) else {}
+    groups_any = groups_raw.get("groups")
+    groups = groups_any if isinstance(groups_any, dict) else {}
+
+    used_in_groups_lc: set[str] = set()
+    for _, gdata_any in groups.items():
+        gdata = gdata_any if isinstance(gdata_any, dict) else {}
+        members_any = gdata.get("members")
+        members = members_any if isinstance(members_any, list) else []
+        for m in members:
+            s = str(m or "").strip()
+            if s:
+                used_in_groups_lc.add(s.lower())
+
+    kept: Dict[str, Any] = {}
+    removed_total = 0
+
+    for name, data in addresses.items():
+        n = str(name or "").strip()
+        if not n:
+            continue
+        n_lc = n.lower()
+
+        if n_lc in used_in_rules_lc:
+            kept[n] = data
+            continue
+
+        if n_lc not in used_in_groups_lc:
+            removed_total += 1
+            continue
+
+        kept[n] = data
+
+    write_yaml_dict(extract_addr_path, {"addresses": kept}, sort_keys=True)
+    return {
+        "ok": True,
+        "output_file": str(extract_addr_path),
+        "before_total": len(addresses.keys()),
+        "after_total": len(kept.keys()),
+        "removed_total": removed_total,
+    }
 
 def build_address_used_in_group_metadata(*, env: str, address_dir: Path, metadata_dir: Path) -> Dict[str, Any]:
     address_dir.mkdir(parents=True, exist_ok=True)

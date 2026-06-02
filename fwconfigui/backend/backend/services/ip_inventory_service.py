@@ -12,12 +12,14 @@ from backend.services.common_service import (
     build_address_used_in_rule_metadata,
     build_fortimgr_matched_groups_for_env,
     build_group_used_in_group_metadata,
+    build_group_used_in_rule_metadata,
     get_generated_folder_prefix,
     get_product_templates_repo_name,
     get_product_generated_repo_name,
     read_existing_addresses,
     read_existing_group_names,
     read_fortimgr_addrs_for_env,
+    cleanup_address_not_used_by_product,
 )
 from backend.utils.workspace import get_fwconfigfiles_root, get_settings_yaml_path
 from backend.utils.yaml_utils import list_yaml_files, read_yaml_dict, write_yaml_dict
@@ -278,14 +280,7 @@ class IpInventoryService:
         out_path = address_dir / "fm_extract_address.yaml"
         write_yaml_dict(out_path, {"addresses": addr_unmatch_dict}, sort_keys=True)
 
-        if str(self._product or "").strip():
-            AddressesService(product=str(self._product or "")).build_address_used_in_rule_metadata(env=e)
-        else:
-            build_address_used_in_rule_metadata(
-                env=e,
-                address_dir=address_dir,
-                metadata_dir=envgenfolder / "metadata" / "address",
-            )
+
 
         matched_groups = build_fortimgr_matched_groups_for_env(env=e, product_addr_match_dict=fm_addr_filtered_dict)
 
@@ -316,12 +311,38 @@ class IpInventoryService:
         out_groups_path = groups_dir / "fm_extract_groups.yaml"
         write_yaml_dict(out_groups_path, {"groups": matched_groups}, sort_keys=True)
 
+        if str(self._product or "").strip():
+            AddressesService(product=str(self._product or "")).build_addr_used_in_rule_metadata(env=e)
+        else:
+            build_address_used_in_rule_metadata(
+                env=e,
+                address_dir=address_dir,
+                metadata_dir=envgenfolder / "metadata" / "address",
+            )
+
+        build_address_used_in_rule_metadata(
+            env=e,
+            address_dir=address_dir,
+            metadata_dir=envgenfolder / "metadata" / "address",
+        )
+            
         build_group_used_in_group_metadata(
             env=e,
             groups_dir=groups_dir,
             metadata_dir=envgenfolder / "metadata" / "groups",
         )
-        
+
+        build_group_used_in_rule_metadata(
+            env=e,
+            groups_dir=groups_dir,
+            metadata_dir=envgenfolder / "metadata" / "groups",
+        )
+        # Need a second round of processing of address objects 
+        cleanup_address_not_used_by_product(
+            address_dir=address_dir,
+            groups_dir=groups_dir,
+            metadata_dir=envgenfolder / "metadata" / "address",
+        )
 
         return {
             "ok": True,
