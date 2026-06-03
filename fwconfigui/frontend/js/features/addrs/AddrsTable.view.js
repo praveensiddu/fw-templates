@@ -50,6 +50,10 @@ function AddrsTableView({ env, rows, filters, setFilters, onAdd, onCheckUsed, is
               </button>
             </div>
 
+            <div className="muted" style={{ marginBottom: 12, color: "#dc3545", fontWeight: 650 }}>
+              Address objects should not be used directly in source list or destination list in firewall rules. Firewall rules should only use groups instead.
+            </div>
+
             {usedInRuleModal?.loading ? <div className="muted">Loading...</div> : null}
             {!usedInRuleModal?.loading && isNonEmptyString(safeTrim(usedInRuleModal?.error)) ? <div className="muted">{safeTrim(usedInRuleModal?.error)}</div> : null}
             {!usedInRuleModal?.loading && !isNonEmptyString(safeTrim(usedInRuleModal?.error)) ? (
@@ -364,13 +368,13 @@ function AddrsTableView({ env, rows, filters, setFilters, onAdd, onCheckUsed, is
                       "empty"
                     )}
                   </td>
-                  <td className="muted">
+                  <td className="muted" style={isNonEmptyString(usedInRule) ? { color: "#dc3545" } : undefined}>
                     {isNonEmptyString(usedInRule) ? (
                       <button
                         type="button"
                         title="Show rules"
                         onClick={() => onShowUsedInRules(r)}
-                        style={{ padding: 0, height: "auto", border: "none", background: "none", color: "#0d6efd", cursor: "pointer", textDecoration: "underline" }}
+                        style={{ padding: 0, height: "auto", border: "none", background: "none", color: "#dc3545", cursor: "pointer", textDecoration: "underline" }}
                       >
                         {usedInRule}
                       </button>

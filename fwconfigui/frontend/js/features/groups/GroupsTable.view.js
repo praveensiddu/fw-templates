@@ -21,6 +21,10 @@ function GroupsTableView({ env, rows, filters, setFilters, onAdd, onCheckUsed, i
               </button>
             </div>
 
+            <div className="muted" style={{ marginBottom: 12, color: "#dc3545", fontWeight: 650 }}>
+              Nested group(group inside a group) is not a recommended practice
+            </div>
+
             {usedInGrpModal?.loading ? <div className="muted">Loading...</div> : null}
             {!usedInGrpModal?.loading && isNonEmptyString(safeTrim(usedInGrpModal?.error)) ? <div className="muted">{safeTrim(usedInGrpModal?.error)}</div> : null}
             {!usedInGrpModal?.loading && !isNonEmptyString(safeTrim(usedInGrpModal?.error)) ? (
@@ -369,13 +373,13 @@ function GroupsTableView({ env, rows, filters, setFilters, onAdd, onCheckUsed, i
                   <td className="muted" style={{ whiteSpace: "pre-line" }}>{(members || []).map((m) => safeTrim(m)).filter(Boolean).join("\n")}</td>
                   <td className="muted" style={{ whiteSpace: "pre-line" }}>{nameOverrideDisplay}</td>
                   <td className="muted">{inFirewall}</td>
-                  <td className="muted">
+                  <td className="muted" style={isNonEmptyString(usedInGrp) ? { color: "#dc3545" } : undefined}>
                     {isNonEmptyString(usedInGrp) ? (
                       <button
                         type="button"
                         title="Show groups"
                         onClick={() => onShowUsedInGroups(r)}
-                        style={{ padding: 0, height: "auto", border: "none", background: "none", color: "#0d6efd", cursor: "pointer", textDecoration: "underline" }}
+                        style={{ padding: 0, height: "auto", border: "none", background: "none", color: "#dc3545", cursor: "pointer", textDecoration: "underline" }}
                       >
                         {usedInGrp}
                       </button>
