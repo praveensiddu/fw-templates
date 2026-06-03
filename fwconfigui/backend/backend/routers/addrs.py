@@ -107,6 +107,31 @@ def cleanup_strategy_choices(
     return {"ok": True, "env": env, "items": items}
 
 
+@router.post("/prepare-legacy-grp2addr-appendlist")
+def prepare_legacy_grp2addr_appendlist(
+    request: Request,
+    product: str,
+    env: str,
+    service: AddressesService = Depends(get_service),
+) -> Dict[str, Any]:
+    resp = service.prepary_legacy_grp2addr_appendlist(env=env)
+    return dict(resp or {"ok": True})
+
+
+@router.post("/onboard")
+def onboard_from_fm_extract(
+    request: Request,
+    product: str,
+    env: str,
+    payload: SaveItemRequest,
+    service: AddressesService = Depends(get_service),
+) -> Dict[str, Any]:
+    name = str(payload.name or "").strip()
+    if not name:
+        return {"ok": False, "error": "name is required"}
+    return service.onboard_from_fm_extract(env=env, name=name)
+
+
 @router.post("/exclude")
 def exclude_from_import(
     request: Request,

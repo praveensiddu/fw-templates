@@ -107,6 +107,20 @@ def cleanup_strategy_choices(
     return {"ok": True, "env": env, "items": items}
 
 
+@router.post("/onboard")
+def onboard_from_fm_extract(
+    request: Request,
+    product: str,
+    env: str,
+    payload: SaveItemRequest,
+    service: GroupsService = Depends(get_service),
+) -> Dict[str, Any]:
+    name = str(payload.name or "").strip()
+    if not name:
+        return {"ok": False, "error": "name is required"}
+    return service.onboard_from_fm_extract(env=env, name=name)
+
+
 @router.post("/exclude")
 def exclude_from_import(
     request: Request,

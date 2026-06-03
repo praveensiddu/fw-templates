@@ -1,6 +1,8 @@
 function AddrsTable({ env, setLoading, setError }) {
   const [items, setItems] = React.useState([]);
   const [cleanupStrategyOptions, setCleanupStrategyOptions] = React.useState([]);
+  const [isPreparingLegacy, setIsPreparingLegacy] = React.useState(false);
+  const [isOnboarding, setIsOnboarding] = React.useState(false);
   const [editingKey, setEditingKey] = React.useState("");
   const [usedInGrpModal, setUsedInGrpModal] = React.useState({ isOpen: false, name: "", items: [], loading: false, error: "" });
   const [usedInRuleModal, setUsedInRuleModal] = React.useState({ isOpen: false, name: "", items: [], loading: false, error: "" });
@@ -56,6 +58,22 @@ function AddrsTable({ env, setLoading, setError }) {
       setIsCheckingUsed(false);
     }
   }, [env, isCheckingUsed, load, setLoading, setError]);
+
+  const onPrepareLegacyGrp2AddrAppendlist = React.useCallback(async () => {
+    if (isPreparingLegacy) return;
+    try {
+      setIsPreparingLegacy(true);
+      setLoading(true);
+      setError("");
+      await prepareLegacyGrp2AddrAppendlist(env);
+      await load();
+    } catch (e) {
+      setError(formatError(e));
+    } finally {
+      setLoading(false);
+      setIsPreparingLegacy(false);
+    }
+  }, [env, isPreparingLegacy, load, setLoading, setError]);
 
   const rows = React.useMemo(() => {
     return (items || []).map((it) => ({ ...it }));
@@ -226,6 +244,36 @@ function AddrsTable({ env, setLoading, setError }) {
     [env, setLoading, setError, load]
   );
 
+  const onOnboard = React.useCallback(
+    async (row) => {
+      if (isOnboarding) return;
+      const n = safeTrim(row?.name);
+      const fn = safeTrim(row?.filename) || "addresses.yaml";
+      if (!n) return;
+      try {
+        setIsOnboarding(true);
+        setLoading(true);
+        setError("");
+        await onboardAddrFromFmExtract(env, n);
+        setItems((prev) =>
+          (Array.isArray(prev) ? prev : []).filter((it) => {
+            const itName = safeTrim(it?.name);
+            const itFn = safeTrim(it?.filename) || "addresses.yaml";
+            return !(itName === n && itFn === fn);
+          })
+        );
+        await load();
+      } catch (e) {
+        setError(formatError(e));
+        await load();
+      } finally {
+        setLoading(false);
+        setIsOnboarding(false);
+      }
+    },
+    [env, isOnboarding, load, setLoading, setError]
+  );
+
   const onExcludeEnvCommon = React.useCallback(
     async (row) => {
       const n = safeTrim(row?.name);
@@ -292,6 +340,8 @@ function AddrsTable({ env, setLoading, setError }) {
         filters={filters}
         setFilters={setFilters}
         onAdd={onAdd}
+        onPrepareLegacyGrp2AddrAppendlist={onPrepareLegacyGrp2AddrAppendlist}
+        isPreparingLegacy={isPreparingLegacy}
         onCheckUsed={onCheckUsed}
         isCheckingUsed={isCheckingUsed}
         onShowUsedInGroups={onShowUsedInGroups}
@@ -302,6 +352,8 @@ function AddrsTable({ env, setLoading, setError }) {
         setUsedInRuleModal={setUsedInRuleModal}
         onEdit={onEdit}
         onDelete={onDelete}
+        onOnboard={onOnboard}
+        isOnboarding={isOnboarding}
         onExclude={onExclude}
         onExcludeEnvCommon={onExcludeEnvCommon}
         editingKey={editingKey}

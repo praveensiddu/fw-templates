@@ -10,6 +10,7 @@ function GroupsTable({ env, setLoading, setError }) {
   const [originalRef, setOriginalRef] = React.useState({ filename: "groups.yaml", name: "" });
   const [confirmDelete, setConfirmDelete] = React.useState({ show: false, row: null });
   const [isCheckingUsed, setIsCheckingUsed] = React.useState(false);
+  const [isOnboarding, setIsOnboarding] = React.useState(false);
 
   const load = React.useCallback(async () => {
     try {
@@ -236,6 +237,36 @@ function GroupsTable({ env, setLoading, setError }) {
     [env, setLoading, setError, load]
   );
 
+  const onOnboard = React.useCallback(
+    async (row) => {
+      if (isOnboarding) return;
+      const n = safeTrim(row?.name);
+      const fn = safeTrim(row?.filename) || "groups.yaml";
+      if (!n) return;
+      try {
+        setIsOnboarding(true);
+        setLoading(true);
+        setError("");
+        await onboardGroupFromFmExtract(env, n);
+        setItems((prev) =>
+          (Array.isArray(prev) ? prev : []).filter((it) => {
+            const itName = safeTrim(it?.name);
+            const itFn = safeTrim(it?.filename) || "groups.yaml";
+            return !(itName === n && itFn === fn);
+          })
+        );
+        await load();
+      } catch (e) {
+        setError(formatError(e));
+        await load();
+      } finally {
+        setLoading(false);
+        setIsOnboarding(false);
+      }
+    },
+    [env, isOnboarding, load, setLoading, setError]
+  );
+
   const onShowUsedInGroups = React.useCallback(
     async (row) => {
       const name = safeTrim(row?.name);
@@ -312,6 +343,8 @@ function GroupsTable({ env, setLoading, setError }) {
         setUsedInRuleModal={setUsedInRuleModal}
         onEdit={onEdit}
         onDelete={onDelete}
+        onOnboard={onOnboard}
+        isOnboarding={isOnboarding}
         onExclude={onExclude}
         onExcludeEnvCommon={onExcludeEnvCommon}
         editingKey={editingKey}

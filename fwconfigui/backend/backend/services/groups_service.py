@@ -274,6 +274,45 @@ class GroupsService:
             groups_dir=self._env_groups_dir(e),
             metadata_dir=self._env_groups_metadata_dir(e),
         )
+
+    def onboard_from_fm_extract(self, *, env: str, name: str) -> Dict[str, Any]:
+        self._validate_env_exists(env)
+        e = self._normalize_env(env)
+        key = self._normalize_name(name)
+
+        root = self._env_groups_dir(e)
+        extract_path = root / "fm_extract_groups.yaml"
+        onboarded_path = root / "fm_onboarded_groups.yaml"
+
+        extract_raw_any = read_yaml_dict(extract_path) if extract_path.exists() else {}
+        extract_raw = extract_raw_any if isinstance(extract_raw_any, dict) else {}
+        extract_groups_any = extract_raw.get("groups")
+        extract_groups = extract_groups_any if isinstance(extract_groups_any, dict) else {}
+
+        extract_key: Optional[str] = None
+        extract_val: Any = None
+        key_lc = key.lower()
+        for k0, v0 in list(extract_groups.items()):
+            kk = str(k0 or "").strip()
+            if kk and kk.lower() == key_lc:
+                extract_key = kk
+                extract_val = v0
+                break
+        if not extract_key:
+            raise ValidationError("name", f"'{key}' not found in fm_extract_groups.yaml")
+
+        extract_groups.pop(extract_key, None)
+        write_yaml_dict(extract_path, {"groups": extract_groups}, sort_keys=True)
+
+        onboard_raw_any = read_yaml_dict(onboarded_path) if onboarded_path.exists() else {}
+        onboard_raw = onboard_raw_any if isinstance(onboard_raw_any, dict) else {}
+        onboard_groups_any = onboard_raw.get("groups")
+        onboard_groups = onboard_groups_any if isinstance(onboard_groups_any, dict) else {}
+
+        onboard_groups[extract_key] = dict(extract_val) if isinstance(extract_val, dict) else extract_val
+        write_yaml_dict(onboarded_path, {"groups": onboard_groups}, sort_keys=True)
+
+        return {"ok": True, "env": e, "name": extract_key, "from": "fm_extract_groups.yaml", "to": "fm_onboarded_groups.yaml"}
         
 
     def get_group_used_in_groups(self, *, env: str, name: str) -> List[str]:

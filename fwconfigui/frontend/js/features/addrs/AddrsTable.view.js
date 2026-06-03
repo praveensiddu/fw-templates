@@ -1,4 +1,4 @@
-function AddrsTableView({ env, rows, filters, setFilters, onAdd, onCheckUsed, isCheckingUsed, onShowUsedInGroups, onShowUsedInRules, usedInGrpModal, setUsedInGrpModal, usedInRuleModal, setUsedInRuleModal, onEdit, onDelete, onExclude, onExcludeEnvCommon, editingKey, draft, setDraft, cleanupStrategyOptions, canSubmit, onCancelEdit, onSave }) {
+function AddrsTableView({ env, rows, filters, setFilters, onAdd, onPrepareLegacyGrp2AddrAppendlist, isPreparingLegacy, onCheckUsed, isCheckingUsed, onShowUsedInGroups, onShowUsedInRules, usedInGrpModal, setUsedInGrpModal, usedInRuleModal, setUsedInRuleModal, onEdit, onDelete, onOnboard, isOnboarding, onExclude, onExcludeEnvCommon, editingKey, draft, setDraft, cleanupStrategyOptions, canSubmit, onCancelEdit, onSave }) {
   function normalizeFilename(v) {
     const s = String(v || "").trim();
     return s || "addresses.yaml";
@@ -189,6 +189,19 @@ function AddrsTableView({ env, rows, filters, setFilters, onAdd, onCheckUsed, is
         <div style={{ display: "flex", alignItems: "center", gap: 8, marginLeft: "auto" }}>
           <button
             className="iconBtn"
+            title={isPreparingLegacy ? "Preparing..." : "Create legacy group to address"}
+            onClick={onPrepareLegacyGrp2AddrAppendlist}
+            disabled={!!isPreparingLegacy}
+            style={isPreparingLegacy ? { opacity: 0.6, cursor: "not-allowed" } : undefined}
+          >
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+              <path d="M12 5v14" />
+              <path d="M5 12h14" />
+              <path d="M7 3h10" />
+            </svg>
+          </button>
+          <button
+            className="iconBtn"
             title={isCheckingUsed ? "Checking..." : "Check if used"}
             onClick={onCheckUsed}
             disabled={!!isCheckingUsed}
@@ -335,6 +348,17 @@ function AddrsTableView({ env, rows, filters, setFilters, onAdd, onCheckUsed, is
                       <span>{r.name}</span>
                       {isFmExtract ? (
                         <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
+                          <button
+                            className="iconBtn"
+                            title={isOnboarding ? "Onboarding..." : "Onboard"}
+                            onClick={() => onOnboard(r)}
+                            disabled={!!isOnboarding}
+                            style={isOnboarding ? { opacity: 0.6, cursor: "not-allowed", color: "#198754" } : { color: "#198754" }}
+                          >
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                              <path d="M20 6L9 17l-5-5" />
+                            </svg>
+                          </button>
                           <button className="iconBtn iconBtn-danger" title="Exclude from import" onClick={() => onExclude(r)}>
                             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                               <circle cx="12" cy="12" r="10" />

@@ -1,4 +1,4 @@
-function GroupsTableView({ env, rows, filters, setFilters, onAdd, onCheckUsed, isCheckingUsed, onShowUsedInGroups, onShowUsedInRules, usedInGrpModal, setUsedInGrpModal, usedInRuleModal, setUsedInRuleModal, onEdit, onDelete, onExclude, onExcludeEnvCommon, editingKey, draft, setDraft, cleanupStrategyOptions, groupNameOptions, memberOptions, canSubmit, onCancelEdit, onSave }) {
+function GroupsTableView({ env, rows, filters, setFilters, onAdd, onCheckUsed, isCheckingUsed, onShowUsedInGroups, onShowUsedInRules, usedInGrpModal, setUsedInGrpModal, usedInRuleModal, setUsedInRuleModal, onEdit, onDelete, onOnboard, isOnboarding, onExclude, onExcludeEnvCommon, editingKey, draft, setDraft, cleanupStrategyOptions, groupNameOptions, memberOptions, canSubmit, onCancelEdit, onSave }) {
   function normalizeFilename(v) {
     const s = String(v || "").trim();
     return s || "groups.yaml";
@@ -354,6 +354,17 @@ function GroupsTableView({ env, rows, filters, setFilters, onAdd, onCheckUsed, i
                       <span>{r.name}</span>
                       {isFmExtract ? (
                         <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
+                          <button
+                            className="iconBtn"
+                            title={isOnboarding ? "Onboarding..." : "Onboard"}
+                            onClick={() => onOnboard(r)}
+                            disabled={!!isOnboarding}
+                            style={isOnboarding ? { opacity: 0.6, cursor: "not-allowed", color: "#198754" } : { color: "#198754" }}
+                          >
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                              <path d="M20 6L9 17l-5-5" />
+                            </svg>
+                          </button>
                           <button className="iconBtn iconBtn-danger" title="Exclude from import" onClick={() => onExclude(r)}>
                             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                               <circle cx="12" cy="12" r="10" />

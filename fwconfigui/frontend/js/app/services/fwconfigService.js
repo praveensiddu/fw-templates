@@ -211,6 +211,16 @@ async function excludeGroupFromEnvCommon(env, name) {
   return await postJson(url, { name: n });
 }
 
+async function onboardGroupFromFmExtract(env, name) {
+  const product = getCurrentProduct();
+  if (!isNonEmptyString(product)) throw new Error("Select a product first");
+  const e = requireEnv(env);
+  const n = safeTrim(name);
+  if (!n) throw new Error("name is required");
+  const url = `/api/v1/products/${encodeURIComponent(product)}/groups/${encodeURIComponent(e)}/onboard`;
+  return await postJson(url, { name: n });
+}
+
 async function listAddrs(env) {
   const product = getCurrentProduct();
   if (!isNonEmptyString(product)) throw new Error("Select a product first");
@@ -267,6 +277,16 @@ async function excludeAddrFromEnvCommon(env, name) {
   return await postJson(url, { name: n });
 }
 
+async function onboardAddrFromFmExtract(env, name) {
+  const product = getCurrentProduct();
+  if (!isNonEmptyString(product)) throw new Error("Select a product first");
+  const e = requireEnv(env);
+  const n = safeTrim(name);
+  if (!n) throw new Error("name is required");
+  const url = `/api/v1/products/${encodeURIComponent(product)}/addrs/${encodeURIComponent(e)}/onboard`;
+  return await postJson(url, { name: n });
+}
+
 async function checkAddrUsedInGroups(env) {
   const product = getCurrentProduct();
   if (!isNonEmptyString(product)) throw new Error("Select a product first");
@@ -309,6 +329,14 @@ async function getAddrCleanupStrategyChoices(env) {
   const e = requireEnv(env);
   const url = `/api/v1/products/${encodeURIComponent(product)}/addrs/${encodeURIComponent(e)}/cleanup-strategy-choices`;
   return await fetchJson(url);
+}
+
+async function prepareLegacyGrp2AddrAppendlist(env) {
+  const product = getCurrentProduct();
+  if (!isNonEmptyString(product)) throw new Error("Select a product first");
+  const e = requireEnv(env);
+  const url = `/api/v1/products/${encodeURIComponent(product)}/addrs/${encodeURIComponent(e)}/prepare-legacy-grp2addr-appendlist`;
+  return await postJson(url, {});
 }
 
 async function getGroupUsedInGroups(env, name) {

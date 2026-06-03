@@ -3,7 +3,14 @@ import ipaddress
 from typing import Any, Dict, List, Optional, Tuple
 
 from backend.exceptions.custom import AlreadyExistsError, ValidationError
-from backend.services.common_service import build_address_used_in_group_metadata, build_address_used_in_rule_metadata, get_generated_folder_prefix, get_product_generated_repo_name, get_product_templates_repo_name
+from backend.services.common_service import (
+    build_address_used_in_group_metadata,
+    build_address_used_in_rule_metadata,
+    get_generated_folder_prefix,
+    get_product_generated_repo_name,
+    get_product_templates_repo_name,
+    read_group_names,
+)
 from backend.utils.workspace import get_fwconfigfiles_root, get_settings_yaml_path
 from backend.utils.yaml_utils import list_yaml_files, read_yaml_dict, write_yaml_dict
 
@@ -493,3 +500,138 @@ class AddressesService:
         if removed:
             idx["strategies"] = strategies
             self._write_cleanup_strategy_index(env, idx)
+
+    def prepary_legacy_grp2addr_appendlist(self, *, env: str) -> Dict[str, Any]:
+        self._validate_env_exists(env)
+        e = self._normalize_env(env)
+
+        addr2groups_path = self._env_address_metadata_dir(e) / "fw_address2group.yaml"
+        addr2groups_any = read_yaml_dict(addr2groups_path) if addr2groups_path.exists() else {}
+        addr2groups = addr2groups_any if isinstance(addr2groups_any, dict) else {}
+
+        extract_addr_path = self._env_addrs_dir(e) / "fm_extract_address.yaml"
+        extract_any = read_yaml_dict(extract_addr_path) if extract_addr_path.exists() else {}
+        extract = extract_any if isinstance(extract_any, dict) else {}
+        fm_addrs_any = extract.get("addresses")
+        fm_addrs = fm_addrs_any if isinstance(fm_addrs_any, dict) else {}
+
+        groups_dir = (
+            get_fwconfigfiles_root(None)
+            / "cloned-repositories"
+            / self._get_generated_repo_name()
+            / e
+            / get_generated_folder_prefix()
+            / "groups"
+        )
+        groups_dir.mkdir(parents=True, exist_ok=True)
+
+        group_names = read_group_names(groups_dir=groups_dir)
+        group_names_lc = {str(k or "").strip().lower(): str(k or "").strip() for k in group_names.keys() if str(k or "").strip()}
+
+        group_members_lc: Dict[str, set[str]] = {}
+        for p in list_yaml_files(groups_dir):
+            doc_any = read_yaml_dict(p)
+            doc = doc_any if isinstance(doc_any, dict) else {}
+            groups_any = doc.get("groups")
+            groups = groups_any if isinstance(groups_any, dict) else {}
+            for gname, gdata_any in groups.items():
+                g = str(gname or "").strip()
+                if not g:
+                    continue
+                gdata = gdata_any if isinstance(gdata_any, dict) else {}
+                members_any = gdata.get("members")
+                members = members_any if isinstance(members_any, list) else []
+                mem_set = {str(m or "").strip().lower() for m in members if str(m or "").strip()}
+                group_members_lc[g.lower()] = mem_set
+
+        addr2groups_lc: Dict[str, List[str]] = {}
+        for k, v in addr2groups.items():
+            kk = str(k or "").strip()
+            if not kk:
+                continue
+            vv_any = v if isinstance(v, list) else []
+            vv = [str(x or "").strip() for x in vv_any if str(x or "").strip()]
+            addr2groups_lc[kk.lower()] = vv
+
+        legacy_grp2addr_appenddict: Dict[str, List[str]] = {}
+
+        for addr_name in fm_addrs.keys():
+            a = str(addr_name or "").strip()
+            if not a:
+                continue
+            a_lc = a.lower()
+            if a_lc not in addr2groups_lc:
+                continue
+
+            for grp in addr2groups_lc.get(a_lc) or []:
+                g = str(grp or "").strip()
+                if not g:
+                    continue
+                g_key = group_names_lc.get(g.lower())
+                if not g_key:
+                    continue
+
+                members = group_members_lc.get(g_key.lower()) or set()
+                if a_lc in members:
+                    continue
+                legacy_grp2addr_appenddict.setdefault(g_key, []).append(a)
+
+        out_groups: Dict[str, Any] = {}
+        for g, addrs in legacy_grp2addr_appenddict.items():
+            uniq = sorted({str(x or "").strip() for x in (addrs or []) if str(x or "").strip()})
+            out_groups[g] = {"members": uniq}
+
+        templates_repo = self._get_templates_repo_name()
+        out_path = (
+            get_fwconfigfiles_root(None)
+            / "cloned-repositories"
+            / templates_repo
+            / "overrides"
+            / e
+            / "legacy_grp2addr_appendlist.yaml"
+        )
+        out_path.parent.mkdir(parents=True, exist_ok=True)
+        write_yaml_dict(out_path, {"groups": out_groups}, sort_keys=True)
+
+        return {"ok": True, "env": e, "output_file": str(out_path), "group_total": len(out_groups.keys())}
+
+    def onboard_from_fm_extract(self, *, env: str, name: str) -> Dict[str, Any]:
+        self._validate_env_exists(env)
+        e = self._normalize_env(env)
+        key = self._normalize_name(name)
+
+        root = self._env_addrs_dir(e)
+        extract_path = root / "fm_extract_address.yaml"
+        onboarded_path = root / "fm_onboarded_address.yaml"
+
+        extract_raw_any = read_yaml_dict(extract_path) if extract_path.exists() else {}
+        extract_raw = extract_raw_any if isinstance(extract_raw_any, dict) else {}
+        extract_addrs_any = extract_raw.get("addresses")
+        extract_addrs = extract_addrs_any if isinstance(extract_addrs_any, dict) else {}
+
+        extract_key: Optional[str] = None
+        extract_val: Any = None
+        key_lc = key.lower()
+        for k0, v0 in list(extract_addrs.items()):
+            kk = str(k0 or "").strip()
+            if kk and kk.lower() == key_lc:
+                extract_key = kk
+                extract_val = v0
+                break
+        if not extract_key:
+            raise ValidationError("name", f"'{key}' not found in fm_extract_address.yaml")
+
+        extract_addrs.pop(extract_key, None)
+        self._write_addresses_file(extract_path, extract_addrs)
+
+        onboard_raw_any = read_yaml_dict(onboarded_path) if onboarded_path.exists() else {}
+        onboard_raw = onboard_raw_any if isinstance(onboard_raw_any, dict) else {}
+        onboard_addrs_any = onboard_raw.get("addresses")
+        onboard_addrs = onboard_addrs_any if isinstance(onboard_addrs_any, dict) else {}
+
+        onboard_addrs[extract_key] = dict(extract_val) if isinstance(extract_val, dict) else extract_val
+        self._write_addresses_file(onboarded_path, onboard_addrs)
+
+        return {"ok": True, "env": e, "name": extract_key, "from": "fm_extract_address.yaml", "to": "fm_onboarded_address.yaml"}
+
+
