@@ -386,7 +386,7 @@ async function importIpInventoryFromFortimgr(env) {
   if (!isNonEmptyString(product)) throw new Error("Select a product first");
   const e = requireEnv(env);
   const url = `/api/v1/products/${encodeURIComponent(product)}/ip_inventory/${encodeURIComponent(e)}/importfortimgr`;
-  return await postJson(url, {});
+  return await postJson(url, {}, { timeoutMs: 120000 });
 }
 
 async function bulkUploadIpInventory(env, text) {

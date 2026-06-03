@@ -24,9 +24,42 @@ async function readErrorMessage(res) {
   }
 }
 
-async function fetchJson(url) {
-  const res = await fetch(url, { headers: { Accept: "application/json" } });
+function withTimeout(fetchOptions, timeoutMs) {
+  const ms = Number(timeoutMs);
+  if (!Number.isFinite(ms) || ms <= 0) {
+    return { options: fetchOptions || {}, cancel: () => {} };
+  }
+
+  const controller = new AbortController();
+  const id = setTimeout(() => controller.abort(), ms);
+  const options = { ...(fetchOptions || {}), signal: controller.signal };
+  return {
+    options,
+    cancel: () => clearTimeout(id),
+  };
+}
+
+function isAbortError(e) {
+  return e && (e.name === "AbortError" || String(e.message || "").toLowerCase().includes("aborted"));
+}
+
+async function fetchJson(url, opts) {
+  const timeoutMs = opts && Number.isFinite(Number(opts.timeoutMs)) ? Number(opts.timeoutMs) : 120000;
+  const { options, cancel } = withTimeout({ headers: { Accept: "application/json" } }, timeoutMs);
+  let res;
+  try {
+    res = await fetch(url, options);
+  } catch (e) {
+    cancel();
+    if (isAbortError(e)) {
+      const err = new Error("Request timed out (504 Gateway Timeout). The server didn’t respond in time.");
+      err.status = 504;
+      throw err;
+    }
+    throw e;
+  }
   if (!res.ok) {
+    cancel();
     const info = await readErrorMessage(res);
     const err = new Error(info.message);
     err.status = info.status;
@@ -34,19 +67,38 @@ async function fetchJson(url) {
     err.rawText = info.rawText;
     throw err;
   }
+  cancel();
   return await res.json();
 }
 
-async function deleteJson(url, body) {
+async function deleteJson(url, body, opts) {
+  const timeoutMs = opts && Number.isFinite(Number(opts.timeoutMs)) ? Number(opts.timeoutMs) : 120000;
   const hasBody = body !== undefined && body !== null;
-  const res = await fetch(url, {
-    method: "DELETE",
-    headers: hasBody
-      ? { Accept: "application/json", "Content-Type": "application/json" }
-      : { Accept: "application/json" },
-    ...(hasBody ? { body: JSON.stringify(body) } : {}),
-  });
+  const { options, cancel } = withTimeout(
+    {
+      method: "DELETE",
+      headers: hasBody
+        ? { Accept: "application/json", "Content-Type": "application/json" }
+        : { Accept: "application/json" },
+      ...(hasBody ? { body: JSON.stringify(body) } : {}),
+    },
+    timeoutMs
+  );
+
+  let res;
+  try {
+    res = await fetch(url, options);
+  } catch (e) {
+    cancel();
+    if (isAbortError(e)) {
+      const err = new Error("Request timed out (504 Gateway Timeout). The server didn’t respond in time.");
+      err.status = 504;
+      throw err;
+    }
+    throw e;
+  }
   if (!res.ok) {
+    cancel();
     const info = await readErrorMessage(res);
     const err = new Error(info.message);
     err.status = info.status;
@@ -54,16 +106,35 @@ async function deleteJson(url, body) {
     err.rawText = info.rawText;
     throw err;
   }
+  cancel();
   return await res.json();
 }
 
-async function postJson(url, body) {
-  const res = await fetch(url, {
-    method: "POST",
-    headers: { Accept: "application/json", "Content-Type": "application/json" },
-    body: JSON.stringify(body || {}),
-  });
+async function postJson(url, body, opts) {
+  const timeoutMs = opts && Number.isFinite(Number(opts.timeoutMs)) ? Number(opts.timeoutMs) : 120000;
+  const { options, cancel } = withTimeout(
+    {
+      method: "POST",
+      headers: { Accept: "application/json", "Content-Type": "application/json" },
+      body: JSON.stringify(body || {}),
+    },
+    timeoutMs
+  );
+
+  let res;
+  try {
+    res = await fetch(url, options);
+  } catch (e) {
+    cancel();
+    if (isAbortError(e)) {
+      const err = new Error("Request timed out (504 Gateway Timeout). The server didn’t respond in time.");
+      err.status = 504;
+      throw err;
+    }
+    throw e;
+  }
   if (!res.ok) {
+    cancel();
     const info = await readErrorMessage(res);
     const err = new Error(info.message);
     err.status = info.status;
@@ -71,16 +142,35 @@ async function postJson(url, body) {
     err.rawText = info.rawText;
     throw err;
   }
+  cancel();
   return await res.json();
 }
 
-async function putJson(url, body) {
-  const res = await fetch(url, {
-    method: "PUT",
-    headers: { Accept: "application/json", "Content-Type": "application/json" },
-    body: JSON.stringify(body || {}),
-  });
+async function putJson(url, body, opts) {
+  const timeoutMs = opts && Number.isFinite(Number(opts.timeoutMs)) ? Number(opts.timeoutMs) : 120000;
+  const { options, cancel } = withTimeout(
+    {
+      method: "PUT",
+      headers: { Accept: "application/json", "Content-Type": "application/json" },
+      body: JSON.stringify(body || {}),
+    },
+    timeoutMs
+  );
+
+  let res;
+  try {
+    res = await fetch(url, options);
+  } catch (e) {
+    cancel();
+    if (isAbortError(e)) {
+      const err = new Error("Request timed out (504 Gateway Timeout). The server didn’t respond in time.");
+      err.status = 504;
+      throw err;
+    }
+    throw e;
+  }
   if (!res.ok) {
+    cancel();
     const info = await readErrorMessage(res);
     const err = new Error(info.message);
     err.status = info.status;
@@ -88,5 +178,6 @@ async function putJson(url, body) {
     err.rawText = info.rawText;
     throw err;
   }
+  cancel();
   return await res.json();
 }
