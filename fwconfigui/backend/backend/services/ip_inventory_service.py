@@ -21,10 +21,12 @@ from backend.services.common_service import (
     read_fortimgr_addrs_for_env,
     cleanup_address_not_used_by_product,
 )
+from backend.utils.logging_utils import log_all_methods
 from backend.utils.workspace import get_fwconfigfiles_root, get_settings_yaml_path
 from backend.utils.yaml_utils import list_yaml_files, read_yaml_dict, write_yaml_dict
 
 
+@log_all_methods()
 class IpInventoryService:
     _FILENAME = "ip_inventory.yaml"
 

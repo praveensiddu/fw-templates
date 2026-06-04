@@ -4,12 +4,14 @@ from typing import Any, Dict, List, Optional, Tuple
 
 from backend.exceptions.custom import ValidationError
 from backend.services.common_service import get_product_templates_repo_name
+from backend.utils.logging_utils import log_all_methods
 from backend.utils.workspace import get_fwconfigfiles_root
 from backend.utils.yaml_utils import list_yaml_files, read_yaml_dict, write_yaml_dict
 
 _BUSINESS_PURPOSE_FILENAME = "business-purpose.yaml"
 
 
+@log_all_methods()
 class BusinessPurposeService:
     def __init__(self, product: Optional[str] = None):
         self._product = product

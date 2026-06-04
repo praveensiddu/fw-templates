@@ -5,10 +5,12 @@ from backend.exceptions.custom import ValidationError
 from backend.services.common_service import get_product_templates_repo_name
 from backend.utils.workspace import get_fwconfigfiles_root
 from backend.utils.yaml_utils import read_yaml_dict, write_yaml_dict
+from backend.utils.logging_utils import log_all_methods
 
 _RULE_FILES_FILENAME = "rule-files.yaml"
 
 
+@log_all_methods()
 class RuleFilesService:
     def __init__(self, product: Optional[str] = None):
         self._product = product

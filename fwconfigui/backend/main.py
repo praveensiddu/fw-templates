@@ -1,5 +1,6 @@
 """FastAPI application entrypoint."""
 
+import copy
 import logging
 import os
 import uvicorn
@@ -14,10 +15,12 @@ except Exception:
     pass
 from backend.swaggerui import attach_local_swagger
 
-from fastapi import FastAPI, HTTPException
+from fastapi import FastAPI, HTTPException, Request
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import FileResponse
 from fastapi.staticfiles import StaticFiles
+from starlette.routing import Match
+from uvicorn.config import LOGGING_CONFIG
 
 from backend.config.settings import settings
 from backend.exceptions.handlers import register_exception_handlers
@@ -79,6 +82,37 @@ app = FastAPI(
     openapi_url="/api/openapi.json",
 )
 
+
+@app.middleware("http")
+async def log_started_completed(request: Request, call_next):
+    endpoint = request.scope.get("endpoint")
+
+    if endpoint is None:
+        for route in request.app.router.routes:
+            match, child_scope = route.matches(request.scope)
+            if match == Match.FULL:
+                endpoint = child_scope.get("endpoint")
+                break
+
+    if endpoint is not None:
+        endpoint_name = getattr(endpoint, "__qualname__", getattr(endpoint, "__name__", "<unknown>"))
+        endpoint_mod = str(getattr(endpoint, "__module__", "") or "").strip() or "<unknown_module>"
+        endpoint_filename = getattr(getattr(endpoint, "__code__", None), "co_filename", "")
+        endpoint_file_label = (
+            endpoint_filename.rsplit("/", 1)[-1]
+            if isinstance(endpoint_filename, str) and endpoint_filename
+            else "<unknown_file>"
+        )
+        name = f"{endpoint_mod}.{endpoint_name} [{endpoint_file_label}]"
+    else:
+        name = "<unknown>"
+
+    logger.info("started %s", name)
+    try:
+        return await call_next(request)
+    finally:
+        logger.info("completed %s", name)
+
 app.add_middleware(
     CORSMiddleware,
     allow_origins=["*"],
@@ -136,12 +170,35 @@ def frontend_spa_fallback(full_path: str):
     return FileResponse(INDEX_HTML)
 
 
+def _build_log_config() -> dict:
+    cfg = copy.deepcopy(LOGGING_CONFIG)
+    formatters = cfg.get("formatters") if isinstance(cfg.get("formatters"), dict) else {}
+
+    default_fmt = "%(asctime)s %(levelprefix)s %(message)s"
+    access_fmt = "%(asctime)s %(levelprefix)s %(client_addr)s - \"%(request_line)s\" %(status_code)s"
+    datefmt = "%Y-%m-%d %H:%M:%S"
+
+    if "default" in formatters and isinstance(formatters.get("default"), dict):
+        formatters["default"]["fmt"] = default_fmt
+        formatters["default"]["datefmt"] = datefmt
+        formatters["default"].pop("use_colors", None)
+
+    if "access" in formatters and isinstance(formatters.get("access"), dict):
+        formatters["access"]["fmt"] = access_fmt
+        formatters["access"]["datefmt"] = datefmt
+        formatters["access"].pop("use_colors", None)
+
+    cfg["formatters"] = formatters
+    return cfg
+
+
 if __name__ == "__main__":
 
     uvicorn.run(
         app,
         host="localhost",
         port=8099,
+        log_config=_build_log_config(),
         reload=False,
         timeout_keep_alive=300,  # default 5s
         limit_concurrency=1000  # optional: don’t reject parallel requests

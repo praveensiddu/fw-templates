@@ -10,10 +10,12 @@ from backend.services.business_purpose_service import BusinessPurposeService
 from backend.services.env_service import EnvService
 from backend.services.keywords_service import KeywordsService
 from backend.services.port_protocol_service import PortProtocolService
+from backend.utils.logging_utils import log_all_methods
 
 logger = logging.getLogger("uvicorn.error")
 
 
+@log_all_methods()
 class FwConfigService:
     """Business logic for fwconfig YAML entities."""
 

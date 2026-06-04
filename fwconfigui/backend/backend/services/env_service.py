@@ -1,10 +1,12 @@
 from pathlib import Path
 from typing import Any, Dict, List
 
+from backend.utils.logging_utils import log_all_methods
 from backend.utils.workspace import get_settings_yaml_path
 from backend.utils.yaml_utils import read_yaml_dict, write_yaml_dict
 
 
+@log_all_methods()
 class EnvService:
     _FIXED_FILENAME = "env.yaml"
 

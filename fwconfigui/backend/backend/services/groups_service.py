@@ -3,10 +3,12 @@ from typing import Any, Dict, List, Optional, Tuple
 
 from backend.exceptions.custom import AlreadyExistsError, ValidationError
 from backend.services.common_service import build_group_used_in_group_metadata, build_group_used_in_rule_metadata, get_generated_folder_prefix, get_product_generated_repo_name, get_product_templates_repo_name
+from backend.utils.logging_utils import log_all_methods
 from backend.utils.workspace import get_fwconfigfiles_root, get_settings_yaml_path
 from backend.utils.yaml_utils import list_yaml_files, read_yaml_dict, write_yaml_dict
 
 
+@log_all_methods()
 class GroupsService:
     _DEFAULT_FILENAME = "groups.yaml"
     _CLEANUP_STRATEGY_FILENAME = "grps_cleanup_strategy.yaml"

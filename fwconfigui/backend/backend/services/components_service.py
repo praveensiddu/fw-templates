@@ -4,6 +4,7 @@ from typing import Any, Dict, List, Optional
 
 from backend.exceptions.custom import ValidationError
 from backend.services.common_service import get_product_templates_repo_name
+from backend.utils.logging_utils import log_all_methods
 from backend.utils.workspace import get_fwconfigfiles_root
 from backend.utils.yaml_utils import list_yaml_files, read_yaml_dict, write_yaml_dict
 
@@ -11,6 +12,7 @@ _COMPONENTS_FILENAME = "components.yaml"
 _ALLOWED_SITE_ENVS = {"prd", "pac", "rtb", "ent", "dev"}
 
 
+@log_all_methods()
 class ComponentsService:
     def __init__(self, product: Optional[str] = None):
         self._product = product

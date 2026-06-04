@@ -11,10 +11,12 @@ from backend.services.common_service import (
     get_product_templates_repo_name,
     read_group_names,
 )
+from backend.utils.logging_utils import log_all_methods
 from backend.utils.workspace import get_fwconfigfiles_root, get_settings_yaml_path
 from backend.utils.yaml_utils import list_yaml_files, read_yaml_dict, write_yaml_dict
 
 
+@log_all_methods()
 class AddressesService:
     _DEFAULT_FILENAME = "addresses.yaml"
     _CLEANUP_STRATEGY_FILENAME = "addrs_cleanup_strategy.yaml"

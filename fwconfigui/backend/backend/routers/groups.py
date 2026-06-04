@@ -1,5 +1,6 @@
 """API routes for product-scoped groups."""
 
+import logging
 import os
 from pathlib import Path
 
@@ -145,8 +146,6 @@ def exclude_from_import(
     raw[name] = {}
     write_yaml_dict(path, raw, sort_keys=True)
     return {"ok": True}
-
-
 @router.post("/exclude-common")
 def exclude_from_env_common(
     request: Request,

@@ -3,6 +3,7 @@ from pathlib import Path
 from typing import Any, Dict, List, Optional, Tuple
 
 from backend.exceptions.custom import ValidationError
+from backend.utils.logging_utils import log_all_methods
 from backend.utils.yaml_utils import list_yaml_files
 from backend.services.common_service import get_product_templates_repo_name
 from backend.utils.workspace import get_fwconfigfiles_root
@@ -11,6 +12,7 @@ from backend.utils.yaml_utils import read_yaml_dict, write_yaml_dict
 _PORT_PROTOCOL_FILENAME = "port-protocol.yaml"
 
 
+@log_all_methods()
 class PortProtocolService:
     def __init__(self, product: Optional[str] = None):
         self._product = product

@@ -3,10 +3,12 @@ from pathlib import Path
 from typing import Any, Dict, List
 
 from backend.exceptions.custom import AlreadyExistsError, ValidationError
+from backend.utils.logging_utils import log_all_methods
 from backend.utils.workspace import get_settings_yaml_path
 from backend.utils.yaml_utils import read_yaml_dict, write_yaml_dict
 
 
+@log_all_methods()
 class NetworkAreasService:
     _FIXED_FILENAME = "networkareas.yaml"
 
