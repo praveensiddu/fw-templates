@@ -25,11 +25,16 @@ def write_yaml_dict(path: Path, data: Dict[str, Any], sort_keys: bool = False) -
     path.write_text(yaml.safe_dump(data, sort_keys=sort_keys))
 
 
-def list_yaml_files(root: Path) -> List[Path]:
-    """List YAML files directly under root (non-recursive)."""
+def list_yaml_files(root: Path, *, recursive: bool = False) -> List[Path]:
+    """List YAML files under root."""
 
     if not root.exists() or not root.is_dir():
         return []
+
+    if recursive:
+        files = [p for p in root.rglob("*.yaml") if p.is_file()]
+        return sorted(files)
+
     out: List[Path] = []
     for p in sorted(root.iterdir()):
         if not p.is_file():
