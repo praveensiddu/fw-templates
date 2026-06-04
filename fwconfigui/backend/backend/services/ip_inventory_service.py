@@ -10,6 +10,7 @@ from backend.models import SaveItemRequest
 from backend.services.addresses_service import AddressesService
 from backend.services.common_service import (
     build_address_used_in_rule_metadata,
+    build_address_used_in_group_metadata,
     build_fortimgr_matched_groups_for_env,
     build_group_used_in_group_metadata,
     build_group_used_in_rule_metadata,
@@ -320,12 +321,12 @@ class IpInventoryService:
                 metadata_dir=envgenfolder / "metadata" / "address",
             )
 
-        build_address_used_in_rule_metadata(
+            
+        build_address_used_in_group_metadata(
             env=e,
             address_dir=address_dir,
             metadata_dir=envgenfolder / "metadata" / "address",
         )
-            
         build_group_used_in_group_metadata(
             env=e,
             groups_dir=groups_dir,
