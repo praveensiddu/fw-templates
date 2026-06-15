@@ -19,6 +19,8 @@ p, platform_admin, /products/*/groups, (GET|POST|PUT|DELETE), True
 p, platform_admin, /products/*/addrs, (GET|POST|PUT|DELETE), True
 p, platform_admin, /settings/enforcement, (GET|PUT), True
 p, platform_admin, /access_requests, GET, True
+p, platform_admin, /product_access, POST, True
+p, platform_admin, /global_access, POST, True
 p, platform_admin, /infra/env, (GET|POST|PUT|DELETE), True
 p, platform_admin, /infra/networkarea, (GET|POST|PUT|DELETE), True
 p, platform_admin, /infra/site, (GET|POST|PUT|DELETE), True
@@ -31,6 +33,8 @@ p, role_mgmt_admin, /role-management/userglobal/*, (GET|POST|PUT|DELETE), True
 p, role_mgmt_admin, /role-management/users, GET, True
 p, role_mgmt_admin, /settings/enforcement, (GET|PUT), True
 p, role_mgmt_admin, /access_requests, GET, True
+p, role_mgmt_admin, /product_access, POST, True
+p, role_mgmt_admin, /global_access, POST, True
 
 p, viewall, /products, GET, True
 p, viewall, /products/*, GET, True
@@ -43,6 +47,8 @@ p, viewall, /products/*/rule-files, GET, True
 p, viewall, /products/*/groups, GET, True
 p, viewall, /products/*/addrs, GET, True
 p, viewall, /access_requests, GET, True
+p, viewall, /product_access, POST, True
+p, viewall, /global_access, POST, True
 p, viewall, /infra/env, GET, True
 p, viewall, /infra/networkarea, GET, True
 p, viewall, /infra/site, GET, True
@@ -59,6 +65,8 @@ p, manager, /products/*/groups, (GET|POST|PUT|DELETE), True
 p, manager, /products/*/addrs, (GET|POST|PUT|DELETE), True
 p, manager, /settings/enforcement, (GET|PUT), True
 p, manager, /access_requests, GET, True
+p, manager, /product_access, POST, True
+p, manager, /global_access, POST, True
 p, manager, /infra/env, (GET), True
 p, manager, /infra/networkarea, (GET), True
 p, manager, /infra/site, (GET), True
@@ -74,6 +82,8 @@ p, viewer, /products/*/rule-files, (GET), True
 p, viewer, /products/*/groups, (GET), True
 p, viewer, /products/*/addrs, (GET), True
 p, viewer, /access_requests, GET, True
+p, viewer, /product_access, POST, True
+p, viewer, /global_access, POST, True
 p, viewer, /infra/env, (GET), True
 p, viewer, /infra/networkarea, (GET), True
 p, viewer, /infra/site, (GET), True

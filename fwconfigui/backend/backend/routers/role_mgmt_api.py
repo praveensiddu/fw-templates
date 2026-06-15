@@ -10,6 +10,7 @@ import yaml
 
 from backend.auth.role_mgmt_impl import RoleMgmtImpl
 from backend.dependencies import get_current_user
+from backend.routers.access_request_api import get_access_requests_store_path
 
 
 rolemgmtimpl = RoleMgmtImpl.get_instance()
@@ -139,7 +140,7 @@ def create_rolemgmt_router(
             "assigned"
         )
         try:
-            store_path = (Path.home() / "workspace" / "fwconfigfiles" / "temp" / "accessrequests.yaml")
+            store_path = get_access_requests_store_path()
             raw = None
             if store_path.exists() and store_path.is_file():
                 loaded = yaml.safe_load(store_path.read_text())
