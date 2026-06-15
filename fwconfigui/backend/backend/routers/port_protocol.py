@@ -4,6 +4,7 @@ from typing import Any, Dict
 
 from fastapi import APIRouter, Depends, Request
 
+from backend.auth.rbac import enforce_request, get_current_user_context
 from backend.models import DedupePortProtocolRequest, PortProtocolOverrideRequest, SaveItemRequest
 from backend.services.port_protocol_service import PortProtocolService
 
@@ -15,7 +16,13 @@ def get_service(product: str) -> PortProtocolService:
 
 
 @router.get("")
-def list_items(request: Request, product: str, service: PortProtocolService = Depends(get_service)):
+def list_items(
+    request: Request,
+    product: str,
+    service: PortProtocolService = Depends(get_service),
+    user_context: Dict[str, Any] = Depends(get_current_user_context),
+):
+    enforce_request(user_context, f"/products/{product}/port-protocol", "GET", {"id": product})
     items = service.list_items()
     return {"type": "port-protocol", "items": items}
 
@@ -26,7 +33,9 @@ def save_item(
     product: str,
     payload: SaveItemRequest,
     service: PortProtocolService = Depends(get_service),
+    user_context: Dict[str, Any] = Depends(get_current_user_context),
 ) -> Dict[str, Any]:
+    enforce_request(user_context, f"/products/{product}/port-protocol", "POST", {"id": product})
     data = dict(payload.data or {})
     service.save_item(
         name=payload.name,
@@ -42,7 +51,9 @@ def update_item(
     product: str,
     payload: SaveItemRequest,
     service: PortProtocolService = Depends(get_service),
+    user_context: Dict[str, Any] = Depends(get_current_user_context),
 ) -> Dict[str, Any]:
+    enforce_request(user_context, f"/products/{product}/port-protocol", "PUT", {"id": product})
     data = dict(payload.data or {})
     service.save_item(
         name=payload.name,
@@ -58,7 +69,9 @@ def delete_item(
     product: str,
     name: str,
     service: PortProtocolService = Depends(get_service),
+    user_context: Dict[str, Any] = Depends(get_current_user_context),
 ) -> Dict[str, Any]:
+    enforce_request(user_context, f"/products/{product}/port-protocol", "DELETE", {"id": product})
     service.delete_item(name=name)
     return {"ok": True}
 
@@ -69,7 +82,9 @@ def dedupe_item(
     product: str,
     payload: DedupePortProtocolRequest,
     service: PortProtocolService = Depends(get_service),
+    user_context: Dict[str, Any] = Depends(get_current_user_context),
 ) -> Dict[str, Any]:
+    enforce_request(user_context, f"/products/{product}/port-protocol", "POST", {"id": product})
     updated_files, updated_refs = service.dedupe_item(duplicate_name=payload.duplicate_name, original_name=payload.original_name)
     return {"ok": True, "updated_fw_rules_files": updated_files, "updated_fw_rules_references": updated_refs}
 
@@ -80,7 +95,9 @@ def put_service_override(
     product: str,
     payload: PortProtocolOverrideRequest,
     service: PortProtocolService = Depends(get_service),
+    user_context: Dict[str, Any] = Depends(get_current_user_context),
 ) -> Dict[str, Any]:
+    enforce_request(user_context, f"/products/{product}/port-protocol", "PUT", {"id": product})
     service.save_override(
         name=payload.name,
         port=payload.port,
