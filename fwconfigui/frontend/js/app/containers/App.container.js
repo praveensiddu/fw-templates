@@ -1,3 +1,21 @@
+function normalizeDemoUsers(raw) {
+  if (Array.isArray(raw)) {
+    return raw
+      .map((x) => {
+        if (typeof x === "string") return safeTrim(x);
+        if (x && typeof x === "object") return safeTrim(x.userid || x.user || x.username);
+        return "";
+      })
+      .filter(Boolean);
+  }
+  if (raw && typeof raw === "object") {
+    return Object.keys(raw)
+      .map((k) => safeTrim(k))
+      .filter(Boolean);
+  }
+  return [];
+}
+
 function App() {
   const initialPathname = String(window?.location?.pathname || "/");
   const initialTopTab = (() => {
@@ -5,6 +23,7 @@ function App() {
     if (p === "/products" || p === "/infra/products") return "products";
     if (p.startsWith("/products/")) return "products";
     if (p === "/env" || p === "/infra" || p.startsWith("/infra/")) return "infra";
+    if (p === "/access-requests" || p.startsWith("/access-requests/")) return "access-requests";
     if (p === "/role-management" || p.startsWith("/role-management/")) return "role-mgmt";
     return "products";
   })();
@@ -35,6 +54,7 @@ function App() {
     () => ({
       products: "/products",
       infra: "/infra",
+      "access-requests": "/access-requests",
       "role-mgmt": "/role-management",
     }),
     []
@@ -59,6 +79,9 @@ function App() {
   const [routeVersion, setRouteVersion] = React.useState(0);
   const [loading, setLoading] = React.useState(false);
   const [error, setError] = React.useState("");
+  const [currentUser, setCurrentUserState] = React.useState(null);
+  const [demoUsers, setDemoUsers] = React.useState([]);
+  const [userBusy, setUserBusy] = React.useState(false);
 
   const [infraEnvItems, setInfraEnvItems] = React.useState([]);
   const [productItems, setProductItems] = React.useState([]);
@@ -72,6 +95,40 @@ function App() {
 
   const lastAllowedPathRef = React.useRef("/rule-templates");
   const fetchProductRecordRetryRef = React.useRef(0);
+
+  const loadAuthContext = React.useCallback(async () => {
+    try {
+      const [userResp, demoResp] = await Promise.all([fetchCurrentUser(), fetchDemoUsers()]);
+      setCurrentUserState(userResp || null);
+      setDemoUsers(normalizeDemoUsers(demoResp));
+    } catch (e) {
+      // Ignore auth load errors here; feature pages will surface errors on use.
+    }
+  }, []);
+
+  React.useEffect(() => {
+    loadAuthContext();
+  }, [loadAuthContext]);
+
+  const handleSwitchDemoUser = React.useCallback(
+    async (user) => {
+      const next = safeTrim(user);
+      if (!next) return;
+      try {
+        setUserBusy(true);
+        setError("");
+        await setCurrentUser(next);
+        const userResp = await fetchCurrentUser();
+        setCurrentUserState(userResp || null);
+        setRouteVersion((v) => v + 1);
+      } catch (e) {
+        setError(formatError(e));
+      } finally {
+        setUserBusy(false);
+      }
+    },
+    []
+  );
 
   const canNavigateAway = React.useCallback(async () => {
     const guard = window.__fwRulesNavGuard;
@@ -161,6 +218,8 @@ function App() {
       setActiveTab("products");
     } else if (p === "/env" || p === "/infra" || p.startsWith("/infra/")) {
       setActiveTab("infra");
+    } else if (p === "/access-requests" || p.startsWith("/access-requests/")) {
+      setActiveTab("access-requests");
     } else if (p === "/role-management" || p.startsWith("/role-management/")) {
       setActiveTab("role-mgmt");
     } else {
@@ -210,6 +269,8 @@ function App() {
         setActiveTab("products");
       } else if (p === "/env" || p === "/infra" || p.startsWith("/infra/")) {
         setActiveTab("infra");
+      } else if (p === "/access-requests" || p.startsWith("/access-requests/")) {
+        setActiveTab("access-requests");
       } else if (p === "/role-management" || p.startsWith("/role-management/")) {
         setActiveTab("role-mgmt");
       } else {
@@ -667,6 +728,9 @@ function App() {
         </>
       );
     }
+    if (activeTab === "access-requests") {
+      return <AccessRequests setLoading={setLoading} setError={setError} routeVersion={routeVersion} />;
+    }
     if (activeTab === "role-mgmt") {
       return <RoleMgmt setLoading={setLoading} setError={setError} />;
     }
@@ -677,6 +741,10 @@ function App() {
     <>
       <AppView
         activeTab={activeTab}
+        currentUser={currentUser}
+        demoUsers={demoUsers}
+        onSwitchDemoUser={handleSwitchDemoUser}
+        userBusy={userBusy}
         onSetTab={async (t) => {
           const ok = await canNavigateAway();
           if (!ok) return;
@@ -688,6 +756,10 @@ function App() {
           if (t === "infra") {
             setInfraSubTab("env");
             nextPath = "/infra/env";
+          }
+
+          if (t === "access-requests") {
+            nextPath = "/access-requests";
           }
 
           if (t === "role-mgmt") {

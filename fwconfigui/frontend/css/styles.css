@@ -29,6 +29,66 @@ body {
   color: #ffffff;
 }
 
+.topbarUserSection {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+}
+
+.topbarMeta {
+  color: rgba(255, 255, 255, 0.88);
+  font-size: 13px;
+}
+
+.topbarUserInfo {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 2px;
+}
+
+.topbarUserName {
+  color: #ffffff;
+  font-weight: 650;
+  font-size: 14px;
+}
+
+.topbarUserRoles {
+  color: rgba(255, 255, 255, 0.82);
+  font-size: 12px;
+  max-width: 360px;
+  text-align: right;
+}
+
+.topbarDemoSelect {
+  padding: 6px 10px;
+  border: 1px solid rgba(255, 255, 255, 0.35);
+  border-radius: 8px;
+  background: rgba(255, 255, 255, 0.12);
+  color: #ffffff;
+  font-size: 13px;
+  cursor: pointer;
+}
+
+.topbarDemoSelect:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.accessRequestForms {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
+  gap: 12px;
+}
+
+.accessRequestFormGrid {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 12px;
+}
+
 .container {
   padding: 18px;
   max-width: none;
