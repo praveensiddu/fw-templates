@@ -197,11 +197,13 @@ def _build_log_config() -> dict:
 
 
 if __name__ == "__main__":
+    host = os.getenv("APP_HOST", "localhost")
+    port = int(os.getenv("APP_PORT", "8099"))
 
     uvicorn.run(
         app,
-        host="localhost",
-        port=8099,
+        host=host,
+        port=port,
         log_config=_build_log_config(),
         reload=False,
         timeout_keep_alive=300,  # default 5s
