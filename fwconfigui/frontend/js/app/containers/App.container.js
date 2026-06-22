@@ -425,7 +425,7 @@ function App() {
       const hasProduct = isNonEmptyString(currentProduct);
 
       if (!hasProduct) {
-        return <ProductsTable setLoading={setLoading} setError={setError} />;
+        return <ProductsTable key={routeVersion} setLoading={setLoading} setError={setError} />;
       }
 
       const subTabs = (

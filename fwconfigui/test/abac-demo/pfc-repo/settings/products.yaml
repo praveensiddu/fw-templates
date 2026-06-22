@@ -1,0 +1,44 @@
+PAYMENTS:
+  description: Demo payments application
+  envs:
+    - dev
+  templates-repo: demo/payments-templates
+  generated-repo: demo/payments-generated
+  components_prefix_list:
+    - PAY
+  components_exclude_list: []
+  include_flowids: []
+  exclude_flowids: []
+CLAIMS:
+  description: Demo claims application
+  envs:
+    - dev
+  templates-repo: demo/claims-templates
+  generated-repo: demo/claims-generated
+  components_prefix_list:
+    - CLM
+  components_exclude_list: []
+  include_flowids: []
+  exclude_flowids: []
+POLICY:
+  description: Demo policy application
+  envs:
+    - dev
+  templates-repo: demo/policy-templates
+  generated-repo: demo/policy-generated
+  components_prefix_list:
+    - POL
+  components_exclude_list: []
+  include_flowids: []
+  exclude_flowids: []
+BILLING:
+  description: Demo billing application
+  envs:
+    - dev
+  templates-repo: demo/billing-templates
+  generated-repo: demo/billing-generated
+  components_prefix_list:
+    - BIL
+  components_exclude_list: []
+  include_flowids: []
+  exclude_flowids: []

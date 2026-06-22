@@ -8,6 +8,7 @@
 
 p, platform_admin, /products, POST, True
 p, platform_admin, /products, GET, True
+p, platform_admin, /products, (PUT|DELETE), True
 p, platform_admin, /products/*, (GET|POST|PUT|DELETE), True
 p, platform_admin, /products/*/rule-templates, (GET|POST|PUT|DELETE), True
 p, platform_admin, /products/*/port-protocol, (GET|POST|PUT|DELETE), True
@@ -17,6 +18,8 @@ p, platform_admin, /products/*/keywords, (GET|POST|PUT|DELETE), True
 p, platform_admin, /products/*/rule-files, (GET|POST|PUT|DELETE), True
 p, platform_admin, /products/*/groups, (GET|POST|PUT|DELETE), True
 p, platform_admin, /products/*/addrs, (GET|POST|PUT|DELETE), True
+p, platform_admin, /products/*/rules, (GET|POST|PUT|DELETE), True
+p, platform_admin, /products/*/ip_inventory, (GET|POST|PUT|DELETE), True
 p, platform_admin, /settings/enforcement, (GET|PUT), True
 p, platform_admin, /access_requests, GET, True
 p, platform_admin, /product_access, POST, True
@@ -46,6 +49,8 @@ p, viewall, /products/*/keywords, GET, True
 p, viewall, /products/*/rule-files, GET, True
 p, viewall, /products/*/groups, GET, True
 p, viewall, /products/*/addrs, GET, True
+p, viewall, /products/*/rules, GET, True
+p, viewall, /products/*/ip_inventory, GET, True
 p, viewall, /access_requests, GET, True
 p, viewall, /product_access, POST, True
 p, viewall, /global_access, POST, True
@@ -63,6 +68,8 @@ p, manager, /products/*/keywords, (GET|POST|PUT|DELETE), True
 p, manager, /products/*/rule-files, (GET|POST|PUT|DELETE), True
 p, manager, /products/*/groups, (GET|POST|PUT|DELETE), True
 p, manager, /products/*/addrs, (GET|POST|PUT|DELETE), True
+p, manager, /products/*/rules, (GET|POST|PUT|DELETE), True
+p, manager, /products/*/ip_inventory, (GET|POST|PUT|DELETE), True
 p, manager, /settings/enforcement, (GET|PUT), True
 p, manager, /access_requests, GET, True
 p, manager, /product_access, POST, True
@@ -81,6 +88,8 @@ p, viewer, /products/*/keywords, (GET), True
 p, viewer, /products/*/rule-files, (GET), True
 p, viewer, /products/*/groups, (GET), True
 p, viewer, /products/*/addrs, (GET), True
+p, viewer, /products/*/rules, (GET), True
+p, viewer, /products/*/ip_inventory, (GET), True
 p, viewer, /access_requests, GET, True
 p, viewer, /product_access, POST, True
 p, viewer, /global_access, POST, True

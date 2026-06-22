@@ -13,6 +13,11 @@ try:
     load_dotenv()
 except Exception:
     pass
+
+from backend.config.env_defaults import apply_repo_demo_defaults
+
+apply_repo_demo_defaults()
+
 from backend.swaggerui import attach_local_swagger
 
 from fastapi import FastAPI, HTTPException, Request

@@ -81,7 +81,10 @@ def create_rolemgmt_router(
         return get_current_user(request)
 
     @router.get("/role-management/rbac/refresh")
-    def refresh_rbac_roles() -> Dict[str, Any]:
+    def refresh_rbac_roles(
+        user_context: Dict[str, Any] = Depends(get_current_user_context),
+    ) -> Dict[str, Any]:
+        enforce(user_context, "/role-management/rbac/refresh", "GET", {})
         try:
             rolemgmtimpl.update_roles(force=True)
             return {
@@ -99,7 +102,10 @@ def create_rolemgmt_router(
             )
 
     @router.get("/role-management/product")
-    def list_product_roles() -> Dict[str, Any]:
+    def list_product_roles(
+        user_context: Dict[str, Any] = Depends(get_current_user_context),
+    ) -> Dict[str, Any]:
+        enforce(user_context, "/role-management/product", "GET", {})
         group_rows = rolemgmtimpl.get_grp2products2roles()
         user_rows = rolemgmtimpl.get_user2products2roles()
         return {
@@ -213,7 +219,10 @@ def create_rolemgmt_router(
 
 
     @router.get("/role-management/groupglobal")
-    def list_groupglobal_roles() -> Dict[str, Any]:
+    def list_groupglobal_roles(
+        user_context: Dict[str, Any] = Depends(get_current_user_context),
+    ) -> Dict[str, Any]:
+        enforce(user_context, "/role-management/groupglobal", "GET", {})
         rows = rolemgmtimpl.get_grps2globalroles()
         return {"rows": rows}
 
@@ -255,7 +264,10 @@ def create_rolemgmt_router(
     @router.get("/role-management/userglobal",
                  summary="Get the list of roles that govern user access across the portal",
                  description="""""")
-    def list_userglobal_roles() -> Dict[str, Any]:
+    def list_userglobal_roles(
+        user_context: Dict[str, Any] = Depends(get_current_user_context),
+    ) -> Dict[str, Any]:
+        enforce(user_context, "/role-management/userglobal", "GET", {})
         rows = rolemgmtimpl.get_users2globalroles()
         return {"rows": rows}
 

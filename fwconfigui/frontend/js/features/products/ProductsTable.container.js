@@ -70,27 +70,44 @@ function ProductsTable({ setLoading, setError }) {
     sortBy: (a, b) => safeTrim(a?.name).toLowerCase().localeCompare(safeTrim(b?.name).toLowerCase()),
   });
 
+  const collectEnvNamesFromProducts = React.useCallback((productItems) => {
+    const seen = new Set();
+    (productItems || []).forEach((it) => {
+      const envs = Array.isArray(it?.data?.envs) ? it.data.envs : [];
+      envs.forEach((env) => {
+        const name = safeTrim(env);
+        if (name) seen.add(name);
+      });
+    });
+    return Array.from(seen).sort((a, b) => a.localeCompare(b));
+  }, []);
+
   const load = React.useCallback(async () => {
     try {
       setLoading(true);
       setError("");
-      const [res, envRes] = await Promise.all([
-        listFwConfigItems("products"),
-        listFwConfigItems("env"),
-      ]);
-      setItems(res?.items || []);
+      const res = await listFwConfigItems("products");
+      const nextItems = res?.items || [];
+      setItems(nextItems);
 
-      const envs = (envRes?.items || [])
-        .map((x) => safeTrim(x?.name))
-        .filter(Boolean)
-        .sort((a, b) => a.localeCompare(b));
+      let envs = [];
+      try {
+        const envRes = await listFwConfigItems("env");
+        envs = (envRes?.items || [])
+          .map((x) => safeTrim(x?.name))
+          .filter(Boolean)
+          .sort((a, b) => a.localeCompare(b));
+      } catch (envErr) {
+        // Infra env list is optional here; product-scoped users may get 403.
+        envs = collectEnvNamesFromProducts(nextItems);
+      }
       setEnvNames(envs);
     } catch (e) {
       setError(formatError(e));
     } finally {
       setLoading(false);
     }
-  }, [setLoading, setError]);
+  }, [setLoading, setError, collectEnvNamesFromProducts]);
 
   React.useEffect(() => {
     load();
