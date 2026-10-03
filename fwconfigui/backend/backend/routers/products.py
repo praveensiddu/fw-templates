@@ -17,6 +17,7 @@ from pydantic import BaseModel
 
 from backend.exceptions.custom import AlreadyExistsError, ValidationError
 from backend.models import SaveItemRequest
+from backend.auth.rbac import calculate_resource_permissions, enforce_request, get_current_user_context
 from backend.services.env_service import EnvService
 from backend.utils.workspace import get_settings_yaml_path
 from backend.utils.yaml_utils import read_yaml_dict, write_yaml_dict
@@ -107,7 +108,11 @@ def get_service():
 
 
 @router.get("")
-def list_items(request: Request, name: Optional[str] = None):
+def list_items(
+    request: Request,
+    name: Optional[str] = None,
+    user_context: Dict[str, Any] = Depends(get_current_user_context),
+):
     raw = read_yaml_dict(_path())
     if not isinstance(raw, dict):
         raw = {}
@@ -122,9 +127,21 @@ def list_items(request: Request, name: Optional[str] = None):
             continue
         val = raw.get(k)
         data = val if isinstance(val, dict) else {}
+        product_name = str(k or "").strip()
+        # Use the landing page resource for product navigation to decide row-level permissions.
+        # This matches the Casbin policy patterns like /products/*/rule-templates.
+        resource_path = f"/products/{product_name}/rule-templates"
+        permissions = calculate_resource_permissions(
+            user_context,
+            resource_path,
+            {"id": product_name},
+            view_actions=("GET",),
+            manage_actions=("POST", "PUT", "DELETE"),
+        )
         items.append(
             {
                 "name": k,
+                "permissions": permissions,
                 "data": {
                     "name": k,
                     "envs": _normalize_envs(data.get("envs")),
@@ -147,7 +164,9 @@ def save_item(
     request: Request,
     payload: SaveItemRequest,
     _ok: bool = Depends(get_service),
+    user_context: Dict[str, Any] = Depends(get_current_user_context),
 ) -> Dict[str, Any]:
+    enforce_request(user_context, "/products", "POST", {})
     name = _normalize_name(payload.name)
     original = str(payload.original_name or "").strip().upper()
     original = re.sub(r"[^A-Z0-9_-]", "", original)
@@ -207,7 +226,9 @@ def update_item(
     request: Request,
     payload: SaveItemRequest,
     _ok: bool = Depends(get_service),
+    user_context: Dict[str, Any] = Depends(get_current_user_context),
 ) -> Dict[str, Any]:
+    enforce_request(user_context, "/products", "PUT", {})
     original = str(payload.original_name or "").strip().upper()
     original = re.sub(r"[^A-Z0-9_-]", "", original)
     if not original:
@@ -269,7 +290,9 @@ def import_product_components(
     request: Request,
     payload: ImportProductRequest,
     _ok: bool = Depends(get_service),
+    user_context: Dict[str, Any] = Depends(get_current_user_context),
 ) -> Dict[str, Any]:
+    enforce_request(user_context, "/products", "POST", {})
     _normalize_name(payload.name)
     return {"ok": True}
 
@@ -279,7 +302,9 @@ def delete_item(
     request: Request,
     name: str,
     _ok: bool = Depends(get_service),
+    user_context: Dict[str, Any] = Depends(get_current_user_context),
 ) -> Dict[str, Any]:
+    enforce_request(user_context, "/products", "DELETE", {})
     name = _normalize_name(name)
     path = _path()
     raw = read_yaml_dict(path)

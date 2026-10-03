@@ -117,29 +117,41 @@ function ProductsTableView({
         <tbody>
           {(rows || []).map((r, idx) => {
             const rowKey = safeTrim(r?.name) || `${idx}`;
+            const hasViewPermission = r?.permissions?.canView ?? true;
+            const hasManagePermission = r?.permissions?.canManage ?? true;
+            const rowDisabled = !hasViewPermission;
             return (
               <tr
                 key={rowKey}
                 onClick={(e) => {
+                  if (rowDisabled) return;
                   const t = e?.target;
                   const btn = t && typeof t.closest === "function" ? t.closest("button") : null;
                   if (btn && !btn.hasAttribute("data-open-product")) return;
                   if (typeof onOpenProduct === "function") onOpenProduct(r);
                 }}
-                style={{ cursor: typeof onOpenProduct === "function" ? "pointer" : undefined }}
+                title={rowDisabled ? "No access" : undefined}
+                style={{
+                  cursor: rowDisabled ? "not-allowed" : typeof onOpenProduct === "function" ? "pointer" : undefined,
+                  opacity: rowDisabled ? 0.4 : 1,
+                }}
               >
                 <td style={{ fontWeight: 650 }}>
-                  <button
-                    type="button"
-                    className="btn"
-                    style={{ padding: 0, border: "none", background: "transparent", fontWeight: 650, cursor: "pointer" }}
-                    data-open-product
-                    onClick={() => {
-                      if (typeof onOpenProduct === "function") onOpenProduct(r);
-                    }}
-                  >
-                    {safeTrim(r?.name)}
-                  </button>
+                  {rowDisabled ? (
+                    <span>{safeTrim(r?.name)}</span>
+                  ) : (
+                    <button
+                      type="button"
+                      className="btn"
+                      style={{ padding: 0, border: "none", background: "transparent", fontWeight: 650, cursor: "pointer" }}
+                      data-open-product
+                      onClick={() => {
+                        if (typeof onOpenProduct === "function") onOpenProduct(r);
+                      }}
+                    >
+                      {safeTrim(r?.name)}
+                    </button>
+                  )}
                 </td>
                 <td>
                   <div style={{ whiteSpace: "pre-line" }}>{(Array.isArray(r?.envs) ? r.envs : []).join(", ")}</div>
@@ -178,6 +190,8 @@ function ProductsTableView({
                     <button
                       className="iconBtn iconBtn-primary"
                       title="Edit"
+                      disabled={!hasManagePermission}
+                      style={hasManagePermission ? undefined : { opacity: 0.5, cursor: "not-allowed" }}
                       onClick={(e) => {
                         e.stopPropagation();
                         if (typeof onEdit === "function") onEdit(r);
@@ -191,6 +205,8 @@ function ProductsTableView({
                     <button
                       className="iconBtn"
                       title="Import SICG"
+                      disabled={!hasManagePermission}
+                      style={hasManagePermission ? undefined : { opacity: 0.5, cursor: "not-allowed" }}
                       onClick={(e) => {
                         e.stopPropagation();
                         onImport(r);
@@ -205,6 +221,8 @@ function ProductsTableView({
                     <button
                       className="iconBtn iconBtn-danger"
                       title="Delete"
+                      disabled={!hasManagePermission}
+                      style={hasManagePermission ? undefined : { opacity: 0.5, cursor: "not-allowed" }}
                       onClick={(e) => {
                         e.stopPropagation();
                         onDelete(r);

@@ -1,0 +1,22 @@
+# Python
+**/__pycache__/
+**/*.py[cod]
+**/*.pyo
+**/venv/
+**/.venv/
+
+# Local environment files (secrets)
+**/.env
+**/.env.*
+
+# Git
+.git/
+.gitignore
+
+# IDE / editor
+.idea/
+.vscode/
+*.swp
+
+# OS
+.DS_Store
