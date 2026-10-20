@@ -1,0 +1,55 @@
+---
+name: Build Windows Executable
+
+on:
+  workflow_dispatch:
+  push:
+    tags:
+      - "v*"
+
+permissions:
+  contents: write
+
+jobs:
+  build-windows:
+    runs-on: windows-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+          cache: "pip"
+          cache-dependency-path: fwconfigui/backend/requirements.txt
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r fwconfigui/backend/requirements.txt
+          pip install pyinstaller
+
+      - name: Build (PyInstaller onefile)
+        working-directory: fwconfigui/backend
+        run: |
+          pyinstaller --clean --noconfirm --onefile `
+            --name fwconfigui `
+            --add-data "../frontend;frontend" `
+            --add-data "backend/auth/casbin_model.conf;backend/auth" `
+            --add-data "backend/auth/casbin_policy.csv;backend/auth" `
+            main.py
+
+      - name: Upload artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: fwconfigui-windows
+          path: fwconfigui/backend/dist/fwconfigui.exe
+
+      - name: Publish to GitHub Release (tags only)
+        if: startsWith(github.ref, 'refs/tags/v')
+        uses: softprops/action-gh-release@v2
+        with:
+          files: |
+            fwconfigui/backend/dist/fwconfigui.exe

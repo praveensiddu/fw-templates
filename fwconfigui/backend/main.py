@@ -4,6 +4,7 @@ import copy
 import logging
 import os
 import uvicorn
+import sys
 from contextlib import asynccontextmanager
 from pathlib import Path
 
@@ -45,7 +46,8 @@ from backend.utils.workspace import ensure_fwconfigfiles_root
 
 logger = logging.getLogger("uvicorn.error")
 
-BASE_DIR = Path(__file__).resolve().parents[1]
+# PyInstaller onefile extracts bundled data to sys._MEIPASS; in dev, frontend lives one level up.
+BASE_DIR = Path(getattr(sys, "_MEIPASS", Path(__file__).resolve().parents[1]))
 FRONTEND_DIR = BASE_DIR / "frontend"
 
 
