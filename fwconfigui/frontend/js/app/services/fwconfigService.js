@@ -82,9 +82,10 @@ function fwconfigTypeBasePath(type) {
     t === "components" ||
     t === "port-protocol" ||
     t === "business-purpose" ||
-    t === "fw-rules"
+    t === "fw-rules" ||
+    t === "predef-port-protocol"
   ) {
-    if (t === "env" || t === "networkareas" || t === "sites") {
+    if (t === "env" || t === "networkareas" || t === "sites" || t === "predef-port-protocol") {
       return `/api/v1/infra/${encodeURIComponent(t)}`;
     }
     return `/api/v1/fwconfig/${encodeURIComponent(t)}`;

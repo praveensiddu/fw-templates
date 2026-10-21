@@ -658,12 +658,24 @@ function App() {
                 >
                   site
                 </button>
+                <button
+                  className={`tab ${infraSubTab === "predef-port-protocol" ? "active" : ""}`}
+                  onClick={() => {
+                    setInfraSubTab("predef-port-protocol");
+                    if (window.location.pathname !== "/infra/predef-port-protocol") {
+                      window.history.pushState({}, "", "/infra/predef-port-protocol");
+                    }
+                  }}
+                >
+                  predef-port-protocol
+                </button>
               </div>
             </div>
           </div>
           {infraSubTab === "env" ? <EnvTable setLoading={setLoading} setError={setError} /> : null}
           {infraSubTab === "networkarea" ? <NetworkAreasTable setLoading={setLoading} setError={setError} /> : null}
           {infraSubTab === "site" ? <SitesTable setLoading={setLoading} setError={setError} /> : null}
+          {infraSubTab === "predef-port-protocol" ? <PredefPortProtocolTable setLoading={setLoading} setError={setError} /> : null}
         </>
       );
     }
