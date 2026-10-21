@@ -18,6 +18,12 @@ function EnvTableView({
       .replace(/[^a-z0-9]/g, "");
   }
 
+  function onNewEntryKeyDown(e) {
+    if (e.key !== "Enter" || e.repeat || !canSubmit) return;
+    e.preventDefault();
+    onSave();
+  }
+
   return (
     <div className="card" style={{ padding: 12 }}>
       <div className="actions">
@@ -62,6 +68,7 @@ function EnvTableView({
                   autoFocus
                   value={draft.name}
                   onChange={(e) => setDraft((p) => ({ ...p, name: normalizeEnvName(e.target.value) }))}
+                  onKeyDown={onNewEntryKeyDown}
                   placeholder="name"
                 />
               </td>
