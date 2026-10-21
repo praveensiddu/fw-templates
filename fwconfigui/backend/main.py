@@ -1,6 +1,7 @@
 """FastAPI application entrypoint."""
 
 import copy
+import getpass
 import logging
 import os
 import uvicorn
@@ -53,11 +54,19 @@ BASE_DIR = Path(getattr(sys, "_MEIPASS", Path(__file__).resolve().parents[1]))
 FRONTEND_DIR = BASE_DIR / "frontend"
 
 
-def _require_env_vars() -> None:
-    required = ["FORTIMGR_EXTRACT_REPO", "PFC_REPO", "GENERATED_FOLDER_PREFIX"]
-    missing = [k for k in required if not str(os.getenv(k, "") or "").strip()]
-    if missing:
-        raise RuntimeError(f"Missing required environment variable(s): {', '.join(missing)}")
+def _apply_env_defaults() -> None:
+    """Set defaults for optional env vars when they are not provided."""
+    home = Path.home()
+    defaults = {
+        "FORTIMGR_EXTRACT_REPO": str(home / "workspace" / "fwconfigfiles" / "cloned-repositories" / "fmg_extract" / "fortimgr"),
+        "PFC_REPO": str(home / "workspace" / "fwconfigfiles" / "cloned-repositories" / "pfcrepo"),
+        "GENERATED_FOLDER_PREFIX": "pfc/iac/fw",
+        "CURRENT_USER": getpass.getuser(),
+    }
+    for key, value in defaults.items():
+        if not str(os.getenv(key, "") or "").strip():
+            os.environ[key] = value
+            logger.info("Using default %s=%s", key, value)
 
 
 @asynccontextmanager
@@ -66,7 +75,7 @@ async def lifespan(app: FastAPI):
     logger.info("🚀 %s v%s", settings.api_title, settings.api_version)
     logger.info("=" * 80)
 
-    _require_env_vars()
+    _apply_env_defaults()
     ws_root = ensure_fwconfigfiles_root()
 
 
