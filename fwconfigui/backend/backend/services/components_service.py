@@ -42,7 +42,7 @@ class ComponentsService:
 
     @staticmethod
     def _normalize_description(v: Any) -> str:
-        return str(v or "").strip()
+        return str(v or "")
 
     @staticmethod
     def _normalize_exposedto(v: Any) -> List[str]:
@@ -95,7 +95,7 @@ class ComponentsService:
                     "data": {
                         "name": k,
                         "networkarea": str(data.get("networkarea", "") or "").strip(),
-                        "description": str(data.get("description", "") or "").strip(),
+                        "description": str(data.get("description", "") or ""),
                         "exposedto": data.get("exposedto") if isinstance(data.get("exposedto"), list) else [],
                         "sites": data.get("sites") if isinstance(data.get("sites"), dict) else {},
                     },

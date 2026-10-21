@@ -57,13 +57,13 @@ function ComponentsDetailsView({
             <div className="muted">Description</div>
             <input
               className="input"
-              value={safeTrim(form?.description)}
+              value={String(form?.description ?? "")}
               onChange={(e) => setForm((p) => ({ ...p, description: e.target.value }))}
             />
           </div>
 
           <div className="field" style={{ gridColumn: "1 / -1" }}>
-            <div className="muted">Pick the products which are allowed to communicate with this component. Choose ALL if it is okay to expose it to all products.</div>
+            <div className="muted">Pick the products which are allowed to communicate with this component. Choose ALL if it is okay to expose it to all products. Leave it empty if the component is internal to your product and not exposed to other products.</div>
             <MultiSelectPicker
               options={Array.isArray(productNames) ? productNames : []}
               values={Array.isArray(form?.exposedto) ? form.exposedto : []}
@@ -82,7 +82,7 @@ function ComponentsDetailsView({
                 onClick={() =>
                   setForm((p) => ({
                     ...p,
-                    sitesItems: [...(Array.isArray(p?.sitesItems) ? p.sitesItems : []), { env: "prd", sites: [] }],
+                    sitesItems: [...(Array.isArray(p?.sitesItems) ? p.sitesItems : []), { env: "", sites: [] }],
                   }))
                 }
               >

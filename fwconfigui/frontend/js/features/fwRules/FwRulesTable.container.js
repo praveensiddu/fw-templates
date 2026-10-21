@@ -417,9 +417,10 @@ function FwRulesTable({ setLoading, setError }) {
       setLoading(true);
       setError("");
 
-      const [fwResp, ppResp, bpResp, productsResp, kwResp, rfResp, compResp] = await Promise.all([
+      const [fwResp, ppResp, predefPpResp, bpResp, productsResp, kwResp, rfResp, compResp] = await Promise.all([
         listFwConfigItems("fw-rules"),
         listFwConfigItems("port-protocol"),
+        listFwConfigItems("predef-port-protocol"),
         listFwConfigItems("business-purpose"),
         listFwConfigItems("products"),
         listFwConfigItems("keywords"),
@@ -429,10 +430,16 @@ function FwRulesTable({ setLoading, setError }) {
 
       setItems(fwResp?.items || []);
 
-      const ppNames = (ppResp?.items || [])
-        .map((x) => safeTrim(x?.name))
-        .filter(Boolean)
-        .sort((a, b) => a.localeCompare(b));
+      const ppNamesByKey = {};
+      (ppResp?.items || []).forEach((x) => {
+        const n = safeTrim(x?.name);
+        if (n) ppNamesByKey[n.toUpperCase()] = n;
+      });
+      (predefPpResp?.items || []).forEach((x) => {
+        const n = safeTrim(x?.name);
+        if (n && !ppNamesByKey[n.toUpperCase()]) ppNamesByKey[n.toUpperCase()] = n;
+      });
+      const ppNames = Object.values(ppNamesByKey).sort((a, b) => a.localeCompare(b));
       setPortProtocolNames(ppNames);
 
       const ppDisplay = (ppResp?.items || []).reduce((acc, it) => {

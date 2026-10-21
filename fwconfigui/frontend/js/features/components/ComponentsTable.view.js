@@ -177,7 +177,7 @@ function ComponentsTableView({
                     <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
                       <input
                         className="filterInput"
-                        value={safeTrim(cellEdit?.description)}
+                        value={String(cellEdit?.description ?? "")}
                         onChange={(e) => setCellEdit((p) => ({ ...(p || {}), description: e.target.value }))}
                         style={{ flex: 1 }}
                       />

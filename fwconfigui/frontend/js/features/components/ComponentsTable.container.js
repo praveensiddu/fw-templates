@@ -190,7 +190,7 @@ function ComponentsTable({ setLoading, setError }) {
     setForm({
       name: n,
       networkarea: safeTrim(data?.networkarea),
-      description: safeTrim(data?.description),
+      description: String(data?.description ?? ""),
       exposedto: applyAllRule(Array.isArray(data?.exposedto) ? data.exposedto : []),
       sitesItems,
     });
@@ -251,7 +251,7 @@ function ComponentsTable({ setLoading, setError }) {
         data: {
           name,
           networkarea: safeTrim(form?.networkarea),
-          description: safeTrim(form?.description),
+          description: String(form?.description ?? ""),
           exposedto: applyAllRule(form?.exposedto),
           sites: nextSites,
         },
@@ -325,7 +325,7 @@ function ComponentsTable({ setLoading, setError }) {
           data: {
             name: nextName,
             networkarea: safeTrim(data?.networkarea),
-            description: safeTrim(data?.description),
+            description: String(data?.description ?? ""),
             exposedto: Array.isArray(data?.exposedto) ? data.exposedto : [],
             sites: data?.sites && typeof data.sites === "object" ? data.sites : {},
           },
@@ -371,7 +371,7 @@ function ComponentsTable({ setLoading, setError }) {
       row,
       field,
       networkarea: safeTrim(data?.networkarea),
-      description: safeTrim(data?.description),
+      description: String(data?.description ?? ""),
       exposedto: applyAllRule(Array.isArray(data?.exposedto) ? data.exposedto : []),
     };
 
@@ -399,7 +399,7 @@ function ComponentsTable({ setLoading, setError }) {
         data: {
           name,
           networkarea: isEditingCell(row, "networkarea") ? safeTrim(cellEdit?.networkarea) : safeTrim(data?.networkarea),
-          description: isEditingCell(row, "description") ? safeTrim(cellEdit?.description) : safeTrim(data?.description),
+          description: isEditingCell(row, "description") ? String(cellEdit?.description ?? "") : String(data?.description ?? ""),
           exposedto: isEditingCell(row, "exposedto")
             ? applyAllRule(cellEdit?.exposedto)
             : (Array.isArray(data?.exposedto) ? data.exposedto : []),

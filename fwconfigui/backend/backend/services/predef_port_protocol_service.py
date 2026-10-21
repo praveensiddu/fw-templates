@@ -30,6 +30,16 @@ class PredefPortProtocolService:
     def _normalize_description(self, v: Any) -> str:
         return str(v or "").strip()
 
+    def _normalize_key(self, key: Any) -> str:
+        v = str(key or "").strip().upper()
+        return re.sub(r"[^A-Z0-9_-]", "", v)
+
+    def _find_existing_key(self, raw: Dict[str, Any], normalized_name: str) -> str:
+        for k in raw.keys():
+            if self._normalize_key(k) == normalized_name:
+                return str(k)
+        return ""
+
     def _normalize_data(self, data: Dict[str, Any]) -> Dict[str, Any]:
         d = data if isinstance(data, dict) else {}
         return {
@@ -74,7 +84,7 @@ class PredefPortProtocolService:
         if not isinstance(raw, dict):
             raw = {}
 
-        if n in raw:
+        if self._find_existing_key(raw, n):
             raise AlreadyExistsError("Item", n)
 
         raw[n] = normalized
@@ -94,13 +104,16 @@ class PredefPortProtocolService:
         raw = read_yaml_dict(path)
         if not isinstance(raw, dict):
             raw = {}
-        if original not in raw:
+
+        existing_original = self._find_existing_key(raw, original)
+        if not existing_original:
             raise ValidationError("original_name", "not found")
 
-        if original != n:
-            if n in raw:
+        if existing_original != n:
+            existing_new = self._find_existing_key(raw, n)
+            if existing_new and existing_new != existing_original:
                 raise AlreadyExistsError("Item", n)
-            raw.pop(original, None)
+            raw.pop(existing_original, None)
 
         raw[n] = normalized
         write_yaml_dict(path, raw, sort_keys=True)
@@ -112,5 +125,7 @@ class PredefPortProtocolService:
         if not isinstance(raw, dict):
             raw = {}
 
-        raw.pop(n, None)
+        existing = self._find_existing_key(raw, n)
+        if existing:
+            raw.pop(existing, None)
         write_yaml_dict(path, raw, sort_keys=True)
