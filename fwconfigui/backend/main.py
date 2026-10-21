@@ -5,6 +5,8 @@ import logging
 import os
 import uvicorn
 import sys
+import threading
+import webbrowser
 from contextlib import asynccontextmanager
 from pathlib import Path
 
@@ -195,6 +197,11 @@ def _build_log_config() -> dict:
 
 
 if __name__ == "__main__":
+
+    try:
+        threading.Timer(1.0, lambda: webbrowser.open("http://localhost:8099/")).start()
+    except Exception:
+        pass
 
     uvicorn.run(
         app,
