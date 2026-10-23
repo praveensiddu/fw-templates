@@ -20,9 +20,10 @@ def get_settings(request: Request, service: HomeService = Depends(get_service)) 
     """Get current Home tool settings.
 
     Returns:
-        Mapping of setting name to value under 'settings'
+        Mapping of setting name to value under 'settings', and 'initialized'
+        which is True once ~/.fwconfig/fwconfig.yaml exists
     """
-    return {"settings": service.get_settings()}
+    return {"settings": service.get_settings(), "initialized": service.is_initialized()}
 
 
 @router.put("/settings")
@@ -34,9 +35,13 @@ def save_settings(
     """Save Home tool settings.
 
     Returns:
-        The normalized settings that were saved under 'settings'
+        The normalized settings that were saved under 'settings', and
+        'initialized' which is True once ~/.fwconfig/fwconfig.yaml exists
     """
-    return {"settings": service.save_settings(settings=payload.settings.model_dump())}
+    return {
+        "settings": service.save_settings(settings=payload.settings.model_dump()),
+        "initialized": service.is_initialized(),
+    }
 
 
 @router.get("/samples")

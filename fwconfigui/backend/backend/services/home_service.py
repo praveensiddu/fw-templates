@@ -30,41 +30,79 @@ _SAMPLE_SETTINGS: Dict[str, str] = {
 
 
 def _home_settings_path() -> Path:
-    """Path to the persisted Home settings file (per-user, independent of WORKSPACE)."""
-    return Path.home() / ".fwconfigui" / "home.yaml"
+    """Path to the persisted fwconfig settings file (per-user, independent of WORKSPACE)."""
+    return Path.home() / ".fwconfig" / "fwconfig.yaml"
+
+
+def _read_saved_settings() -> Dict[str, str]:
+    """Read persisted settings from ~/.fwconfig/fwconfig.yaml.
+
+    Keys in the yaml file are lowercase env-var names (e.g. workspace).
+    Returns a mapping keyed by the uppercase env-var names.
+    """
+    raw = read_yaml_dict(_home_settings_path())
+    if not isinstance(raw, dict):
+        return {}
+
+    out: Dict[str, str] = {}
+    for key in _HOME_SETTINGS_KEYS:
+        val = str(raw.get(key.lower()) or "").strip()
+        if val:
+            out[key] = val
+    return out
 
 
 def apply_saved_home_settings() -> None:
-    """Apply persisted Home settings to env vars that are not already set."""
-    saved = read_yaml_dict(_home_settings_path())
-    if not isinstance(saved, dict):
-        return
-    for key in _HOME_SETTINGS_KEYS:
+    """Apply persisted fwconfig settings to env vars that are not already set."""
+    saved = _read_saved_settings()
+    for key, val in saved.items():
         if str(os.getenv(key, "") or "").strip():
             continue
-        val = str(saved.get(key) or "").strip()
-        if val:
-            os.environ[key] = val
-            logger.info("Applied saved home setting %s=%s", key, val)
+        os.environ[key] = val
+        logger.info("Applied saved home setting %s=%s", key, val)
+
+
+def get_home_setting(name: str) -> str:
+    """Return a single Home setting value (saved file > env var).
+
+    Args:
+        name: Uppercase setting name (e.g. RENDERED_GITREPO_GROUP)
+
+    Returns:
+        The setting value, or "" when unset
+    """
+    key = str(name or "").strip()
+    if key not in _HOME_SETTINGS_KEYS:
+        return ""
+    saved = _read_saved_settings()
+    return saved.get(key) or str(os.getenv(key, "") or "").strip()
 
 
 @log_all_methods()
 class HomeService:
     """Service for Home tab tool settings."""
 
+    def is_initialized(self) -> bool:
+        """Return True when ~/.fwconfig/fwconfig.yaml exists.
+
+        Returns:
+            True if the settings file has been created
+        """
+        return _home_settings_path().is_file()
+
     def get_settings(self) -> Dict[str, str]:
-        """Return current Home settings (env var > saved file > default).
+        """Return current Home settings (saved file > env var > default).
+
+        Reads ~/.fwconfig/fwconfig.yaml when it exists.
 
         Returns:
             Mapping of setting name to value.
         """
-        saved = read_yaml_dict(_home_settings_path())
-        if not isinstance(saved, dict):
-            saved = {}
+        saved = _read_saved_settings()
 
         out: Dict[str, str] = {}
         for key in _HOME_SETTINGS_KEYS:
-            val = str(os.getenv(key, "") or "").strip() or str(saved.get(key) or "").strip()
+            val = saved.get(key) or str(os.getenv(key, "") or "").strip()
             if not val and key == "WORKSPACE":
                 val = _DEFAULT_WORKSPACE
             out[key] = val
@@ -104,7 +142,9 @@ class HomeService:
             logger.warning("Invalid field value for 'WORKSPACE': %s", out["WORKSPACE"])
             raise ValidationError("WORKSPACE", "must be an absolute path")
 
-        write_yaml_dict(_home_settings_path(), dict(out))
+        yaml_path = _home_settings_path()
+        yaml_path.parent.mkdir(parents=True, exist_ok=True)
+        write_yaml_dict(yaml_path, {k.lower(): v for k, v in out.items()})
         for key, val in out.items():
             os.environ[key] = val
 

@@ -4,7 +4,7 @@
  * Manages the settings form state, loads/saves settings via the home API,
  * and fills the form with pre-prepared samples on request.
  */
-function Home({ setLoading, setError }) {
+function Home({ setLoading, setError, onSaved }) {
   const [form, setForm] = React.useState({
     WORKSPACE: "~/workspace",
     TEMPLATES_GITREPO_GROUP: "",
@@ -68,13 +68,14 @@ function Home({ setLoading, setError }) {
       const resp = await saveHomeSettings(form);
       applySettings(resp?.settings);
       setSavedMsg("Saved.");
+      if (typeof onSaved === "function") onSaved();
     } catch (e) {
       setError(formatError(e));
     } finally {
       setLoading(false);
       setBusy(false);
     }
-  }, [form, setLoading, setError, applySettings]);
+  }, [form, setLoading, setError, applySettings, onSaved]);
 
   const canSave = React.useMemo(
     () =>

@@ -4,7 +4,7 @@ from pathlib import Path
 from typing import Any, Dict, List
 
 from backend.exceptions.custom import ValidationError
-from backend.utils.workspace import get_settings_yaml_path
+from backend.services.home_service import get_home_setting
 from backend.utils.yaml_utils import list_yaml_files, read_yaml_dict, write_yaml_dict
 
 
@@ -28,50 +28,54 @@ def get_generated_folder_prefix() -> str:
     return prefix
 
 
+def _gitrepo_group_relpath(*, env_key: str) -> str:
+    """Return the Home-tab git repo group value as a relative path.
+
+    Resolves the setting from ~/.fwconfig/fwconfig.yaml (env var fallback) and
+    normalizes it to path segments usable under cloned-repositories:
+        "rendered"                          -> "rendered"
+        "org/fw-rendered"                   -> "org/fw-rendered"
+        "https://host/org/fw-rendered"      -> "org/fw-rendered"
+        "git@host:org/fw-rendered.git"      -> "org/fw-rendered"
+
+    Raises:
+        ValidationError: If the setting is missing or empty
+    """
+    raw = str(get_home_setting(env_key) or "").strip()
+    if not raw:
+        raise ValidationError(env_key, "is required (set it on the Home tab)")
+
+    value = raw.rstrip("/")
+    if value.endswith(".git"):
+        value = value[:-4]
+
+    if "://" in value:
+        # scheme://host/group/path -> group/path
+        parts = [p for p in value.split("://", 1)[1].split("/") if p][1:]
+    elif value.startswith("git@") and ":" in value:
+        # git@host:group/path -> group/path
+        parts = [p for p in value.split(":", 1)[1].split("/") if p]
+    else:
+        parts = [p for p in value.split("/") if p]
+
+    rel = "/".join(parts)
+    if not rel:
+        raise ValidationError(env_key, "invalid git repo group value")
+    return rel
+
+
 def get_product_generated_repo_name(*, product: str) -> str:
-    raw = read_yaml_dict(get_settings_yaml_path("products.yaml"))
-    if not isinstance(raw, dict):
-        raw = {}
-
-    prod_key = str(product or "").strip().upper()
-    prod = raw.get(prod_key) if prod_key else None
-    if not isinstance(prod, dict):
-        prod = {}
-
-    generated_repo = str(prod.get("generated-repo") or "").strip()
-    if not generated_repo:
-        raise ValidationError("generated-repo", "is required on product")
-
-    parts = [p for p in generated_repo.split("/") if p]
-    if not parts:
-        raise ValidationError("generated-repo", "invalid format")
-    repo_name = str(parts[-1]).strip()
-    if not repo_name:
-        raise ValidationError("generated-repo", "invalid format")
-    return repo_name
+    prod = str(product or "").strip().lower()
+    if not prod:
+        raise ValidationError("product", "is required")
+    return f"{_gitrepo_group_relpath(env_key='RENDERED_GITREPO_GROUP')}/{prod}_rendered"
 
 
 def get_product_templates_repo_name(*, product: str) -> str:
-    raw = read_yaml_dict(get_settings_yaml_path("products.yaml"))
-    if not isinstance(raw, dict):
-        raw = {}
-
-    prod_key = str(product or "").strip().upper()
-    prod = raw.get(prod_key) if prod_key else None
-    if not isinstance(prod, dict):
-        prod = {}
-
-    templates_repo = str(prod.get("templates-repo") or "").strip()
-    if not templates_repo:
-        raise ValidationError("templates-repo", "is required on product")
-
-    parts = [p for p in templates_repo.split("/") if p]
-    if not parts:
-        raise ValidationError("templates-repo", "invalid format")
-    repo_name = str(parts[-1]).strip()
-    if not repo_name:
-        raise ValidationError("templates-repo", "invalid format")
-    return repo_name
+    prod = str(product or "").strip().lower()
+    if not prod:
+        raise ValidationError("product", "is required")
+    return f"{_gitrepo_group_relpath(env_key='TEMPLATES_GITREPO_GROUP')}/{prod}_templates"
 
 
 def read_fortimgr_addrs_dict(fm_addrs_dir: Path) -> Dict[str, str]:

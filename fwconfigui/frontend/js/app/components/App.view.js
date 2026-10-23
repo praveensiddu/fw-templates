@@ -1,4 +1,4 @@
-function AppView({ activeTab, onSetTab, error, loading, children }) {
+function AppView({ activeTab, onSetTab, error, loading, children, homeInitialized }) {
   return (
     <>
       <div className="topbar">
@@ -7,15 +7,19 @@ function AppView({ activeTab, onSetTab, error, loading, children }) {
       </div>
       <div className="container">
         <div className="tabs">
-          <button className={`tab ${activeTab === "products" ? "active" : ""}`} onClick={() => onSetTab("products")}>
-            products
-          </button>
-          <button className={`tab ${activeTab === "infra" ? "active" : ""}`} onClick={() => onSetTab("infra")}>
-            infra
-          </button>
-          <button className={`tab ${activeTab === "role-mgmt" ? "active" : ""}`} onClick={() => onSetTab("role-mgmt")}>
-            role management
-          </button>
+          {homeInitialized ? (
+            <>
+              <button className={`tab ${activeTab === "products" ? "active" : ""}`} onClick={() => onSetTab("products")}>
+                products
+              </button>
+              <button className={`tab ${activeTab === "infra" ? "active" : ""}`} onClick={() => onSetTab("infra")}>
+                infra
+              </button>
+              <button className={`tab ${activeTab === "role-mgmt" ? "active" : ""}`} onClick={() => onSetTab("role-mgmt")}>
+                role management
+              </button>
+            </>
+          ) : null}
           <button className={`tab ${activeTab === "home" ? "active" : ""}`} onClick={() => onSetTab("home")}>
             Home
           </button>

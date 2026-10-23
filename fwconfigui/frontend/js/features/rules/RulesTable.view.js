@@ -14,12 +14,42 @@ function RulesTableView({ env, rows, filters, setFilters }) {
       <table>
         <thead>
           <tr>
-            <th className="fwTableHeaderCell" style={{ width: 120 }}>appflowid</th>
-            <th className="fwTableHeaderCell" style={{ width: 260 }}>source-list</th>
-            <th className="fwTableHeaderCell" style={{ width: 260 }}>destination-list</th>
-            <th className="fwTableHeaderCell" style={{ width: 260 }}>protocol-port</th>
-            <th className="fwTableHeaderCell" style={{ width: 260 }}>keywords</th>
-            <th className="fwTableHeaderCell" style={{ width: 220 }}>file</th>
+            <th className="fwTableHeaderCell" style={{ width: 120 }}>
+              <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 8 }}>
+                <span>appflowid</span>
+                <HelpIconButton docPath="/static/help/rules/appflowid.html" title="appflowid" />
+              </div>
+            </th>
+            <th className="fwTableHeaderCell" style={{ width: 260 }}>
+              <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 8 }}>
+                <span>source-list</span>
+                <HelpIconButton docPath="/static/help/rules/source-list.html" title="source-list" />
+              </div>
+            </th>
+            <th className="fwTableHeaderCell" style={{ width: 260 }}>
+              <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 8 }}>
+                <span>destination-list</span>
+                <HelpIconButton docPath="/static/help/rules/destination-list.html" title="destination-list" />
+              </div>
+            </th>
+            <th className="fwTableHeaderCell" style={{ width: 260 }}>
+              <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 8 }}>
+                <span>protocol-port</span>
+                <HelpIconButton docPath="/static/help/rules/protocol-port.html" title="protocol-port" />
+              </div>
+            </th>
+            <th className="fwTableHeaderCell" style={{ width: 260 }}>
+              <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 8 }}>
+                <span>keywords</span>
+                <HelpIconButton docPath="/static/help/rules/keywords.html" title="keywords" />
+              </div>
+            </th>
+            <th className="fwTableHeaderCell" style={{ width: 220 }}>
+              <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 8 }}>
+                <span>file</span>
+                <HelpIconButton docPath="/static/help/rules/file.html" title="file" />
+              </div>
+            </th>
           </tr>
           <tr>
             <th>

@@ -64,23 +64,40 @@ function ComponentsTableView({
       <table>
         <thead>
           <tr>
-            <th className="fwTableHeaderCell" style={{ width: 200 }}>Component</th>
+            <th className="fwTableHeaderCell" style={{ width: 200 }}>
+              <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 8 }}>
+                <span>Component</span>
+                <HelpIconButton docPath="/static/help/components/name.html" title="Component" />
+              </div>
+            </th>
             <th className="fwTableHeaderCell" style={{ width: 160 }}>
               <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 8 }}>
                 <span>Networkarea</span>
                 <HelpIconButton docPath="/static/help/components/networkarea.html" title="Networkarea" />
               </div>
             </th>
-            <th className="fwTableHeaderCell">Description</th>
-            <th className="fwTableHeaderCell" style={{ width: 220 }}>Exposedto</th>
+            <th className="fwTableHeaderCell">
+              <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 8 }}>
+                <span>Description</span>
+                <HelpIconButton docPath="/static/help/components/description.html" title="Description" />
+              </div>
+            </th>
+            <th className="fwTableHeaderCell" style={{ width: 220 }}>
+              <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 8 }}>
+                <span>Exposedto</span>
+                <HelpIconButton docPath="/static/help/components/exposedto.html" title="Exposedto" />
+              </div>
+            </th>
             <th className="fwTableHeaderCell" style={{ width: 260 }}>
               <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 8 }}>
                 <span>Sites</span>
+                <HelpIconButton docPath="/static/help/components/sites.html" title="Sites" />
               </div>
             </th>
             <th className="fwTableHeaderCell" style={{ width: 260 }}>
               <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 8 }}>
                 <span>FMSites</span>
+                <HelpIconButton docPath="/static/help/components/fmsites.html" title="FMSites" />
               </div>
             </th>
             <th className="fwTableHeaderCell" style={{ width: 100 }}>Actions</th>

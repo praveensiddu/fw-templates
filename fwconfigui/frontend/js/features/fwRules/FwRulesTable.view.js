@@ -54,8 +54,18 @@ function FwRulesTableView({
                 <HelpIconButton docPath="/static/help/fw-rules/appflowid.html" title="App Flow ID" />
               </div>
             </th>
-            <th className="fwTableHeaderCell" style={{ width: 280 }}>Source List</th>
-            <th className="fwTableHeaderCell" style={{ width: 280 }}>Destination List</th>
+            <th className="fwTableHeaderCell" style={{ width: 280 }}>
+              <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 8 }}>
+                <span>Source List</span>
+                <HelpIconButton docPath="/static/help/fw-rules/blocks/source-list.html" title="Source List" />
+              </div>
+            </th>
+            <th className="fwTableHeaderCell" style={{ width: 280 }}>
+              <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 8 }}>
+                <span>Destination List</span>
+                <HelpIconButton docPath="/static/help/fw-rules/blocks/destination-list.html" title="Destination List" />
+              </div>
+            </th>
             <th className="fwTableHeaderCell" style={{ width: 220 }}>
               <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 8 }}>
                 <span>Protocol-Port</span>

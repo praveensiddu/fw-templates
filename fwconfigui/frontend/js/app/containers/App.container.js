@@ -61,6 +61,7 @@ function App() {
   const [routeVersion, setRouteVersion] = React.useState(0);
   const [loading, setLoading] = React.useState(false);
   const [error, setError] = React.useState("");
+  const [homeInitialized, setHomeInitialized] = React.useState(null);
 
   const [infraEnvItems, setInfraEnvItems] = React.useState([]);
   const [productItems, setProductItems] = React.useState([]);
@@ -267,6 +268,25 @@ function App() {
   }, [canNavigateAway, setError]);
 
   React.useEffect(() => {
+    let cancelled = false;
+    (async () => {
+      try {
+        const resp = await loadHomeSettings();
+        if (!cancelled) setHomeInitialized(!!resp?.initialized);
+      } catch (e) {
+        if (!cancelled) setHomeInitialized(false);
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
+  const onHomeSaved = React.useCallback(() => {
+    setHomeInitialized(true);
+  }, []);
+
+  React.useEffect(() => {
     const loadEnv = async () => {
       try {
         const resp = await listFwConfigItems("env");
@@ -365,6 +385,9 @@ function App() {
   }, [activeTab, productSubTab, productEnv, infraEnvItems, productEnvOptions, getProductFromPath, getProductEnvFromPath]);
 
   const content = React.useMemo(() => {
+    if (homeInitialized !== true || activeTab === "home") {
+      return <Home setLoading={setLoading} setError={setError} onSaved={onHomeSaved} />;
+    }
     if (activeTab === "products") {
       const currentProduct = safeTrim(window.__fwCurrentProduct) || getProductFromPath(window.location.pathname);
       const hasProduct = isNonEmptyString(currentProduct);
@@ -688,16 +711,14 @@ function App() {
     if (activeTab === "role-mgmt") {
       return <RoleMgmt setLoading={setLoading} setError={setError} />;
     }
-    if (activeTab === "home") {
-      return <Home setLoading={setLoading} setError={setError} />;
-    }
     return <FwRulesTable setLoading={setLoading} setError={setError} />;
-  }, [activeTab, infraSubTab, productSubTab, productEnv, infraEnvItems, getProductFromPath, getProductEnvFromPath, routeVersion]);
+  }, [activeTab, homeInitialized, onHomeSaved, infraSubTab, productSubTab, productEnv, infraEnvItems, getProductFromPath, getProductEnvFromPath, routeVersion]);
 
   return (
     <>
       <AppView
-        activeTab={activeTab}
+        activeTab={homeInitialized === true ? activeTab : "home"}
+        homeInitialized={homeInitialized === true}
         onSetTab={async (t) => {
           const ok = await canNavigateAway();
           if (!ok) return;

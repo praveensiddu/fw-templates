@@ -24,16 +24,47 @@ function ProductsTableView({
         <thead>
           <tr>
             <th className="fwTableHeaderCell" style={{ width: 260 }}>
-              Product
+              <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 8 }}>
+                <span>Product</span>
+                <HelpIconButton docPath="/static/help/product/name.html" title="Product" />
+              </div>
             </th>
             <th className="fwTableHeaderCell" style={{ width: 260 }}>
-              Envs
+              <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 8 }}>
+                <span>Envs</span>
+                <HelpIconButton docPath="/static/help/product/envs.html" title="Envs" />
+              </div>
             </th>
-            <th className="fwTableHeaderCell">Description</th>
-            <th className="fwTableHeaderCell" style={{ width: 300 }}>Components Prefix List</th>
-            <th className="fwTableHeaderCell" style={{ width: 300 }}>Components Exclude List</th>
-            <th className="fwTableHeaderCell" style={{ width: 260 }}>Include flowids</th>
-            <th className="fwTableHeaderCell" style={{ width: 260 }}>Exclude flowids</th>
+            <th className="fwTableHeaderCell">
+              <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 8 }}>
+                <span>Description</span>
+                <HelpIconButton docPath="/static/help/product/description.html" title="Description" />
+              </div>
+            </th>
+            <th className="fwTableHeaderCell" style={{ width: 300 }}>
+              <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 8 }}>
+                <span>Components Prefix List</span>
+                <HelpIconButton docPath="/static/help/product/components_prefix_list.html" title="Components Prefix List" />
+              </div>
+            </th>
+            <th className="fwTableHeaderCell" style={{ width: 300 }}>
+              <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 8 }}>
+                <span>Components Exclude List</span>
+                <HelpIconButton docPath="/static/help/product/components_exclude_list.html" title="Components Exclude List" />
+              </div>
+            </th>
+            <th className="fwTableHeaderCell" style={{ width: 260 }}>
+              <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 8 }}>
+                <span>Include flowids</span>
+                <HelpIconButton docPath="/static/help/product/include_flowids.html" title="Include flowids" />
+              </div>
+            </th>
+            <th className="fwTableHeaderCell" style={{ width: 260 }}>
+              <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 8 }}>
+                <span>Exclude flowids</span>
+                <HelpIconButton docPath="/static/help/product/exclude_flowids.html" title="Exclude flowids" />
+              </div>
+            </th>
             <th className="fwTableHeaderCell" style={{ width: 120 }}>Actions</th>
           </tr>
           <tr>

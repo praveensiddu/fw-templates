@@ -227,18 +227,49 @@ function AddrsTableView({ env, rows, filters, setFilters, onAdd, onPrepareLegacy
             <th className="fwTableHeaderCell" style={{ width: 260 }}>
               <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 8 }}>
                 <span>Name</span>
-                <HelpIconButton docPath="/static/help/keywords/name.html" title="Name" />
+                <HelpIconButton docPath="/static/help/addrs/name.html" title="Name" />
               </div>
             </th>
-            <th className="fwTableHeaderCell" style={{ width: 320 }}>value</th>
-            <th className="fwTableHeaderCell" style={{ width: 220 }}>name-override</th>
-            <th className="fwTableHeaderCell" style={{ width: 160 }}>in-firewall</th>
-            <th className="fwTableHeaderCell" style={{ width: 160 }}>in-fw-grp</th>
-            <th className="fwTableHeaderCell" style={{ width: 160 }}>in-fw-rule</th>
-            <th className="fwTableHeaderCell" style={{ width: 220 }}>cleanup strategy</th>
+            <th className="fwTableHeaderCell" style={{ width: 320 }}>
+              <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 8 }}>
+                <span>value</span>
+                <HelpIconButton docPath="/static/help/addrs/value.html" title="value" />
+              </div>
+            </th>
+            <th className="fwTableHeaderCell" style={{ width: 220 }}>
+              <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 8 }}>
+                <span>name-override</span>
+                <HelpIconButton docPath="/static/help/addrs/name-override.html" title="name-override" />
+              </div>
+            </th>
+            <th className="fwTableHeaderCell" style={{ width: 160 }}>
+              <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 8 }}>
+                <span>in-firewall</span>
+                <HelpIconButton docPath="/static/help/addrs/in-firewall.html" title="in-firewall" />
+              </div>
+            </th>
+            <th className="fwTableHeaderCell" style={{ width: 160 }}>
+              <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 8 }}>
+                <span>in-fw-grp</span>
+                <HelpIconButton docPath="/static/help/addrs/in-fw-grp.html" title="in-fw-grp" />
+              </div>
+            </th>
+            <th className="fwTableHeaderCell" style={{ width: 160 }}>
+              <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 8 }}>
+                <span>in-fw-rule</span>
+                <HelpIconButton docPath="/static/help/addrs/in-fw-rule.html" title="in-fw-rule" />
+              </div>
+            </th>
+            <th className="fwTableHeaderCell" style={{ width: 220 }}>
+              <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 8 }}>
+                <span>cleanup strategy</span>
+                <HelpIconButton docPath="/static/help/addrs/cleanup-strategy.html" title="cleanup strategy" />
+              </div>
+            </th>
             <th className="fwTableHeaderCell" style={{ width: 200 }}>
               <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 8 }}>
                 <span>File</span>
+                <HelpIconButton docPath="/static/help/addrs/file.html" title="File" />
               </div>
             </th>
             <th className="fwTableHeaderCell" style={{ width: 100 }}>Actions</th>
