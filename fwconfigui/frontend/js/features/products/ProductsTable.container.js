@@ -101,7 +101,7 @@ function ProductsTable({ setLoading, setError }) {
     setOriginalName("");
     setForm({
       name: "",
-      envs: ["pac", "prd"],
+      envs: ["qa", "prd"],
       description: "",
       templatesRepo: "",
       generatedRepo: "",

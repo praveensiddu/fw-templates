@@ -629,7 +629,7 @@ function FwRulesTable({ setLoading, setError }) {
 
   const onAdd = React.useCallback(() => {
     const nextAppflowid = createNewAppFlowId();
-    const defaultEnvs = ["pac", "prd"];
+    const defaultEnvs = ["qa", "prd"];
     setDetailsMode("add");
     setOriginalAppflowid("");
     setIsEditingSource(true);

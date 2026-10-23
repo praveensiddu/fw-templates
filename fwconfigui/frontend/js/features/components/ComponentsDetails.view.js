@@ -10,7 +10,7 @@ function ComponentsDetailsView({
   productNames,
   applyAllRule,
 }) {
-  const defaultEnvOptions = ["prd", "rtb", "pac", "ent", "dev"];
+  const defaultEnvOptions = ["prd", "rtb", "qa", "ent", "dev"];
   const existingEnvOptions = (Array.isArray(form?.sitesItems) ? form.sitesItems : [])
     .map((x) => safeTrim(x?.env))
     .filter((x) => x && !defaultEnvOptions.includes(x));

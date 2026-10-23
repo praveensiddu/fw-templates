@@ -81,7 +81,7 @@ function ComponentsTable({ setLoading, setError }) {
       const sites = data?.sites && typeof data.sites === "object" ? data.sites : {};
       const fmSites = data?.fm_sites && typeof data.fm_sites === "object" ? data.fm_sites : {};
 
-      const envOrder = ["prd", "pac", "rtb", "ent", "dev"];
+      const envOrder = ["prd", "qa", "rtb", "ent", "dev"];
       const envKeys = [...envOrder.filter((k) => Object.prototype.hasOwnProperty.call(sites || {}, k)), ...Object.keys(sites || {}).filter((k) => !envOrder.includes(k))];
       const sitesLines = envKeys
         .map((k) => {
@@ -179,7 +179,7 @@ function ComponentsTable({ setLoading, setError }) {
     const data = row?.data || {};
     const sites = data?.sites && typeof data.sites === "object" ? data.sites : {};
 
-    const envOrder = ["prd", "pac", "rtb", "ent", "dev"];
+    const envOrder = ["prd", "qa", "rtb", "ent", "dev"];
     const envKeys = [...envOrder.filter((k) => Object.prototype.hasOwnProperty.call(sites || {}, k)), ...Object.keys(sites || {}).filter((k) => !envOrder.includes(k))];
     const sitesItems = envKeys
       .map((env) => ({ env, sites: Array.isArray(sites?.[env]) ? sites[env] : [] }))

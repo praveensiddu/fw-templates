@@ -9,7 +9,7 @@ from backend.utils.workspace import get_fwconfigfiles_root
 from backend.utils.yaml_utils import list_yaml_files, read_yaml_dict, write_yaml_dict
 
 _COMPONENTS_FILENAME = "components.yaml"
-_ALLOWED_SITE_ENVS = {"prd", "pac", "rtb", "ent", "dev"}
+_ALLOWED_SITE_ENVS = {"prd", "qa", "rtb", "ent", "dev"}
 
 
 @log_all_methods()

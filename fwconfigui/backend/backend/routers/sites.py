@@ -3,7 +3,7 @@
 This type is stored in a single YAML file: sites.yaml
 Format:
   US:
-    envs: ["prd", "pac"]
+    envs: ["prd", "qa"]
 
 Keys are site names.
 """
