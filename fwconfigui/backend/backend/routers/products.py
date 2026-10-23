@@ -45,29 +45,6 @@ def _normalize_description(v: Any) -> str:
     return str(v or "").strip()
 
 
-def _normalize_templates_repo(v: Any) -> str:
-    return str(v or "").strip()
-
-
-def _normalize_generated_repo(v: Any) -> str:
-    return str(v or "").strip()
-
-
-def _generated_repo_from_templates_repo(v: Any) -> str:
-    templates_repo = _normalize_templates_repo(v)
-    if not templates_repo:
-        return ""
-    parts = [p for p in templates_repo.split("/") if str(p or "").strip()]
-    return str(parts[-1]).strip() if parts else ""
-
-
-def _get_generated_repo(*, data: Dict[str, Any]) -> str:
-    stored = _normalize_generated_repo(data.get("generated-repo"))
-    if stored:
-        return stored
-    return _generated_repo_from_templates_repo(data.get("templates-repo"))
-
-
 def _normalize_components_prefix_list(v: Any) -> list[str]:
     xs = v if isinstance(v, list) else []
     out = [str(x or "").strip() for x in xs if str(x or "").strip()]
@@ -129,8 +106,6 @@ def list_items(request: Request, name: Optional[str] = None):
                     "name": k,
                     "envs": _normalize_envs(data.get("envs")),
                     "description": _normalize_description(data.get("description")),
-                    "templates-repo": _normalize_templates_repo(data.get("templates-repo")),
-                    "generated-repo": _get_generated_repo(data=data),
                     "components_prefix_list": _normalize_components_prefix_list(data.get("components_prefix_list")),
                     "components_exclude_list": _normalize_components_exclude_list(data.get("components_exclude_list")),
                     "include_flowids": _normalize_flowids(data.get("include_flowids")),
@@ -169,9 +144,6 @@ def save_item(
     if not description:
         raise ValidationError("description", "must not be empty")
 
-    templates_repo = _normalize_templates_repo(data.get("templates-repo"))
-    generated_repo = _normalize_generated_repo(data.get("generated-repo"))
-
     components_prefix_list = _normalize_components_prefix_list(data.get("components_prefix_list"))
     if len(components_prefix_list) == 0:
         raise ValidationError("components_prefix_list", "must not be empty")
@@ -191,8 +163,6 @@ def save_item(
     raw[name] = {
         "envs": envs,
         "description": description,
-        "templates-repo": templates_repo,
-        "generated-repo": generated_repo,
         "components_prefix_list": components_prefix_list,
         "components_exclude_list": components_exclude_list,
         "include_flowids": include_flowids,
@@ -229,9 +199,6 @@ def update_item(
     if not description:
         raise ValidationError("description", "must not be empty")
 
-    templates_repo = _normalize_templates_repo(data.get("templates-repo"))
-    generated_repo = _normalize_generated_repo(data.get("generated-repo"))
-
     components_prefix_list = _normalize_components_prefix_list(data.get("components_prefix_list"))
     if len(components_prefix_list) == 0:
         raise ValidationError("components_prefix_list", "must not be empty")
@@ -247,20 +214,12 @@ def update_item(
     if original not in raw:
         raise ValidationError("original_name", "not found")
 
-    prev = raw.get(original) if isinstance(raw.get(original), dict) else {}
-    if "templates-repo" not in data:
-        templates_repo = _normalize_templates_repo(prev.get("templates-repo"))
-    if "generated-repo" not in data:
-        generated_repo = _normalize_generated_repo(prev.get("generated-repo"))
-
     if original != name:
         raw.pop(original, None)
 
     raw[name] = {
         "envs": envs,
         "description": description,
-        "templates-repo": templates_repo,
-        "generated-repo": generated_repo,
         "components_prefix_list": components_prefix_list,
         "components_exclude_list": components_exclude_list,
         "include_flowids": include_flowids,

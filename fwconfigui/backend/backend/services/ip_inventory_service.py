@@ -14,7 +14,7 @@ from backend.services.common_service import (
     build_fortimgr_matched_groups_for_env,
     build_group_used_in_group_metadata,
     build_group_used_in_rule_metadata,
-    get_generated_folder_prefix,
+    get_rendered_folder_prefix,
     get_product_templates_repo_name,
     get_product_generated_repo_name,
     read_existing_addresses,
@@ -223,14 +223,14 @@ class IpInventoryService:
             if matched:
                 fm_addr_match_dict[name] = val
 
-        generated_prefix = get_generated_folder_prefix()
+        rendered_f_prefix = get_rendered_folder_prefix()
         if not str(self._product or "").strip():
             repo_root = get_fwconfigfiles_root(None)
         else:
             repo_name = get_product_generated_repo_name(product=str(self._product or ""))
             repo_root = get_fwconfigfiles_root(None) / "cloned-repositories" / repo_name
 
-        envgenfolder = repo_root / e / generated_prefix
+        envgenfolder = repo_root / e / rendered_f_prefix
         address_dir = envgenfolder / "address"
         address_dir.mkdir(parents=True, exist_ok=True)
 

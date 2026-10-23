@@ -21,11 +21,14 @@ def list_yaml_files_recursive(root: Path) -> List[Path]:
     return out
 
 
-def get_generated_folder_prefix() -> str:
-    prefix = str(os.getenv("GENERATED_FOLDER_PREFIX", "") or "").strip()
-    if not prefix:
-        raise ValidationError("GENERATED_FOLDER_PREFIX", "env var is required")
-    return prefix
+def get_rendered_folder_prefix() -> str:
+    """Folder prefix under a product's rendered repo for generated configs.
+
+    Read from ~/.fwconfig/fwconfig.yaml (rendered_folder_prefix, set on the
+    Home tab); defaults to iac/fw when unset.
+    """
+    prefix = str(get_home_setting("RENDERED_FOLDER_PREFIX", env_fallback=False) or "").strip()
+    return prefix or "iac/fw"
 
 
 def _gitrepo_group_relpath(*, env_key: str) -> str:

@@ -5,7 +5,7 @@ from typing import Any, Dict, List, Optional
 import yaml
 
 from backend.exceptions.custom import ValidationError
-from backend.services.common_service import get_generated_folder_prefix, get_product_templates_repo_name
+from backend.services.common_service import get_rendered_folder_prefix, get_product_templates_repo_name
 from backend.utils.logging_utils import log_all_methods
 from backend.utils.workspace import get_fwconfigfiles_root, get_settings_yaml_path
 from backend.utils.yaml_utils import list_yaml_files
@@ -32,8 +32,8 @@ class RulesService:
     def _env_flows_dir(self, env: str) -> Path:
         e = self._normalize_env(env)
         repo_name = self._get_templates_repo_name()
-        generated_prefix = get_generated_folder_prefix()
-        root = get_fwconfigfiles_root(None) / "cloned-repositories" / repo_name / e / generated_prefix / "flows"
+        rendered_f_prefix = get_rendered_folder_prefix()
+        root = get_fwconfigfiles_root(None) / "cloned-repositories" / repo_name / e / rendered_f_prefix / "flows"
         return root
 
     @staticmethod

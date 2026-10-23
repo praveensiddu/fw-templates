@@ -13,11 +13,13 @@ from backend.utils.yaml_utils import read_yaml_dict, write_yaml_dict
 logger = logging.getLogger("uvicorn.error")
 
 _DEFAULT_WORKSPACE = "~/workspace"
+_DEFAULT_RENDERED_FOLDER_PREFIX = "iac/fw"
 
 _HOME_SETTINGS_KEYS = (
     "WORKSPACE",
     "TEMPLATES_GITREPO_GROUP",
     "RENDERED_GITREPO_GROUP",
+    "RENDERED_FOLDER_PREFIX",
     "INFRA_REPO",
 )
 
@@ -25,6 +27,7 @@ _SAMPLE_SETTINGS: Dict[str, str] = {
     "WORKSPACE": "~/workspace",
     "TEMPLATES_GITREPO_GROUP": "https://github.com/your-org/fw-templates",
     "RENDERED_GITREPO_GROUP": "https://github.com/your-org/fw-rendered",
+    "RENDERED_FOLDER_PREFIX": _DEFAULT_RENDERED_FOLDER_PREFIX,
     "INFRA_REPO": "https://github.com/your-org/fw-infra",
 }
 
@@ -62,11 +65,12 @@ def apply_saved_home_settings() -> None:
         logger.info("Applied saved home setting %s=%s", key, val)
 
 
-def get_home_setting(name: str) -> str:
+def get_home_setting(name: str, env_fallback: bool = True) -> str:
     """Return a single Home setting value (saved file > env var).
 
     Args:
         name: Uppercase setting name (e.g. RENDERED_GITREPO_GROUP)
+        env_fallback: When False, only the saved file value is used
 
     Returns:
         The setting value, or "" when unset
@@ -75,7 +79,10 @@ def get_home_setting(name: str) -> str:
     if key not in _HOME_SETTINGS_KEYS:
         return ""
     saved = _read_saved_settings()
-    return saved.get(key) or str(os.getenv(key, "") or "").strip()
+    val = str(saved.get(key) or "").strip()
+    if val or not env_fallback:
+        return val
+    return str(os.getenv(key, "") or "").strip()
 
 
 @log_all_methods()
@@ -105,6 +112,8 @@ class HomeService:
             val = saved.get(key) or str(os.getenv(key, "") or "").strip()
             if not val and key == "WORKSPACE":
                 val = _DEFAULT_WORKSPACE
+            if not val and key == "RENDERED_FOLDER_PREFIX":
+                val = _DEFAULT_RENDERED_FOLDER_PREFIX
             out[key] = val
         return out
 

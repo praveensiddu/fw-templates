@@ -9,6 +9,7 @@ function Home({ setLoading, setError, onSaved }) {
     WORKSPACE: "~/workspace",
     TEMPLATES_GITREPO_GROUP: "",
     RENDERED_GITREPO_GROUP: "",
+    RENDERED_FOLDER_PREFIX: "iac/fw",
     INFRA_REPO: "",
   });
   const [busy, setBusy] = React.useState(false);
@@ -20,6 +21,7 @@ function Home({ setLoading, setError, onSaved }) {
       WORKSPACE: safeTrim(src.WORKSPACE) || "~/workspace",
       TEMPLATES_GITREPO_GROUP: safeTrim(src.TEMPLATES_GITREPO_GROUP),
       RENDERED_GITREPO_GROUP: safeTrim(src.RENDERED_GITREPO_GROUP),
+      RENDERED_FOLDER_PREFIX: safeTrim(src.RENDERED_FOLDER_PREFIX) || "iac/fw",
       INFRA_REPO: safeTrim(src.INFRA_REPO),
     });
   }, []);
@@ -82,6 +84,7 @@ function Home({ setLoading, setError, onSaved }) {
       isNonEmptyString(form.WORKSPACE) &&
       isNonEmptyString(form.TEMPLATES_GITREPO_GROUP) &&
       isNonEmptyString(form.RENDERED_GITREPO_GROUP) &&
+      isNonEmptyString(form.RENDERED_FOLDER_PREFIX) &&
       isNonEmptyString(form.INFRA_REPO),
     [form]
   );

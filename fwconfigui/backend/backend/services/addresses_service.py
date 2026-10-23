@@ -6,7 +6,7 @@ from backend.exceptions.custom import AlreadyExistsError, ValidationError
 from backend.services.common_service import (
     build_address_used_in_group_metadata,
     build_address_used_in_rule_metadata,
-    get_generated_folder_prefix,
+    get_rendered_folder_prefix,
     get_product_generated_repo_name,
     get_product_templates_repo_name,
     read_group_names,
@@ -28,15 +28,6 @@ class AddressesService:
 
     def __init__(self, product: Optional[str] = None):
         self._product = product
-
-    def _products_path(self) -> Path:
-        return get_settings_yaml_path("products.yaml")
-
-    def _get_generated_repo_name(self) -> str:
-        return get_product_generated_repo_name(product=str(self._product or ""))
-
-    def _get_templates_repo_name(self) -> str:
-        return get_product_templates_repo_name(product=str(self._product or ""))
 
     @staticmethod
     def _normalize_env(env: str) -> str:
@@ -74,9 +65,9 @@ class AddressesService:
 
     def _env_addrs_dir(self, env: str) -> Path:
         e = self._normalize_env(env)
-        repo_name = self._get_generated_repo_name()
-        generated_prefix = get_generated_folder_prefix()
-        root = get_fwconfigfiles_root(None) / "cloned-repositories" / repo_name / e / generated_prefix / "address"
+        repo_name = get_product_generated_repo_name(product=str(self._product or ""))
+        rendered_f_prefix = get_rendered_folder_prefix()
+        root = get_fwconfigfiles_root(None) / "cloned-repositories" / repo_name / e / rendered_f_prefix / "address"
         root.mkdir(parents=True, exist_ok=True)
         return root
 
@@ -146,14 +137,14 @@ class AddressesService:
 
     def _env_address_metadata_dir(self, env: str) -> Path:
         e = self._normalize_env(env)
-        repo_name = self._get_generated_repo_name()
-        generated_prefix = get_generated_folder_prefix()
+        repo_name = get_product_generated_repo_name(product=str(self._product or ""))
+        rendered_f_prefix = get_rendered_folder_prefix()
         root = (
             get_fwconfigfiles_root(None)
             / "cloned-repositories"
             / repo_name
             / e
-            / generated_prefix
+            / rendered_f_prefix
             / "metadata"
             / "address"
         )
@@ -520,9 +511,9 @@ class AddressesService:
         groups_dir = (
             get_fwconfigfiles_root(None)
             / "cloned-repositories"
-            / self._get_generated_repo_name()
+            / get_product_generated_repo_name(product=str(self._product or ""))
             / e
-            / get_generated_folder_prefix()
+            / get_rendered_folder_prefix()
             / "groups"
         )
         groups_dir.mkdir(parents=True, exist_ok=True)
@@ -583,7 +574,7 @@ class AddressesService:
             uniq = sorted({str(x or "").strip() for x in (addrs or []) if str(x or "").strip()})
             out_groups[g] = {"members": uniq}
 
-        templates_repo = self._get_templates_repo_name()
+        templates_repo = get_product_templates_repo_name(product=str(self._product or ""))
         out_path = (
             get_fwconfigfiles_root(None)
             / "cloned-repositories"

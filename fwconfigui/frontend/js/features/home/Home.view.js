@@ -29,6 +29,11 @@ function HomeView({
       description: "Git project/group/org with one repo for each product to store rendered configs.",
     },
     {
+      key: "RENDERED_FOLDER_PREFIX",
+      title: "RENDERED_FOLDER_PREFIX",
+      description: "Folder prefix under each product's rendered repo where generated configs are written.",
+    },
+    {
       key: "INFRA_REPO",
       title: "INFRA_REPO",
       description: "Git repo which contains infrastructure data",

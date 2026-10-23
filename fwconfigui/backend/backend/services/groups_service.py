@@ -2,7 +2,7 @@ from pathlib import Path
 from typing import Any, Dict, List, Optional, Tuple
 
 from backend.exceptions.custom import AlreadyExistsError, ValidationError
-from backend.services.common_service import build_group_used_in_group_metadata, build_group_used_in_rule_metadata, get_generated_folder_prefix, get_product_generated_repo_name
+from backend.services.common_service import build_group_used_in_group_metadata, build_group_used_in_rule_metadata, get_rendered_folder_prefix, get_product_generated_repo_name
 from backend.utils.logging_utils import log_all_methods
 from backend.utils.workspace import get_fwconfigfiles_root, get_settings_yaml_path
 from backend.utils.yaml_utils import list_yaml_files, read_yaml_dict, write_yaml_dict
@@ -46,8 +46,8 @@ class GroupsService:
     def _env_groups_dir(self, env: str) -> Path:
         e = self._normalize_env(env)
         repo_name = get_product_generated_repo_name(product=str(self._product or ""))
-        generated_prefix = get_generated_folder_prefix()
-        root = get_fwconfigfiles_root(None) / "cloned-repositories" / repo_name / e / generated_prefix / "groups"
+        rendered_f_prefix = get_rendered_folder_prefix()
+        root = get_fwconfigfiles_root(None) / "cloned-repositories" / repo_name / e / rendered_f_prefix / "groups"
         root.mkdir(parents=True, exist_ok=True)
         return root
 
@@ -117,13 +117,13 @@ class GroupsService:
     def _env_groups_metadata_dir(self, env: str) -> Path:
         e = self._normalize_env(env)
         repo_name = get_product_generated_repo_name(product=str(self._product or ""))
-        generated_prefix = get_generated_folder_prefix()
+        rendered_f_prefix = get_rendered_folder_prefix()
         root = (
             get_fwconfigfiles_root(None)
             / "cloned-repositories"
             / repo_name
             / e
-            / generated_prefix
+            / rendered_f_prefix
             / "metadata"
             / "groups"
         )
