@@ -30,7 +30,10 @@ function ProductsDetailsView({
           <div className="card" style={{ padding: 12 }}>
             <div className="fieldGrid">
               <div className="field">
-                <div className="muted">Product Name</div>
+                <div className="muted" style={{ display: "flex", alignItems: "center", gap: 6 }}>
+                  <span>Product Name</span>
+                  <HelpIconButton docPath="/static/help/product/name.html" title="Product Name" />
+                </div>
                 <input
                   className="input"
                   value={safeTrim(form?.name)}
@@ -41,7 +44,10 @@ function ProductsDetailsView({
               </div>
 
               <div className="field" style={{ gridColumn: "1 / -1" }}>
-                <div className="muted">Envs</div>
+                <div className="muted" style={{ display: "flex", alignItems: "center", gap: 6 }}>
+                  <span>Envs</span>
+                  <HelpIconButton docPath="/static/help/product/envs.html" title="Envs" />
+                </div>
                 <MultiSelectPicker
                   options={envOptions}
                   values={Array.isArray(form?.envs) ? form.envs : []}
@@ -52,7 +58,10 @@ function ProductsDetailsView({
               </div>
 
               <div className="field" style={{ gridColumn: "1 / -1" }}>
-                <div className="muted">Description</div>
+                <div className="muted" style={{ display: "flex", alignItems: "center", gap: 6 }}>
+                  <span>Description</span>
+                  <HelpIconButton docPath="/static/help/product/description.html" title="Description" />
+                </div>
                 <input
                   className="input"
                   value={String(form?.description || "")}
@@ -62,27 +71,10 @@ function ProductsDetailsView({
               </div>
 
               <div className="field" style={{ gridColumn: "1 / -1" }}>
-                <div className="muted">templates-repo</div>
-                <input
-                  className="input"
-                  value={String(form?.templatesRepo || "")}
-                  onChange={(e) => setForm((p) => ({ ...p, templatesRepo: e.target.value }))}
-                  placeholder="org/repo (optional)"
-                />
-              </div>
-
-              <div className="field" style={{ gridColumn: "1 / -1" }}>
-                <div className="muted">generated-repo</div>
-                <input
-                  className="input"
-                  value={String(form?.generatedRepo || "")}
-                  onChange={(e) => setForm((p) => ({ ...p, generatedRepo: e.target.value }))}
-                  placeholder="repo name used under cloned-repositories (optional)"
-                />
-              </div>
-
-              <div className="field" style={{ gridColumn: "1 / -1" }}>
-                <div className="muted">Components Prefix List (comma-separated)</div>
+                <div className="muted" style={{ display: "flex", alignItems: "center", gap: 6 }}>
+                  <span>Components Prefix List (comma-separated)</span>
+                  <HelpIconButton docPath="/static/help/product/components_prefix_list.html" title="Components Prefix List" />
+                </div>
                 <input
                   className="input"
                   value={String(form?.componentsPrefixListText || "")}
@@ -92,7 +84,10 @@ function ProductsDetailsView({
               </div>
 
               <div className="field" style={{ gridColumn: "1 / -1" }}>
-                <div className="muted">Components Exclude List (comma-separated)</div>
+                <div className="muted" style={{ display: "flex", alignItems: "center", gap: 6 }}>
+                  <span>Components Exclude List (comma-separated)</span>
+                  <HelpIconButton docPath="/static/help/product/components_exclude_list.html" title="Components Exclude List" />
+                </div>
                 <input
                   className="input"
                   value={String(form?.componentsExcludeListText || "")}
@@ -102,7 +97,10 @@ function ProductsDetailsView({
               </div>
 
               <div className="field" style={{ gridColumn: "1 / -1" }}>
-                <div className="muted">Include flowids (comma-separated)</div>
+                <div className="muted" style={{ display: "flex", alignItems: "center", gap: 6 }}>
+                  <span>Include flowids (comma-separated)</span>
+                  <HelpIconButton docPath="/static/help/product/include_flowids.html" title="Include flowids" />
+                </div>
                 <input
                   className="input"
                   value={String(form?.includeFlowidsText || "")}
@@ -112,7 +110,10 @@ function ProductsDetailsView({
               </div>
 
               <div className="field" style={{ gridColumn: "1 / -1" }}>
-                <div className="muted">Exclude flowids (comma-separated)</div>
+                <div className="muted" style={{ display: "flex", alignItems: "center", gap: 6 }}>
+                  <span>Exclude flowids (comma-separated)</span>
+                  <HelpIconButton docPath="/static/help/product/exclude_flowids.html" title="Exclude flowids" />
+                </div>
                 <input
                   className="input"
                   value={String(form?.excludeFlowidsText || "")}

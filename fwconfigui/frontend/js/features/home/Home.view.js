@@ -16,7 +16,7 @@ function HomeView({
     {
       key: "WORKSPACE",
       title: "WORKSPACE",
-      description: "Local folder used as workspace. Tool creates a subfolder by name fwconfigfiles under this,
+      description: "Local folder used as workspace. Tool creates a subfolder by name fwconfigfiles under this workspace.",
     },
     {
       key: "TEMPLATES_GITREPO_GROUP",

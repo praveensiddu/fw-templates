@@ -30,8 +30,6 @@ function ProductsTableView({
               Envs
             </th>
             <th className="fwTableHeaderCell">Description</th>
-            <th className="fwTableHeaderCell" style={{ width: 260 }}>templates-repo</th>
-            <th className="fwTableHeaderCell" style={{ width: 220 }}>generated-repo</th>
             <th className="fwTableHeaderCell" style={{ width: 300 }}>Components Prefix List</th>
             <th className="fwTableHeaderCell" style={{ width: 300 }}>Components Exclude List</th>
             <th className="fwTableHeaderCell" style={{ width: 260 }}>Include flowids</th>
@@ -61,22 +59,6 @@ function ProductsTableView({
                 placeholder="Filter description..."
                 value={filters.description}
                 onChange={(e) => setFilters((p) => ({ ...p, description: e.target.value }))}
-              />
-            </th>
-            <th>
-              <input
-                className={`filterInput ${isNonEmptyString(filters.templatesRepo) ? "filterInput-active" : ""}`}
-                placeholder="Filter templates-repo..."
-                value={filters.templatesRepo}
-                onChange={(e) => setFilters((p) => ({ ...p, templatesRepo: e.target.value }))}
-              />
-            </th>
-            <th>
-              <input
-                className={`filterInput ${isNonEmptyString(filters.generatedRepo) ? "filterInput-active" : ""}`}
-                placeholder="Filter generated-repo..."
-                value={filters.generatedRepo}
-                onChange={(e) => setFilters((p) => ({ ...p, generatedRepo: e.target.value }))}
               />
             </th>
             <th>
@@ -146,12 +128,6 @@ function ProductsTableView({
                 </td>
                 <td>
                   <div style={{ whiteSpace: "pre-line" }}>{safeTrim(r?.description)}</div>
-                </td>
-                <td>
-                  <div style={{ whiteSpace: "pre-line" }}>{safeTrim(r?.templatesRepo)}</div>
-                </td>
-                <td>
-                  <div style={{ whiteSpace: "pre-line" }}>{safeTrim(r?.generatedRepo)}</div>
                 </td>
                 <td>
                   <div style={{ whiteSpace: "pre-line" }}>
@@ -226,7 +202,7 @@ function ProductsTableView({
 
           {(rows || []).length === 0 ? (
             <tr>
-              <td colSpan={10} className="muted">
+              <td colSpan={8} className="muted">
                 No items
               </td>
             </tr>

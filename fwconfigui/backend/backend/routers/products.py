@@ -247,6 +247,12 @@ def update_item(
     if original not in raw:
         raise ValidationError("original_name", "not found")
 
+    prev = raw.get(original) if isinstance(raw.get(original), dict) else {}
+    if "templates-repo" not in data:
+        templates_repo = _normalize_templates_repo(prev.get("templates-repo"))
+    if "generated-repo" not in data:
+        generated_repo = _normalize_generated_repo(prev.get("generated-repo"))
+
     if original != name:
         raw.pop(original, None)
 
