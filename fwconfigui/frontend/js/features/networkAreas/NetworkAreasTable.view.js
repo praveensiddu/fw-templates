@@ -32,6 +32,12 @@ function NetworkAreasTableView({
     return safeTrim(cellEdit?.key) && safeTrim(cellEdit?.key) === key && safeTrim(cellEdit?.field) === "shortname";
   }
 
+  function onNewEntryKeyDown(e) {
+    if (e.key !== "Enter" || e.repeat || !canSubmit) return;
+    e.preventDefault();
+    onSave();
+  }
+
   return (
     <div className="card" style={{ padding: 12 }}>
       <div className="actions">
@@ -95,6 +101,7 @@ function NetworkAreasTableView({
                   autoFocus
                   value={draft.name}
                   onChange={(e) => setDraft((p) => ({ ...p, name: String(e.target.value || "").toUpperCase() }))}
+                  onKeyDown={onNewEntryKeyDown}
                   placeholder="name"
                 />
               </td>
@@ -103,6 +110,7 @@ function NetworkAreasTableView({
                   className="filterInput"
                   value={draft.shortname}
                   onChange={(e) => setDraft((p) => ({ ...p, shortname: String(e.target.value || "").toUpperCase() }))}
+                  onKeyDown={onNewEntryKeyDown}
                   placeholder="shortname"
                 />
               </td>
@@ -111,6 +119,7 @@ function NetworkAreasTableView({
                   className="filterInput"
                   value={draft.envs}
                   onChange={(e) => setDraft((p) => ({ ...p, envs: e.target.value }))}
+                  onKeyDown={onNewEntryKeyDown}
                   placeholder="envs (comma-separated)"
                 />
               </td>
