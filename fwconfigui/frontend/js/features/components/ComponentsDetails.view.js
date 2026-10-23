@@ -20,6 +20,15 @@ function ComponentsDetailsView({
     return mode === "edit" ? "Edit component" : "Add component";
   }
 
+  function renderLabel(text, docPath, title) {
+    return (
+      <div className="muted" style={{ display: "flex", alignItems: "center", gap: 6 }}>
+        {text}
+        <HelpIconButton docPath={docPath} title={title || text} />
+      </div>
+    );
+  }
+
   return (
     <div>
       <div className="actions" style={{ marginBottom: 12 }}>
@@ -36,12 +45,12 @@ function ComponentsDetailsView({
       <div className="card" style={{ padding: 12 }}>
         <div className="fieldGrid">
           <div className="field">
-            <div className="muted">Component name</div>
+            {renderLabel("Component name", "/static/help/components/name.html")}
             <input className="input" value={safeTrim(form?.name)} onChange={(e) => setForm((p) => ({ ...p, name: e.target.value }))} />
           </div>
 
           <div className="field">
-            <div className="muted">Networkarea</div>
+            {renderLabel("Networkarea", "/static/help/components/networkarea.html")}
             <SingleSelectPicker
               options={Array.isArray(networkareaNames) ? networkareaNames : []}
               value={safeTrim(form?.networkarea)}
@@ -54,7 +63,7 @@ function ComponentsDetailsView({
           </div>
 
           <div className="field" style={{ gridColumn: "1 / -1" }}>
-            <div className="muted">Description</div>
+            {renderLabel("Description", "/static/help/components/description.html")}
             <input
               className="input"
               value={String(form?.description ?? "")}
@@ -63,7 +72,11 @@ function ComponentsDetailsView({
           </div>
 
           <div className="field" style={{ gridColumn: "1 / -1" }}>
-            <div className="muted">Pick the products which are allowed to communicate with this component. Choose ALL if it is okay to expose it to all products. Leave it empty if the component is internal to your product and not exposed to other products.</div>
+            {renderLabel(
+              "Pick the products which are allowed to communicate with this component. Choose ALL if it is okay to expose it to all products. Leave it empty if the component is internal to your product and not exposed to other products.",
+              "/static/help/components/exposedto.html",
+              "Exposedto"
+            )}
             <MultiSelectPicker
               options={Array.isArray(productNames) ? productNames : []}
               values={Array.isArray(form?.exposedto) ? form.exposedto : []}
@@ -75,7 +88,7 @@ function ComponentsDetailsView({
 
           <div className="field" style={{ gridColumn: "1 / -1" }}>
             <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 8 }}>
-              <div className="muted">Sites in each env where this component runs</div>
+              {renderLabel("Sites in each env where this component runs", "/static/help/components/sites.html", "Sites")}
               <button
                 className="iconBtn iconBtn-primary"
                 title="Add"
