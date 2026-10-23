@@ -84,6 +84,7 @@ class HomeSettings(BaseModel):
     WORKSPACE: Optional[str] = ""
     TEMPLATES_GITREPO_GROUP: Optional[str] = ""
     RENDERED_GITREPO_GROUP: Optional[str] = ""
+    RENDERED_FOLDER_PREFIX: Optional[str] = ""
     INFRA_REPO: Optional[str] = ""
 
 
