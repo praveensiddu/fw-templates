@@ -16,6 +16,9 @@ function AppView({ activeTab, onSetTab, error, loading, children }) {
           <button className={`tab ${activeTab === "role-mgmt" ? "active" : ""}`} onClick={() => onSetTab("role-mgmt")}>
             role management
           </button>
+          <button className={`tab ${activeTab === "home" ? "active" : ""}`} onClick={() => onSetTab("home")}>
+            Home
+          </button>
         </div>
 
         {error ? (

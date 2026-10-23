@@ -33,6 +33,7 @@ from backend.routers.components import router as components_router
 from backend.routers.env import router as env_router
 from backend.routers.fwrules import router as fwrules_router
 from backend.routers.groups import router as groups_router
+from backend.routers.home import router as home_router
 from backend.routers.keywords import router as keywords_router
 from backend.routers.networkareas import router as networkareas_router
 from backend.routers.addrs import router as addrs_router
@@ -46,6 +47,7 @@ from backend.routers.sicg import router as sicg_router
 from backend.routers.sites import router as sites_router
 from backend.routers.role_mgmt_api import create_rolemgmt_router
 from backend.auth.rbac import enforce_request, get_current_user_context
+from backend.services.home_service import apply_saved_home_settings
 from backend.utils.workspace import ensure_fwconfigfiles_root
 
 logger = logging.getLogger("uvicorn.error")
@@ -76,6 +78,7 @@ async def lifespan(app: FastAPI):
     logger.info("🚀 %s v%s", settings.api_title, settings.api_version)
     logger.info("=" * 80)
 
+    apply_saved_home_settings()
     _apply_env_defaults()
     ws_root = ensure_fwconfigfiles_root()
 
@@ -152,6 +155,7 @@ app.include_router(sites_router)
 app.include_router(predef_port_protocol_router)
 app.include_router(products_router)
 app.include_router(sicg_router)
+app.include_router(home_router)
 app.include_router(
     create_rolemgmt_router(enforce=enforce_request, get_current_user_context=get_current_user_context),
     prefix="/api/v1",

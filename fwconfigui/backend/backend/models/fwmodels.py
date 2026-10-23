@@ -77,3 +77,16 @@ class BusinessPurposeOverrideRequest(BaseModel):
     name: str
     original_text: str
     newtext: str
+
+
+class HomeSettings(BaseModel):
+    """Home tab tool settings."""
+    WORKSPACE: Optional[str] = ""
+    TEMPLATES_GITREPO_GROUP: Optional[str] = ""
+    RENDERED_GITREPO_GROUP: Optional[str] = ""
+    INFRA_REPO: Optional[str] = ""
+
+
+class SaveHomeSettingsRequest(BaseModel):
+    """Request model for saving Home tool settings."""
+    settings: HomeSettings

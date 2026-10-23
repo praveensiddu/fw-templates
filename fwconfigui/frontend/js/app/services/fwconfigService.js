@@ -447,3 +447,28 @@ async function dedupeBusinessPurpose(duplicateName, originalName) {
   const url = `/api/v1/products/${encodeURIComponent(product)}/business-purpose/dedupe`;
   return await postJson(url, { duplicate_name: dup, original_name: orig });
 }
+
+/**
+ * Load Home tab tool settings.
+ * @returns {Promise<Object>} - Response with settings map
+ */
+async function loadHomeSettings() {
+  return await fetchJson("/api/v1/home/settings");
+}
+
+/**
+ * Save Home tab tool settings.
+ * @param {Object} settings - Map of setting name to value
+ * @returns {Promise<Object>} - Response with saved settings map
+ */
+async function saveHomeSettings(settings) {
+  return await putJson("/api/v1/home/settings", { settings: settings || {} });
+}
+
+/**
+ * Load pre-prepared sample Home tab settings.
+ * @returns {Promise<Object>} - Response with sample settings map
+ */
+async function loadHomeSamples() {
+  return await fetchJson("/api/v1/home/samples");
+}

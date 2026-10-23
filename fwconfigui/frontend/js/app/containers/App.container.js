@@ -6,6 +6,7 @@ function App() {
     if (p.startsWith("/products/")) return "products";
     if (p === "/env" || p === "/infra" || p.startsWith("/infra/")) return "infra";
     if (p === "/role-management" || p.startsWith("/role-management/")) return "role-mgmt";
+    if (p === "/home" || p.startsWith("/home/")) return "home";
     return "products";
   })();
 
@@ -36,6 +37,7 @@ function App() {
       products: "/products",
       infra: "/infra",
       "role-mgmt": "/role-management",
+      home: "/home",
     }),
     []
   );
@@ -163,6 +165,8 @@ function App() {
       setActiveTab("infra");
     } else if (p === "/role-management" || p.startsWith("/role-management/")) {
       setActiveTab("role-mgmt");
+    } else if (p === "/home" || p.startsWith("/home/")) {
+      setActiveTab("home");
     } else {
       setActiveTab("products");
     }
@@ -212,6 +216,8 @@ function App() {
         setActiveTab("infra");
       } else if (p === "/role-management" || p.startsWith("/role-management/")) {
         setActiveTab("role-mgmt");
+      } else if (p === "/home" || p.startsWith("/home/")) {
+        setActiveTab("home");
       } else {
         setActiveTab("products");
       }
@@ -681,6 +687,9 @@ function App() {
     }
     if (activeTab === "role-mgmt") {
       return <RoleMgmt setLoading={setLoading} setError={setError} />;
+    }
+    if (activeTab === "home") {
+      return <Home setLoading={setLoading} setError={setError} />;
     }
     return <FwRulesTable setLoading={setLoading} setError={setError} />;
   }, [activeTab, infraSubTab, productSubTab, productEnv, infraEnvItems, getProductFromPath, getProductEnvFromPath, routeVersion]);
