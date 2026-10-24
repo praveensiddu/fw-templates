@@ -128,11 +128,37 @@ function ProductsTable({ setLoading, setError }) {
     setConfirmDelete({ show: true, row });
   }, []);
 
+  const prefixError = React.useMemo(() => {
+    const prefixes = safeTrim(form?.componentsPrefixListText)
+      ? safeTrim(form.componentsPrefixListText)
+          .split(",")
+          .map((x) => safeTrim(x))
+          .filter(Boolean)
+      : [];
+    if (prefixes.length === 0) return "";
+    const selfKey = safeTrim(detailsMode === "edit" ? originalName : form?.name).toUpperCase();
+    for (const it of items || []) {
+      const otherName = safeTrim(it?.name);
+      if (!otherName || otherName.toUpperCase() === selfKey) continue;
+      const others = Array.isArray(it?.data?.components_prefix_list) ? it.data.components_prefix_list : [];
+      for (const q of others) {
+        const qlc = safeTrim(q).toLowerCase();
+        if (!qlc) continue;
+        for (const p of prefixes) {
+          const plc = p.toLowerCase();
+          if (plc === qlc) return `prefix '${p}' already used by product '${otherName}'`;
+          if (plc.startsWith(qlc) || qlc.startsWith(plc)) return `prefix '${p}' overlaps with '${q}' of product '${otherName}'`;
+        }
+      }
+    }
+    return "";
+  }, [form?.componentsPrefixListText, form?.name, items, detailsMode, originalName]);
+
   const canSubmit = React.useMemo(() => {
     const name = safeTrim(form?.name);
     const envs = Array.isArray(form?.envs) ? form.envs.map((x) => safeTrim(x)).filter(Boolean) : [];
     const description = safeTrim(form?.description);
-    const prefixList = safeTrim(form?.componentsPrefixListText)
+    const prefixes = safeTrim(form?.componentsPrefixListText)
       ? safeTrim(form.componentsPrefixListText)
           .split(",")
           .map((x) => safeTrim(x))
@@ -144,9 +170,10 @@ function ProductsTable({ setLoading, setError }) {
     if (!/^[A-Z0-9]+$/.test(name)) return false;
     if (envs.length === 0) return false;
     if (!description) return false;
-    if (prefixList.length === 0) return false;
+    if (prefixes.length === 0) return false;
+    if (prefixError) return false;
     return true;
-  }, [form]);
+  }, [form, prefixError]);
 
   const onBack = React.useCallback(() => {
     setActivePage("list");
@@ -226,24 +253,6 @@ function ProductsTable({ setLoading, setError }) {
     }
   }, [form, detailsMode, originalName, setLoading, setError, load, onBack]);
 
-  const onImport = React.useCallback(
-    async (row) => {
-      try {
-        const name = safeTrim(row?.name);
-        if (!name) return;
-        setLoading(true);
-        setError("");
-        await postJson("/api/v1/fwconfig/products/importsicg", { name });
-        await load();
-      } catch (e) {
-        setError(formatError(e));
-      } finally {
-        setLoading(false);
-      }
-    },
-    [setLoading, setError, load]
-  );
-
   const onOpenProduct = React.useCallback((row) => {
     const name = safeTrim(row?.name);
     if (!name) return;
@@ -278,6 +287,7 @@ function ProductsTable({ setLoading, setError }) {
           form={form}
           setForm={setForm}
           canSubmit={canSubmit}
+          prefixError={prefixError}
           onBack={onBack}
           onSave={onSave}
           envNames={envNames}
@@ -291,7 +301,6 @@ function ProductsTable({ setLoading, setError }) {
           onEdit={onEdit}
           onOpenProduct={onOpenProduct}
           onDelete={onDelete}
-          onImport={onImport}
         />
       )}
 

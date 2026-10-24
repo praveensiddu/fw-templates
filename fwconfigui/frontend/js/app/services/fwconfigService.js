@@ -324,14 +324,6 @@ async function getAddrUsedInRules(env, name) {
   return await fetchJson(url);
 }
 
-async function getAddrCleanupStrategyChoices(env) {
-  const product = getCurrentProduct();
-  if (!isNonEmptyString(product)) throw new Error("Select a product first");
-  const e = requireEnv(env);
-  const url = `/api/v1/products/${encodeURIComponent(product)}/addrs/${encodeURIComponent(e)}/cleanup-strategy-choices`;
-  return await fetchJson(url);
-}
-
 async function prepareLegacyGrp2AddrAppendlist(env) {
   const product = getCurrentProduct();
   if (!isNonEmptyString(product)) throw new Error("Select a product first");
@@ -360,13 +352,7 @@ async function getGroupUsedInRules(env, name) {
   return await fetchJson(url);
 }
 
-async function getGroupCleanupStrategyChoices(env) {
-  const product = getCurrentProduct();
-  if (!isNonEmptyString(product)) throw new Error("Select a product first");
-  const e = requireEnv(env);
-  const url = `/api/v1/products/${encodeURIComponent(product)}/groups/${encodeURIComponent(e)}/cleanup-strategy-choices`;
-  return await fetchJson(url);
-}
+
 
 async function listIpInventory(env) {
   const product = getCurrentProduct();

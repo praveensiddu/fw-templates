@@ -108,22 +108,24 @@ function BusinessPurposeTable({ setLoading, setError }) {
         if (!nextName) throw new Error("Unable to generate copy name");
 
         const data = row?.data || {};
+        const nextData = {
+          name: nextName,
+          "business-purpose": safeTrim(data?.["business-purpose"]),
+        };
         await saveFwConfigItem("business-purpose", {
           name: nextName,
-          data: {
-            name: nextName,
-            "business-purpose": safeTrim(data?.["business-purpose"]),
-          },
+          data: nextData,
         });
 
         await load();
+        onEdit({ name: nextName, data: nextData });
       } catch (e) {
         setError(formatError(e));
       } finally {
         setLoading(false);
       }
     },
-    [items, setLoading, setError, load]
+    [items, setLoading, setError, load, onEdit]
   );
 
   const canSubmit = React.useMemo(() => {

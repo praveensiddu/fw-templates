@@ -2,13 +2,14 @@ function GroupsTable({ env, setLoading, setError }) {
   const [items, setItems] = React.useState([]);
   const [memberOptions, setMemberOptions] = React.useState([]);
   const [componentItems, setComponentItems] = React.useState([]);
-  const [cleanupStrategyOptions, setCleanupStrategyOptions] = React.useState([]);
   const [editingKey, setEditingKey] = React.useState("");
   const [usedInGrpModal, setUsedInGrpModal] = React.useState({ isOpen: false, name: "", items: [], loading: false, error: "" });
   const [usedInRuleModal, setUsedInRuleModal] = React.useState({ isOpen: false, name: "", items: [], loading: false, error: "" });
-  const [draft, setDraft] = React.useState({ filename: "groups.yaml", name: "", members: [], cleanupStrategy: "", nameOverride: [], nameOverrideText: "", inFirewall: "" });
+  const [draft, setDraft] = React.useState({ filename: "groups.yaml", name: "", members: [] });
   const [originalRef, setOriginalRef] = React.useState({ filename: "groups.yaml", name: "" });
   const [confirmDelete, setConfirmDelete] = React.useState({ show: false, row: null });
+  const [hasAddrs, setHasAddrs] = React.useState(false);
+  const [addrsEmptyPopup, setAddrsEmptyPopup] = React.useState(false);
   const [isCheckingUsed, setIsCheckingUsed] = React.useState(false);
   const [isOnboarding, setIsOnboarding] = React.useState(false);
 
@@ -16,15 +17,14 @@ function GroupsTable({ env, setLoading, setError }) {
     try {
       setLoading(true);
       setError("");
-      const [groupsResp, addrsResp, compResp, strategyResp] = await Promise.all([
+      const [groupsResp, addrsResp, compResp] = await Promise.all([
         listGroups(env),
         listAddrs(env),
         listFwConfigItems("components"),
-        getGroupCleanupStrategyChoices(env),
       ]);
       setItems(groupsResp?.items || []);
       setComponentItems(compResp?.items || []);
-      setCleanupStrategyOptions(Array.isArray(strategyResp?.items) ? strategyResp.items : []);
+      setHasAddrs((addrsResp?.items || []).length > 0);
 
       const opts = (addrsResp?.items || [])
         .map((it) => safeTrim(it?.name))
@@ -65,7 +65,7 @@ function GroupsTable({ env, setLoading, setError }) {
 
   React.useEffect(() => {
     setEditingKey("");
-    setDraft({ filename: "groups.yaml", name: "", members: [], cleanupStrategy: "", nameOverride: [], nameOverrideText: "", inFirewall: "" });
+    setDraft({ filename: "groups.yaml", name: "", members: [] });
     setOriginalRef({ filename: "groups.yaml", name: "" });
     setConfirmDelete({ show: false, row: null });
     setUsedInGrpModal({ isOpen: false, name: "", items: [], loading: false, error: "" });
@@ -95,13 +95,11 @@ function GroupsTable({ env, setLoading, setError }) {
 
   const { sortedRows, filters, setFilters } = useTableFilter({
     rows,
-    initialFilters: { name: "", filename: "", members: "", cleanupStrategy: "", nameOverride: "", inFirewall: "", usedInGrp: "", usedInRule: "" },
+    initialFilters: { name: "", filename: "", members: "", inFirewall: "", usedInGrp: "", usedInRule: "" },
     fieldMapping: (row) => ({
       name: safeTrim(row.name),
       filename: safeTrim(row.filename),
       members: Array.isArray(row?.data?.members) ? row.data.members.map((m) => safeTrim(m)).filter(Boolean).join("\n") : "",
-      cleanupStrategy: safeTrim(row?.data?.["cleanup-strategy"]) || "empty",
-      nameOverride: Array.isArray(row?.data?.["name-override"]) ? row.data["name-override"].map((x) => safeTrim(x)).filter(Boolean).join("\n") : "empty",
       inFirewall: (() => {
         const v = row?.data?.["in-firewall"];
         if (v === true) return "true";
@@ -128,22 +126,21 @@ function GroupsTable({ env, setLoading, setError }) {
   });
 
   const onAdd = React.useCallback(() => {
-    setDraft({ filename: "groups.yaml", name: "", members: [], cleanupStrategy: "", nameOverride: [], nameOverrideText: "", inFirewall: "" });
+    if (!hasAddrs) {
+      setAddrsEmptyPopup(true);
+      return;
+    }
+    setDraft({ filename: "groups.yaml", name: "", members: [] });
     setOriginalRef({ filename: "groups.yaml", name: "" });
     setEditingKey("__new__");
-  }, []);
+  }, [hasAddrs]);
 
   const onEdit = React.useCallback((row) => {
     const n = safeTrim(row.name);
     const fn = safeTrim(row.filename) || "groups.yaml";
     const members = Array.isArray(row?.data?.members) ? row.data.members : [];
     const cleanedMembers = (members || []).map((m) => safeTrim(m)).filter(Boolean);
-    const rawInFirewall = row?.data?.["in-firewall"];
-    const inFirewall = rawInFirewall === true ? "true" : rawInFirewall === false ? "false" : safeTrim(rawInFirewall);
-    const rawNo = row?.data?.["name-override"];
-    const nameOverride = Array.isArray(rawNo) ? rawNo.map((x) => safeTrim(x)).filter(Boolean) : [];
-    const cleanupStrategy = safeTrim(row?.data?.["cleanup-strategy"]);
-    setDraft({ filename: fn, name: n, members: cleanedMembers, cleanupStrategy, nameOverride, nameOverrideText: nameOverride.join(" "), inFirewall });
+    setDraft({ filename: fn, name: n, members: cleanedMembers });
     setOriginalRef({ filename: fn, name: n });
     setEditingKey(`${fn}::${n}`);
   }, []);
@@ -159,7 +156,7 @@ function GroupsTable({ env, setLoading, setError }) {
 
   const onCancelEdit = React.useCallback(() => {
     setEditingKey("");
-    setDraft({ filename: "groups.yaml", name: "", members: [], cleanupStrategy: "", nameOverride: [], nameOverrideText: "", inFirewall: "" });
+    setDraft({ filename: "groups.yaml", name: "", members: [] });
     setOriginalRef({ filename: "groups.yaml", name: "" });
   }, []);
 
@@ -174,15 +171,23 @@ function GroupsTable({ env, setLoading, setError }) {
       const members = (Array.isArray(draft.members) ? draft.members : [])
         .map((m) => safeTrim(m))
         .filter(Boolean);
-      const nameOverride = (Array.isArray(draft.nameOverride) ? draft.nameOverride : []).map((x) => safeTrim(x)).filter(Boolean);
+
+      const prevName = safeTrim(originalRef.name);
+      const existing = prevName
+        ? (items || []).find(
+            (it) => safeTrim(it?.name) === prevName && (safeTrim(it?.filename) || "groups.yaml") === filename
+          )
+        : null;
+      const nameOverride = Array.isArray(existing?.data?.["name-override"])
+        ? existing.data["name-override"].map((x) => safeTrim(x)).filter(Boolean)
+        : [];
 
       await saveGroup(env, {
         filename,
         name: nextName,
-        original_name: safeTrim(originalRef.name) || undefined,
+        original_name: prevName || undefined,
         data: {
           members,
-          "cleanup-strategy": safeTrim(draft.cleanupStrategy),
           ...(nameOverride.length > 0 ? { "name-override": nameOverride } : {}),
         },
       });
@@ -194,7 +199,7 @@ function GroupsTable({ env, setLoading, setError }) {
     } finally {
       setLoading(false);
     }
-  }, [env, draft, originalRef, setLoading, setError, load, onCancelEdit]);
+  }, [env, draft, originalRef, items, setLoading, setError, load, onCancelEdit]);
 
   const onConfirmDelete = React.useCallback(async () => {
     const row = confirmDelete.row;
@@ -350,7 +355,6 @@ function GroupsTable({ env, setLoading, setError }) {
         editingKey={editingKey}
         draft={draft}
         setDraft={setDraft}
-        cleanupStrategyOptions={cleanupStrategyOptions}
         groupNameOptions={groupNameOptions}
         memberOptions={memberOptions}
         canSubmit={canSubmit}
@@ -365,6 +369,15 @@ function GroupsTable({ env, setLoading, setError }) {
         onClose={() => setConfirmDelete({ show: false, row: null })}
         onConfirm={onConfirmDelete}
         confirmText="Delete"
+      />
+
+      <ConfirmationModal
+        show={addrsEmptyPopup}
+        title="Cannot add group"
+        message="Addrs table is empty. Group members are names from Addrs table. Create address objects before creating groups"
+        onClose={() => setAddrsEmptyPopup(false)}
+        onConfirm={() => setAddrsEmptyPopup(false)}
+        confirmText="OK"
       />
     </>
   );

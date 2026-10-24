@@ -5,7 +5,7 @@ from typing import Any, Dict, List, Optional
 from backend.exceptions.custom import ValidationError
 from backend.services.common_service import get_product_templates_repo_name
 from backend.utils.logging_utils import log_all_methods
-from backend.utils.workspace import get_fwconfigfiles_root
+from backend.utils.workspace import get_fwconfigfiles_root, get_settings_yaml_path
 from backend.utils.yaml_utils import list_yaml_files, read_yaml_dict, write_yaml_dict
 
 _COMPONENTS_FILENAME = "components.yaml"
@@ -28,11 +28,30 @@ class ComponentsService:
 
     @staticmethod
     def _normalize_component_name(name: str) -> str:
-        v = str(name or "").strip()
-        v = re.sub(r"[^A-Za-z0-9_-]", "", v)
+        v = str(name or "").strip().upper()
         if not v:
             raise ValidationError("name", "is required")
+        if not re.fullmatch(r"[A-Z0-9_]+", v):
+            raise ValidationError("name", "must contain only A-Z, 0-9 and _")
         return v
+
+    def _components_prefix_list(self) -> List[str]:
+        prod_key = str(self._product or "").strip().upper()
+        if not prod_key:
+            return []
+        raw = read_yaml_dict(get_settings_yaml_path("products.yaml"))
+        if not isinstance(raw, dict):
+            return []
+        prod: Any = None
+        for k, v in raw.items():
+            if str(k or "").strip().upper() == prod_key:
+                prod = v
+                break
+        data = prod if isinstance(prod, dict) else {}
+        xs = data.get("components_prefix_list")
+        if not isinstance(xs, list):
+            return []
+        return [str(x or "").strip() for x in xs if str(x or "").strip()]
 
     @staticmethod
     def _normalize_networkarea(v: Any) -> str:
@@ -107,6 +126,10 @@ class ComponentsService:
     def save_item(self, *, name: str, data: Dict[str, Any], original_name: Optional[str] = None) -> None:
         key = self._normalize_component_name(name)
         prev = self._normalize_component_name(original_name) if original_name is not None else ""
+
+        prefixes = self._components_prefix_list()
+        if prefixes and key != prev and not any(key.startswith(p) for p in prefixes):
+            raise ValidationError("name", f"must begin with one of: {', '.join(prefixes)}")
 
         payload = dict(data or {})
         networkarea = self._normalize_networkarea(payload.get("networkarea"))

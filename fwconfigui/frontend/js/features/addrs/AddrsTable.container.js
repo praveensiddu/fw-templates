@@ -1,6 +1,5 @@
 function AddrsTable({ env, setLoading, setError }) {
   const [items, setItems] = React.useState([]);
-  const [cleanupStrategyOptions, setCleanupStrategyOptions] = React.useState([]);
   const [isPreparingLegacy, setIsPreparingLegacy] = React.useState(false);
   const [isOnboarding, setIsOnboarding] = React.useState(false);
   const [editingKey, setEditingKey] = React.useState("");
@@ -10,9 +9,6 @@ function AddrsTable({ env, setLoading, setError }) {
     filename: "addresses.yaml",
     name: "",
     value: "",
-    cleanupStrategy: "",
-    nameOverride: [],
-    nameOverrideText: "",
     inFirewall: "",
   });
   const [originalRef, setOriginalRef] = React.useState({ filename: "addresses.yaml", name: "" });
@@ -23,9 +19,8 @@ function AddrsTable({ env, setLoading, setError }) {
     try {
       setLoading(true);
       setError("");
-      const [resp, strategyResp] = await Promise.all([listAddrs(env), getAddrCleanupStrategyChoices(env)]);
+      const resp = await listAddrs(env);
       setItems(resp?.items || []);
-      setCleanupStrategyOptions(Array.isArray(strategyResp?.items) ? strategyResp.items : []);
     } catch (e) {
       setError(formatError(e));
     } finally {
@@ -35,7 +30,7 @@ function AddrsTable({ env, setLoading, setError }) {
 
   React.useEffect(() => {
     setEditingKey("");
-    setDraft({ filename: "addresses.yaml", name: "", value: "", cleanupStrategy: "", nameOverride: [], nameOverrideText: "", inFirewall: "" });
+    setDraft({ filename: "addresses.yaml", name: "", value: "", inFirewall: "" });
     setOriginalRef({ filename: "addresses.yaml", name: "" });
     setConfirmDelete({ show: false, row: null });
     setUsedInGrpModal({ isOpen: false, name: "", items: [], loading: false, error: "" });
@@ -79,15 +74,23 @@ function AddrsTable({ env, setLoading, setError }) {
     return (items || []).map((it) => ({ ...it }));
   }, [items]);
 
+  const duplicateValues = React.useMemo(() => {
+    const counts = new Map();
+    (items || []).forEach((it) => {
+      const v = (safeTrim(it?.data?.ip) || safeTrim(it?.data?.range) || safeTrim(it?.data?.subnet)).toLowerCase();
+      if (!v) return;
+      counts.set(v, (counts.get(v) || 0) + 1);
+    });
+    return new Set([...counts.entries()].filter(([, c]) => c > 1).map(([v]) => v));
+  }, [items]);
+
   const { sortedRows, filters, setFilters } = useTableFilter({
     rows,
-    initialFilters: { filename: "", name: "", value: "", cleanupStrategy: "", nameOverride: "", inFirewall: "", usedInGrp: "", usedInRule: "" },
+    initialFilters: { filename: "", name: "", value: "", inFirewall: "", usedInGrp: "", usedInRule: "" },
     fieldMapping: (row) => ({
       filename: safeTrim(row.filename),
       name: safeTrim(row.name),
       value: safeTrim(row?.data?.ip) || safeTrim(row?.data?.range) || safeTrim(row?.data?.subnet),
-      cleanupStrategy: safeTrim(row?.data?.["cleanup-strategy"]) || "empty",
-      nameOverride: Array.isArray(row?.data?.["name-override"]) ? row.data["name-override"].map((x) => safeTrim(x)).filter(Boolean).join("\n") : "empty",
       inFirewall: (() => {
         const v = row?.data?.["in-firewall"];
         if (v === true) return "true";
@@ -119,7 +122,7 @@ function AddrsTable({ env, setLoading, setError }) {
   });
 
   const onAdd = React.useCallback(() => {
-    setDraft({ filename: "addresses.yaml", name: "", value: "", cleanupStrategy: "", nameOverride: [], nameOverrideText: "", inFirewall: "" });
+    setDraft({ filename: "addresses.yaml", name: "", value: "", inFirewall: "" });
     setOriginalRef({ filename: "addresses.yaml", name: "" });
     setEditingKey("__new__");
   }, []);
@@ -131,16 +134,10 @@ function AddrsTable({ env, setLoading, setError }) {
     const value = safeTrim(data.ip) || safeTrim(data.range) || safeTrim(data.subnet);
     const rawInFirewall = data["in-firewall"];
     const inFirewall = rawInFirewall === true ? "true" : rawInFirewall === false ? "false" : safeTrim(rawInFirewall);
-    const rawNo = data["name-override"];
-    const nameOverride = Array.isArray(rawNo) ? rawNo.map((x) => safeTrim(x)).filter(Boolean) : [];
-    const cleanupStrategy = safeTrim(data?.["cleanup-strategy"]);
     setDraft({
       filename: fn,
       name: n,
       value,
-      cleanupStrategy,
-      nameOverride,
-      nameOverrideText: nameOverride.join(" "),
       inFirewall,
     });
     setOriginalRef({ filename: fn, name: n });
@@ -151,15 +148,83 @@ function AddrsTable({ env, setLoading, setError }) {
     setConfirmDelete({ show: true, row });
   }, []);
 
+  function generateUniqueCopyName(existingNames, baseName) {
+    const existing = new Set((existingNames || []).map((x) => String(x || "").trim()));
+    const base = safeTrim(baseName);
+    if (!base) return "";
+
+    const candidate1 = `${base}_copy`;
+    if (!existing.has(candidate1)) return candidate1;
+
+    for (let i = 2; i <= 500; i++) {
+      const c = `${base}_copy${i}`;
+      if (!existing.has(c)) return c;
+    }
+    return `${base}_copy${Date.now()}`;
+  }
+
+  const onCopy = React.useCallback(
+    async (row) => {
+      try {
+        setLoading(true);
+        setError("");
+
+        const allNames = (items || []).map((it) => safeTrim(it?.name)).filter(Boolean);
+        const srcName = safeTrim(row?.name);
+        const nextName = generateUniqueCopyName(allNames, srcName);
+        if (!nextName) throw new Error("Unable to generate copy name");
+
+        const src = row?.data && typeof row.data === "object" ? row.data : {};
+        const data = {};
+        for (const k of ["ip", "range", "subnet"]) {
+          const v = safeTrim(src[k]);
+          if (v) data[k] = v;
+        }
+        if (Array.isArray(src["name-override"]) && src["name-override"].map((x) => safeTrim(x)).filter(Boolean).length > 0) {
+          data["name-override"] = src["name-override"].map((x) => safeTrim(x)).filter(Boolean);
+        }
+        if (src["in-firewall"] !== undefined && src["in-firewall"] !== null) {
+          data["in-firewall"] = src["in-firewall"];
+        }
+        const cs = safeTrim(src["cleanup-strategy"]);
+        if (cs) data["cleanup-strategy"] = cs;
+
+        const filename = safeTrim(row?.filename) || "addresses.yaml";
+        await saveAddr(env, {
+          filename,
+          name: nextName,
+          data,
+        });
+
+        await load();
+        onEdit({ filename, name: nextName, data });
+      } catch (e) {
+        setError(formatError(e));
+      } finally {
+        setLoading(false);
+      }
+    },
+    [env, items, setLoading, setError, load, onEdit]
+  );
+
+  const nameError = React.useMemo(() => {
+    const n = safeTrim(draft.name);
+    if (!n) return "";
+    const unchanged = editingKey !== "__new__" && n.toLowerCase() === safeTrim(originalRef.name).toLowerCase();
+    if (unchanged) return "";
+    if (!/^[a-z0-9._]+$/.test(n)) return "name must contain only lowercase letters, digits, '.' and '_'";
+    return "";
+  }, [draft.name, editingKey, originalRef.name]);
+
   const canSubmit = React.useMemo(() => {
     const hasName = isNonEmptyString(draft.name);
     const hasValue = isNonEmptyString(draft.value);
-    return hasName && hasValue;
-  }, [draft]);
+    return hasName && hasValue && !nameError;
+  }, [draft, nameError]);
 
   const onCancelEdit = React.useCallback(() => {
     setEditingKey("");
-    setDraft({ filename: "addresses.yaml", name: "", value: "", cleanupStrategy: "", nameOverride: [], nameOverrideText: "", inFirewall: "" });
+    setDraft({ filename: "addresses.yaml", name: "", value: "", inFirewall: "" });
     setOriginalRef({ filename: "addresses.yaml", name: "" });
   }, []);
 
@@ -179,12 +244,16 @@ function AddrsTable({ env, setLoading, setError }) {
         return { ip: rawValue };
       })();
 
+      const origRow = (items || []).find(
+        (it) => safeTrim(it?.name) === safeTrim(originalRef.name) && (safeTrim(it?.filename) || "addresses.yaml") === (safeTrim(originalRef.filename) || "addresses.yaml")
+      );
+      const storedNameOverride = Array.isArray(origRow?.data?.["name-override"])
+        ? origRow.data["name-override"].map((x) => safeTrim(x)).filter(Boolean)
+        : [];
+
       const data = {
         ...inferred,
-        "cleanup-strategy": safeTrim(draft.cleanupStrategy),
-        ...(Array.isArray(draft.nameOverride) && draft.nameOverride.map((x) => safeTrim(x)).filter(Boolean).length > 0
-          ? { "name-override": draft.nameOverride.map((x) => safeTrim(x)).filter(Boolean) }
-          : {}),
+        ...(storedNameOverride.length > 0 ? { "name-override": storedNameOverride } : {}),
       };
 
       await saveAddr(env, {
@@ -201,7 +270,7 @@ function AddrsTable({ env, setLoading, setError }) {
     } finally {
       setLoading(false);
     }
-  }, [env, draft, originalRef, setLoading, setError, load, onCancelEdit]);
+  }, [env, draft, items, originalRef, setLoading, setError, load, onCancelEdit]);
 
   const onConfirmDelete = React.useCallback(async () => {
     const row = confirmDelete.row;
@@ -337,6 +406,7 @@ function AddrsTable({ env, setLoading, setError }) {
       <AddrsTableView
         env={env}
         rows={sortedRows}
+        duplicateValues={duplicateValues}
         filters={filters}
         setFilters={setFilters}
         onAdd={onAdd}
@@ -352,6 +422,7 @@ function AddrsTable({ env, setLoading, setError }) {
         setUsedInRuleModal={setUsedInRuleModal}
         onEdit={onEdit}
         onDelete={onDelete}
+        onCopy={onCopy}
         onOnboard={onOnboard}
         isOnboarding={isOnboarding}
         onExclude={onExclude}
@@ -359,7 +430,7 @@ function AddrsTable({ env, setLoading, setError }) {
         editingKey={editingKey}
         draft={draft}
         setDraft={setDraft}
-        cleanupStrategyOptions={cleanupStrategyOptions}
+        nameError={nameError}
         canSubmit={canSubmit}
         onCancelEdit={onCancelEdit}
         onSave={onSave}

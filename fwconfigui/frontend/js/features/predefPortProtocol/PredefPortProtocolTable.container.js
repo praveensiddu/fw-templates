@@ -108,24 +108,27 @@ function PredefPortProtocolTable({ setLoading, setError }) {
         const nextName = generateUniqueCopyName(allNames, srcName);
         if (!nextName) throw new Error("Unable to generate copy name");
 
+        const nextAliases = Array.isArray(row?.aliases) ? row.aliases : [];
+        const nextDescription = safeTrim(row?.description);
         await saveFwConfigItem("predef-port-protocol", {
           filename: FIXED_FILENAME,
           name: nextName,
           data: {
             name: nextName,
-            aliases: Array.isArray(row?.aliases) ? row.aliases : [],
-            description: safeTrim(row?.description),
+            aliases: nextAliases,
+            description: nextDescription,
           },
         });
 
         await load();
+        onEdit({ name: nextName, aliases: nextAliases, description: nextDescription });
       } catch (e) {
         setError(formatError(e));
       } finally {
         setLoading(false);
       }
     },
-    [items, setLoading, setError, load]
+    [items, setLoading, setError, load, onEdit]
   );
 
   const onSave = React.useCallback(async () => {

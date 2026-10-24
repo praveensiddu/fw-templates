@@ -951,27 +951,29 @@ function FwRulesTable({ setLoading, setError }) {
         const keywords = Array.isArray(row?.data?.keywords) ? row.data.keywords : [];
         const envs = Array.isArray(row?.data?.envs) ? row.data.envs : [];
 
+        const nextData = {
+          appflowid: newId,
+          "source-list": src,
+          "destination-list": dst,
+          "protocol-port-reference": refs,
+          "business-purpose-reference": safeTrim(row?.data?.["business-purpose-reference"]),
+          keywords,
+          envs,
+        };
         await saveFwConfigItem("fw-rules", {
           filename,
           name: newId,
-          data: {
-            appflowid: newId,
-            "source-list": src,
-            "destination-list": dst,
-            "protocol-port-reference": refs,
-            "business-purpose-reference": safeTrim(row?.data?.["business-purpose-reference"]),
-            keywords,
-            envs,
-          },
+          data: nextData,
         });
         await load();
+        onEdit({ filename, name: newId, data: nextData });
       } catch (e) {
         setError(formatError(e));
       } finally {
         setLoading(false);
       }
     },
-    [items, setLoading, setError, load, createNewAppFlowId]
+    [items, setLoading, setError, load, createNewAppFlowId, onEdit]
   );
 
   const onSave = React.useCallback(async () => {

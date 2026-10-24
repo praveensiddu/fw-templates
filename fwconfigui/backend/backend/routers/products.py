@@ -13,7 +13,6 @@ from typing import Any, Dict, Optional
 
 import re
 from fastapi import APIRouter, Depends, Request
-from pydantic import BaseModel
 
 from backend.exceptions.custom import AlreadyExistsError, ValidationError
 from backend.models import SaveItemRequest
@@ -57,6 +56,26 @@ def _normalize_components_exclude_list(v: Any) -> list[str]:
     return sorted(list(dict.fromkeys(out)))
 
 
+def _validate_components_prefix_list(raw: Dict[str, Any], *, name: str, original: str, prefixes: list[str]) -> None:
+    if not prefixes:
+        raise ValidationError("components_prefix_list", "must not be empty")
+    skip = {str(name or "").strip().upper(), str(original or "").strip().upper()}
+    for other_key, other_val in raw.items():
+        if str(other_key or "").strip().upper() in skip:
+            continue
+        other_data = other_val if isinstance(other_val, dict) else {}
+        for q in _normalize_components_prefix_list(other_data.get("components_prefix_list")):
+            q_lc = q.lower()
+            for p in prefixes:
+                p_lc = p.lower()
+                if p_lc == q_lc:
+                    raise ValidationError("components_prefix_list", f"prefix '{p}' already used by product '{other_key}'")
+                if p_lc.startswith(q_lc) or q_lc.startswith(p_lc):
+                    raise ValidationError(
+                        "components_prefix_list", f"prefix '{p}' overlaps with '{q}' of product '{other_key}'"
+                    )
+
+
 def _normalize_envs(v: Any) -> list[str]:
     envs = v if isinstance(v, list) else []
     out = [str(x or "").strip().lower() for x in envs if str(x or "").strip()]
@@ -73,10 +92,6 @@ def _normalize_flowids(v: Any) -> list[str]:
             continue
         out.append(s)
     return sorted(list(dict.fromkeys(out)))
-
-
-class ImportProductRequest(BaseModel):
-    name: str
 
 
 def get_service():
@@ -145,8 +160,6 @@ def save_item(
         raise ValidationError("description", "must not be empty")
 
     components_prefix_list = _normalize_components_prefix_list(data.get("components_prefix_list"))
-    if len(components_prefix_list) == 0:
-        raise ValidationError("components_prefix_list", "must not be empty")
     components_exclude_list = _normalize_components_exclude_list(data.get("components_exclude_list"))
 
     include_flowids = _normalize_flowids(data.get("include_flowids"))
@@ -159,6 +172,8 @@ def save_item(
 
     if name in raw:
         raise AlreadyExistsError("Item", name)
+
+    _validate_components_prefix_list(raw, name=name, original="", prefixes=components_prefix_list)
 
     raw[name] = {
         "envs": envs,
@@ -200,8 +215,6 @@ def update_item(
         raise ValidationError("description", "must not be empty")
 
     components_prefix_list = _normalize_components_prefix_list(data.get("components_prefix_list"))
-    if len(components_prefix_list) == 0:
-        raise ValidationError("components_prefix_list", "must not be empty")
     components_exclude_list = _normalize_components_exclude_list(data.get("components_exclude_list"))
 
     include_flowids = _normalize_flowids(data.get("include_flowids"))
@@ -213,6 +226,8 @@ def update_item(
         raw = {}
     if original not in raw:
         raise ValidationError("original_name", "not found")
+
+    _validate_components_prefix_list(raw, name=name, original=original, prefixes=components_prefix_list)
 
     if original != name:
         raw.pop(original, None)
@@ -226,16 +241,6 @@ def update_item(
         "exclude_flowids": exclude_flowids,
     }
     write_yaml_dict(path, raw, sort_keys=True)
-    return {"ok": True}
-
-
-@router.post("/importsicg")
-def import_product_components(
-    request: Request,
-    payload: ImportProductRequest,
-    _ok: bool = Depends(get_service),
-) -> Dict[str, Any]:
-    _normalize_name(payload.name)
     return {"ok": True}
 
 

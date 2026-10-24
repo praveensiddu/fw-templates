@@ -125,25 +125,27 @@ function PortProtocolTable({ setLoading, setError }) {
         if (!nextName) throw new Error("Unable to generate copy name");
 
         const data = row?.data || {};
+        const nextData = {
+          name: nextName,
+          "port-protocol": {
+            port: safeTrim(data?.["port-protocol"]?.port),
+            service: safeTrim(data?.["port-protocol"]?.service),
+          },
+        };
         await saveFwConfigItem("port-protocol", {
           name: nextName,
-          data: {
-            name: nextName,
-            "port-protocol": {
-              port: safeTrim(data?.["port-protocol"]?.port),
-              service: safeTrim(data?.["port-protocol"]?.service),
-            },
-          },
+          data: nextData,
         });
 
         await load();
+        onEdit({ name: nextName, data: nextData });
       } catch (e) {
         setError(formatError(e));
       } finally {
         setLoading(false);
       }
     },
-    [items, setLoading, setError, load]
+    [items, setLoading, setError, load, onEdit]
   );
 
   const canSubmit = React.useMemo(() => {

@@ -3,6 +3,7 @@ function ComponentsTable({ setLoading, setError }) {
   const [networkareaNames, setNetworkareaNames] = React.useState([]);
   const [siteNames, setSiteNames] = React.useState([]);
   const [productNames, setProductNames] = React.useState([]);
+  const [products, setProducts] = React.useState([]);
 
   const [activePage, setActivePage] = React.useState("list");
   const [detailsMode, setDetailsMode] = React.useState("add");
@@ -45,6 +46,7 @@ function ComponentsTable({ setLoading, setError }) {
           .sort((a, b) => a.localeCompare(b))
       );
 
+      setProducts(productsResp?.items || []);
       setProductNames(
         (productsResp?.items || [])
           .map((x) => safeTrim(x?.name))
@@ -223,9 +225,29 @@ function ComponentsTable({ setLoading, setError }) {
     }
   }, []);
 
+  const componentPrefixes = React.useMemo(() => {
+    const m = String(window?.location?.pathname || "").match(/^\/products\/([^/]+)\//);
+    const currentProduct = m ? safeTrim(decodeURIComponent(m[1])) : "";
+    if (!currentProduct) return [];
+    const prod = (products || []).find((x) => safeTrim(x?.name).toUpperCase() === currentProduct.toUpperCase());
+    const lst = Array.isArray(prod?.data?.components_prefix_list) ? prod.data.components_prefix_list : [];
+    return lst.map((x) => safeTrim(x)).filter(Boolean);
+  }, [products]);
+
+  const nameError = React.useMemo(() => {
+    const name = safeTrim(form?.name);
+    if (!name) return "";
+    if (!/^[A-Z0-9_]+$/.test(name)) return "Component name must be uppercase A-Z, 0-9 and _ only";
+    if (componentPrefixes.length === 0) return "";
+    const nameChanged = detailsMode !== "edit" || name !== safeTrim(originalName);
+    if (!nameChanged) return "";
+    if (componentPrefixes.some((p) => name.startsWith(p))) return "";
+    return `Name must begin with one of: ${componentPrefixes.join(", ")}`;
+  }, [form?.name, componentPrefixes, detailsMode, originalName]);
+
   const canSubmit = React.useMemo(() => {
-    return isNonEmptyString(form?.name);
-  }, [form?.name]);
+    return isNonEmptyString(form?.name) && !nameError;
+  }, [form?.name, nameError]);
 
   const onSave = React.useCallback(async () => {
     try {
@@ -298,11 +320,11 @@ function ComponentsTable({ setLoading, setError }) {
     const base = safeTrim(baseName);
     if (!base) return "";
 
-    const candidate1 = `${base}_copy`;
+    const candidate1 = `${base}_COPY`;
     if (!existing.has(candidate1)) return candidate1;
 
     for (let i = 2; i <= 500; i++) {
-      const c = `${base}_copy${i}`;
+      const c = `${base}_COPY${i}`;
       if (!existing.has(c)) return c;
     }
     return `${base}_copy${Date.now()}`;
@@ -424,6 +446,7 @@ function ComponentsTable({ setLoading, setError }) {
           form={form}
           setForm={setForm}
           canSubmit={canSubmit}
+          nameError={nameError}
           onBack={onBack}
           onSave={onSave}
           networkareaNames={networkareaNames}

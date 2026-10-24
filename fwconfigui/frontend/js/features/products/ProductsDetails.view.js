@@ -3,6 +3,7 @@ function ProductsDetailsView({
   form,
   setForm,
   canSubmit,
+  prefixError,
   onBack,
   onSave,
   envNames,
@@ -81,6 +82,7 @@ function ProductsDetailsView({
                   onChange={(e) => setForm((p) => ({ ...p, componentsPrefixListText: e.target.value }))}
                   placeholder="prefix1, prefix2"
                 />
+                {isNonEmptyString(prefixError) ? <div className="fieldError">{prefixError}</div> : null}
               </div>
 
               <div className="field" style={{ gridColumn: "1 / -1" }}>

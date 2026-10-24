@@ -1,5 +1,6 @@
 from pathlib import Path
 import ipaddress
+import re
 from typing import Any, Dict, List, Optional, Tuple
 
 from backend.exceptions.custom import AlreadyExistsError, ValidationError
@@ -38,9 +39,11 @@ class AddressesService:
 
     @staticmethod
     def _normalize_name(name: str) -> str:
-        v = str(name or "").strip()
+        v = str(name or "").strip().lower()
         if not v:
             raise ValidationError("name", "is required")
+        if not re.fullmatch(r"[a-z0-9._]+", v):
+            raise ValidationError("name", "must contain only lowercase letters, digits, '.' and '_'")
         return v
 
     @staticmethod

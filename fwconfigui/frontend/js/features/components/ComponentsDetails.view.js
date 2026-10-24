@@ -3,6 +3,7 @@ function ComponentsDetailsView({
   form,
   setForm,
   canSubmit,
+  nameError,
   onBack,
   onSave,
   networkareaNames,
@@ -37,7 +38,12 @@ function ComponentsDetailsView({
         <div className="fieldGrid">
           <div className="field">
             <div className="muted">Component name</div>
-            <input className="input" value={safeTrim(form?.name)} onChange={(e) => setForm((p) => ({ ...p, name: e.target.value }))} />
+            <input
+              className="input"
+              value={safeTrim(form?.name)}
+              onChange={(e) => setForm((p) => ({ ...p, name: String(e.target.value || "").toUpperCase() }))}
+            />
+            {nameError ? <div className="fieldError">{nameError}</div> : null}
           </div>
 
           <div className="field">

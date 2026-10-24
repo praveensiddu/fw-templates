@@ -50,7 +50,7 @@ def get_infra_repo() -> Path:
     p = Path(raw).expanduser()
     if p.is_absolute():
         return p
-    return get_fwconfigfiles_root(None) / p
+    return get_fwconfigfiles_root(None) / "cloned-repositories"/ p
 
 
 def _gitrepo_group_relpath(*, env_key: str) -> str:

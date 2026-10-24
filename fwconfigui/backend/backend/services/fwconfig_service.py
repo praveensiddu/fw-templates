@@ -2,7 +2,7 @@
 
 import logging
 import re
-from typing import Any, Dict, List, Optional, Tuple
+from typing import Any, Dict, List, Optional, Set, Tuple
 
 from backend.exceptions.custom import AlreadyExistsError, ResourceInUseError, ValidationError
 from backend.repositories.fwconfig_repository import FwConfigRepository
@@ -10,6 +10,7 @@ from backend.services.business_purpose_service import BusinessPurposeService
 from backend.services.env_service import EnvService
 from backend.services.keywords_service import KeywordsService
 from backend.services.port_protocol_service import PortProtocolService
+from backend.services.predef_port_protocol_service import PredefPortProtocolService
 from backend.utils.logging_utils import log_all_methods
 
 logger = logging.getLogger("uvicorn.error")
@@ -276,10 +277,15 @@ class FwConfigService:
 
         return next_payload
 
+    def _port_protocol_names(self) -> Set[str]:
+        names = {str(x.get("name", "") or "").strip().lower() for x in PortProtocolService(self._product).list_items()}
+        names |= {str(x.get("name", "") or "").strip().lower() for x in PredefPortProtocolService().list_items()}
+        return names
+
     def _validate_fw_rule_references(self, payload: Dict[str, Any]) -> None:
         next_payload = dict(payload or {})
 
-        pp_names = {str(x.get("name", "") or "").strip().lower() for x in PortProtocolService(self._product).list_items()}
+        pp_names = self._port_protocol_names()
         bp_names = {str(x.get("name", "") or "").strip().lower() for x in BusinessPurposeService(self._product).list_items()}
         env_names = {str(x.get("name", "") or "").strip().lower() for x in EnvService().list_items()}
         kw_names = {str(x.get("name", "") or "").strip().upper() for x in KeywordsService(self._product).list_items()}
@@ -329,7 +335,7 @@ class FwConfigService:
                 return errors
         kw_names = {str(x.get("name", "") or "").strip().upper() for x in KeywordsService(self._product).list_items()}
         bp_names = {str(x.get("name", "") or "").strip().lower() for x in BusinessPurposeService(self._product).list_items()}
-        pp_names = {str(x.get("name", "") or "").strip().lower() for x in PortProtocolService(self._product).list_items()}
+        pp_names = self._port_protocol_names()
 
         all_entries: List[Dict[str, Any]] = []
         for filename, entry in self.repo.read_items("fw-rules"):

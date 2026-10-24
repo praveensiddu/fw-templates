@@ -1,4 +1,4 @@
-function GroupsTableView({ env, rows, filters, setFilters, onAdd, onCheckUsed, isCheckingUsed, onShowUsedInGroups, onShowUsedInRules, usedInGrpModal, setUsedInGrpModal, usedInRuleModal, setUsedInRuleModal, onEdit, onDelete, onOnboard, isOnboarding, onExclude, onExcludeEnvCommon, editingKey, draft, setDraft, cleanupStrategyOptions, groupNameOptions, memberOptions, canSubmit, onCancelEdit, onSave }) {
+function GroupsTableView({ env, rows, filters, setFilters, onAdd, onCheckUsed, isCheckingUsed, onShowUsedInGroups, onShowUsedInRules, usedInGrpModal, setUsedInGrpModal, usedInRuleModal, setUsedInRuleModal, onEdit, onDelete, onOnboard, isOnboarding, onExclude, onExcludeEnvCommon, editingKey, draft, setDraft, groupNameOptions, memberOptions, canSubmit, onCancelEdit, onSave }) {
   function normalizeFilename(v) {
     const s = String(v || "").trim();
     return s || "groups.yaml";
@@ -132,55 +132,6 @@ function GroupsTableView({ env, rows, filters, setFilters, onAdd, onCheckUsed, i
                     </div>
 
                     <div>
-                      <div className="muted" style={{ marginBottom: 4, display: "flex", alignItems: "center", justifyContent: "space-between", gap: 8 }}>
-                        <span>cleanup strategy</span>
-                        <button
-                          type="button"
-                          className="btn"
-                          style={{ padding: "4px 10px", lineHeight: 1, fontWeight: 650 }}
-                          title="Add cleanup strategy"
-                          onClick={() => {
-                            const v = safeTrim(window.prompt("New cleanup strategy", ""));
-                            if (v) setDraft((p) => ({ ...p, cleanupStrategy: v }));
-                          }}
-                        >
-                          +
-                        </button>
-                      </div>
-                      <SingleSelectPicker
-                        options={Array.isArray(cleanupStrategyOptions) ? cleanupStrategyOptions : []}
-                        value={safeTrim(draft.cleanupStrategy)}
-                        onChange={(v) => setDraft((p) => ({ ...p, cleanupStrategy: v }))}
-                        placeholder="Type to filter or add..."
-                        inputTestId="groups-panel-cleanup-strategy"
-                        allowEmpty={true}
-                        emptyLabel="(none)"
-                        allowCustom={true}
-                      />
-                    </div>
-
-                    <div>
-                      <div className="muted" style={{ marginBottom: 4 }}>name-override</div>
-                      <textarea
-                        className="filterInput"
-                        value={String(draft.nameOverrideText || "")}
-                        onChange={(e) =>
-                          setDraft((p) => ({
-                            ...p,
-                            nameOverrideText: String(e.target.value || ""),
-                            nameOverride: String(e.target.value || "")
-                              .split(/[\s,]+/)
-                              .map((s) => safeTrim(s))
-                              .filter(Boolean),
-                          }))
-                        }
-                        placeholder="optional (comma or whitespace separated)"
-                        rows={4}
-                        style={{ resize: "vertical" }}
-                      />
-                    </div>
-
-                    <div>
                       <div className="muted" style={{ marginBottom: 4 }}>file</div>
                       <input className="filterInput" value={draft.filename} onChange={(e) => setDraft((p) => ({ ...p, filename: normalizeFilename(e.target.value) }))} placeholder="groups.yaml" />
                     </div>
@@ -241,12 +192,6 @@ function GroupsTableView({ env, rows, filters, setFilters, onAdd, onCheckUsed, i
                 <HelpIconButton docPath="/static/help/groups/members.html" title="members" />
               </div>
             </th>
-            <th className="fwTableHeaderCell" style={{ width: 220 }}>
-              <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 8 }}>
-                <span>name-override</span>
-                <HelpIconButton docPath="/static/help/groups/name-override.html" title="name-override" />
-              </div>
-            </th>
             <th className="fwTableHeaderCell" style={{ width: 160 }}>
               <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 8 }}>
                 <span>in-firewall</span>
@@ -263,12 +208,6 @@ function GroupsTableView({ env, rows, filters, setFilters, onAdd, onCheckUsed, i
               <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 8 }}>
                 <span>in-fw-rule</span>
                 <HelpIconButton docPath="/static/help/groups/in-fw-rule.html" title="in-fw-rule" />
-              </div>
-            </th>
-            <th className="fwTableHeaderCell" style={{ width: 220 }}>
-              <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 8 }}>
-                <span>cleanup strategy</span>
-                <HelpIconButton docPath="/static/help/groups/cleanup-strategy.html" title="cleanup strategy" />
               </div>
             </th>
             <th className="fwTableHeaderCell" style={{ width: 200 }}>
@@ -298,14 +237,6 @@ function GroupsTableView({ env, rows, filters, setFilters, onAdd, onCheckUsed, i
             </th>
             <th>
               <input
-                className={`filterInput ${isNonEmptyString(filters.nameOverride) ? "filterInput-active" : ""}`}
-                placeholder="Filter name-override..."
-                value={filters.nameOverride}
-                onChange={(e) => setFilters((p) => ({ ...p, nameOverride: e.target.value }))}
-              />
-            </th>
-            <th>
-              <input
                 className={`filterInput ${isNonEmptyString(filters.inFirewall) ? "filterInput-active" : ""}`}
                 placeholder="Filter in-firewall..."
                 value={filters.inFirewall}
@@ -330,14 +261,6 @@ function GroupsTableView({ env, rows, filters, setFilters, onAdd, onCheckUsed, i
             </th>
             <th>
               <input
-                className={`filterInput ${isNonEmptyString(filters.cleanupStrategy) ? "filterInput-active" : ""}`}
-                placeholder="Filter cleanup strategy..."
-                value={filters.cleanupStrategy}
-                onChange={(e) => setFilters((p) => ({ ...p, cleanupStrategy: e.target.value }))}
-              />
-            </th>
-            <th>
-              <input
                 className={`filterInput ${isNonEmptyString(filters.filename) ? "filterInput-active" : ""}`}
                 placeholder="Filter file..."
                 value={filters.filename}
@@ -353,9 +276,6 @@ function GroupsTableView({ env, rows, filters, setFilters, onAdd, onCheckUsed, i
               const rowKey = `${safeTrim(r.filename) || "groups.yaml"}::${r.name || idx}`;
               const isFmExtract = safeTrim(r.filename) === "fm_extract_groups.yaml";
               const members = Array.isArray(r?.data?.members) ? r.data.members : [];
-              const nameOverrideDisplay = Array.isArray(r?.data?.["name-override"])
-                ? r.data["name-override"].map((x) => safeTrim(x)).filter(Boolean).join("\n") || "empty"
-                : "empty";
               const inFirewall = (() => {
                 const v = r?.data?.["in-firewall"];
                 if (v === true) return "true";
@@ -377,7 +297,6 @@ function GroupsTableView({ env, rows, filters, setFilters, onAdd, onCheckUsed, i
                 if (!Number.isFinite(n) || n <= 0) return "";
                 return String(n);
               })();
-              const cleanupStrategy = safeTrim(r?.data?.["cleanup-strategy"]) || "empty";
               return (
                 <tr key={`${safeTrim(r.filename) || "groups.yaml"}::${r.name || idx}`}>
                   <td>
@@ -413,7 +332,6 @@ function GroupsTableView({ env, rows, filters, setFilters, onAdd, onCheckUsed, i
                     </div>
                   </td>
                   <td className="muted" style={{ whiteSpace: "pre-line" }}>{(members || []).map((m) => safeTrim(m)).filter(Boolean).join("\n")}</td>
-                  <td className="muted" style={{ whiteSpace: "pre-line" }}>{nameOverrideDisplay}</td>
                   <td className="muted">{inFirewall}</td>
                   <td className="muted" style={isNonEmptyString(usedInGrp) ? { color: "#dc3545" } : undefined}>
                     {isNonEmptyString(usedInGrp) ? (
@@ -443,7 +361,6 @@ function GroupsTableView({ env, rows, filters, setFilters, onAdd, onCheckUsed, i
                       "empty"
                     )}
                   </td>
-                  <td className="muted">{cleanupStrategy}</td>
                   <td className="muted">{safeTrim(r.filename) || "groups.yaml"}</td>
                   <td>
                     <button className="iconBtn" title="Edit" onClick={() => onEdit(r)}>
@@ -468,7 +385,7 @@ function GroupsTableView({ env, rows, filters, setFilters, onAdd, onCheckUsed, i
           )}
           {rows.length === 0 ? (
             <tr>
-              <td colSpan={9} className="muted">
+              <td colSpan={7} className="muted">
                 No items
               </td>
             </tr>

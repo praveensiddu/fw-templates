@@ -216,6 +216,12 @@ tbody tr:hover td {
   font-style: italic;
 }
 
+.fieldError {
+  color: #dc3545;
+  font-size: 12px;
+  margin-top: 4px;
+}
+
 .muted {
   color: var(--muted);
 }
