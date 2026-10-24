@@ -62,7 +62,6 @@ def _apply_env_defaults() -> None:
     home = Path.home()
     defaults = {
         "FORTIMGR_EXTRACT_REPO": str(home / "workspace" / "fwconfigfiles" / "cloned-repositories" / "fmg_extract" / "fortimgr"),
-        "PFC_REPO": str(home / "workspace" / "fwconfigfiles" / "cloned-repositories" / "pfcrepo"),
         "CURRENT_USER": getpass.getuser(),
     }
     for key, value in defaults.items():

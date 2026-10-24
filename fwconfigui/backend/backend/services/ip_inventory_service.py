@@ -1,5 +1,4 @@
 import ipaddress
-import os
 import re
 import time
 from pathlib import Path
@@ -14,6 +13,7 @@ from backend.services.common_service import (
     build_fortimgr_matched_groups_for_env,
     build_group_used_in_group_metadata,
     build_group_used_in_rule_metadata,
+    get_infra_repo,
     get_rendered_folder_prefix,
     get_product_templates_repo_name,
     get_product_generated_repo_name,
@@ -247,10 +247,8 @@ class IpInventoryService:
                 addr_name_override_to_key[no] = k
 
         excluded_addr_names: set[str] = set()
-        pfc_repo_raw = str(os.getenv("PFC_REPO", "") or "").strip()
-        if pfc_repo_raw:
-            common_excluded_path = Path(pfc_repo_raw).expanduser() / "settings" / "import" / e / "common_address_excluded_from_import.yaml"
-            self._add_yaml_dict_keys_to_set(common_excluded_path, excluded_addr_names)
+        common_excluded_path = get_infra_repo() / "settings" / "import" / e / "common_address_excluded_from_import.yaml"
+        self._add_yaml_dict_keys_to_set(common_excluded_path, excluded_addr_names)
 
         excluded_addr_path = repo_root / "overrides" / e / "address_excluded_from_import.yaml"
         self._add_yaml_dict_keys_to_set(excluded_addr_path, excluded_addr_names)
@@ -291,10 +289,8 @@ class IpInventoryService:
         groups_dir.mkdir(parents=True, exist_ok=True)
 
         excluded_group_names: set[str] = set()
-        pfc_repo_raw = str(os.getenv("PFC_REPO", "") or "").strip()
-        if pfc_repo_raw:
-            common_excluded_groups_path = Path(pfc_repo_raw).expanduser() / "settings" / "import" / e / "common_groups_excluded_from_import.yaml"
-            self._add_yaml_dict_keys_to_set(common_excluded_groups_path, excluded_group_names)
+        common_excluded_groups_path = get_infra_repo() / "settings" / "import" / e / "common_groups_excluded_from_import.yaml"
+        self._add_yaml_dict_keys_to_set(common_excluded_groups_path, excluded_group_names)
 
         excluded_groups_path = repo_root / "overrides" / e / "groups_excluded_from_import.yaml"
         self._add_yaml_dict_keys_to_set(excluded_groups_path, excluded_group_names)

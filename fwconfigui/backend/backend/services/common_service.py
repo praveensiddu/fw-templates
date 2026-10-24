@@ -5,6 +5,7 @@ from typing import Any, Dict, List
 
 from backend.exceptions.custom import ValidationError
 from backend.services.home_service import get_home_setting
+from backend.utils.workspace import get_fwconfigfiles_root
 from backend.utils.yaml_utils import list_yaml_files, read_yaml_dict, write_yaml_dict
 
 
@@ -29,6 +30,27 @@ def get_rendered_folder_prefix() -> str:
     """
     prefix = str(get_home_setting("RENDERED_FOLDER_PREFIX", env_fallback=False) or "").strip()
     return prefix or "iac/fw"
+
+
+def get_infra_repo() -> Path:
+    """Local root of the cloned infra repo (infrastructure data).
+
+    Read from ~/.fwconfig/fwconfig.yaml (infra_repo, set on the Home tab).
+    Relative values are resolved under <WORKSPACE>/fwconfigfiles.
+
+    Returns:
+        Absolute path to the infra repo
+
+    Raises:
+        ValidationError: If infra_repo is not set
+    """
+    raw = str(get_home_setting("INFRA_REPO", env_fallback=False) or "").strip()
+    if not raw:
+        raise ValidationError("INFRA_REPO", "is required (set it on the Home tab)")
+    p = Path(raw).expanduser()
+    if p.is_absolute():
+        return p
+    return get_fwconfigfiles_root(None) / p
 
 
 def _gitrepo_group_relpath(*, env_key: str) -> str:

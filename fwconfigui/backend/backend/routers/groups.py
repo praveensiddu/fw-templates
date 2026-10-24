@@ -1,15 +1,13 @@
 """API routes for product-scoped groups."""
 
 import logging
-import os
-from pathlib import Path
 
 from typing import Any, Dict, Optional
 
 from fastapi import APIRouter, Depends, Request
 
 from backend.models import SaveItemRequest
-from backend.services.common_service import get_product_generated_repo_name
+from backend.services.common_service import get_infra_repo, get_product_generated_repo_name
 from backend.services.groups_service import GroupsService
 from backend.utils.workspace import get_fwconfigfiles_root
 from backend.utils.yaml_utils import read_yaml_dict, write_yaml_dict
@@ -157,15 +155,11 @@ def exclude_from_env_common(
     if not name:
         return {"ok": False, "error": "name is required"}
 
-    pfc_repo_raw = str(os.getenv("PFC_REPO", "") or "").strip()
-    if not pfc_repo_raw:
-        return {"ok": False, "error": "PFC_REPO is not set"}
-
     e = str(env or "").strip().lower()
     if not e:
         return {"ok": False, "error": "env is required"}
 
-    path = Path(pfc_repo_raw).expanduser() / "settings" / "import" / e / "common_groups_excluded_from_import.yaml"
+    path = get_infra_repo() / "settings" / "import" / e / "common_groups_excluded_from_import.yaml"
     path.parent.mkdir(parents=True, exist_ok=True)
 
     raw = read_yaml_dict(path)

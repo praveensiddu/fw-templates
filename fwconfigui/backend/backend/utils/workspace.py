@@ -63,11 +63,11 @@ def ensure_fwconfigfiles_root() -> Path:
     return root
 
 
-def get_pfc_settings_root() -> Path:
-    pfc_repo_raw = str(os.getenv("PFC_REPO", "") or "").strip()
-    if not pfc_repo_raw:
-        raise NotInitializedError("PFC_REPO")
-    root = Path(pfc_repo_raw).expanduser() / "settings"
+def get_infra_settings_root() -> Path:
+    # Lazy import: services.common_service imports this module for other helpers.
+    from backend.services.common_service import get_infra_repo
+
+    root = get_infra_repo() / "settings"
     root.mkdir(parents=True, exist_ok=True)
     return root
 
@@ -78,4 +78,4 @@ def get_settings_yaml_path(filename: str) -> Path:
         raise ValueError("filename is required")
     if "/" in fn or "\\" in fn:
         raise ValueError("filename must be a base filename")
-    return get_pfc_settings_root() / fn
+    return get_infra_settings_root() / fn
