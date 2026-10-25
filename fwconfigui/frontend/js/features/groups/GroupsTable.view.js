@@ -118,10 +118,31 @@ function GroupsTableView({ env, rows, filters, setFilters, onAdd, onCheckUsed, i
                     </div>
 
                     <div>
+                      <div className="muted" style={{ marginBottom: 4 }}>show address objects with this pattern</div>
+                      <input
+                        className="filterInput"
+                        value={String(draft.memberFilter || "")}
+                        onChange={(e) => setDraft((p) => ({ ...p, memberFilter: e.target.value }))}
+                        placeholder="e.g. web or web-*"
+                      />
+                    </div>
+
+                    <div>
                       <div className="muted" style={{ marginBottom: 4 }}>members</div>
                       <div style={{ display: "flex", gap: 8, alignItems: "flex-start" }}>
                         <MultiSelectPicker
-                          options={Array.isArray(memberOptions) ? memberOptions : []}
+                          options={(Array.isArray(memberOptions) ? memberOptions : []).filter((o) => {
+                            const v = safeTrim(o).toLowerCase();
+                            if (!v) return false;
+                            if ((Array.isArray(draft.members) ? draft.members : []).some((m) => safeTrim(m).toLowerCase() === v)) return false;
+                            const pat = safeTrim(draft.memberFilter).toLowerCase();
+                            if (!pat) return true;
+                            if (pat.includes("*")) {
+                              const re = new RegExp("^" + pat.split("*").map((x) => x.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")).join(".*") + "$");
+                              return re.test(v);
+                            }
+                            return v.includes(pat);
+                          })}
                           values={Array.isArray(draft.members) ? draft.members : []}
                           onChange={(next) => setDraft((p) => ({ ...p, members: next }))}
                           placeholder="Add member..."

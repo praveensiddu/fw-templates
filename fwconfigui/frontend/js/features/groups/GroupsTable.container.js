@@ -5,11 +5,13 @@ function GroupsTable({ env, setLoading, setError }) {
   const [editingKey, setEditingKey] = React.useState("");
   const [usedInGrpModal, setUsedInGrpModal] = React.useState({ isOpen: false, name: "", items: [], loading: false, error: "" });
   const [usedInRuleModal, setUsedInRuleModal] = React.useState({ isOpen: false, name: "", items: [], loading: false, error: "" });
-  const [draft, setDraft] = React.useState({ filename: "groups.yaml", name: "", members: [] });
+  const [draft, setDraft] = React.useState({ filename: "groups.yaml", name: "", members: [], memberFilter: "" });
   const [originalRef, setOriginalRef] = React.useState({ filename: "groups.yaml", name: "" });
   const [confirmDelete, setConfirmDelete] = React.useState({ show: false, row: null });
   const [hasAddrs, setHasAddrs] = React.useState(false);
   const [addrsEmptyPopup, setAddrsEmptyPopup] = React.useState(false);
+  const [noGroupsPopup, setNoGroupsPopup] = React.useState(false);
+  const [noComponentsPopup, setNoComponentsPopup] = React.useState(false);
   const [isCheckingUsed, setIsCheckingUsed] = React.useState(false);
   const [isOnboarding, setIsOnboarding] = React.useState(false);
 
@@ -38,7 +40,7 @@ function GroupsTable({ env, setLoading, setError }) {
     }
   }, [env, setLoading, setError]);
 
-  const groupNameOptions = React.useMemo(() => {
+  const groupNameCandidates = React.useMemo(() => {
     const seen = new Set();
     const out = [];
 
@@ -53,8 +55,9 @@ function GroupsTable({ env, setLoading, setError }) {
           const site = safeTrim(s);
           if (!site) continue;
           const val = `${site}-${comp}-<ES>`;
-          if (seen.has(val)) continue;
-          seen.add(val);
+          const lc = val.toLowerCase();
+          if (seen.has(lc)) continue;
+          seen.add(lc);
           out.push(val);
         }
       }
@@ -63,9 +66,18 @@ function GroupsTable({ env, setLoading, setError }) {
     return out.sort((a, b) => String(a).localeCompare(String(b)));
   }, [componentItems]);
 
+  const groupNameOptions = React.useMemo(() => {
+    const existing = new Set((items || []).map((it) => safeTrim(it?.name).toLowerCase()).filter(Boolean));
+    const keep = editingKey && editingKey !== "__new__" ? safeTrim(originalRef.name).toLowerCase() : "";
+    return (groupNameCandidates || []).filter((v) => {
+      const lc = v.toLowerCase();
+      return !existing.has(lc) || lc === keep;
+    });
+  }, [groupNameCandidates, items, editingKey, originalRef.name]);
+
   React.useEffect(() => {
     setEditingKey("");
-    setDraft({ filename: "groups.yaml", name: "", members: [] });
+    setDraft({ filename: "groups.yaml", name: "", members: [], memberFilter: "" });
     setOriginalRef({ filename: "groups.yaml", name: "" });
     setConfirmDelete({ show: false, row: null });
     setUsedInGrpModal({ isOpen: false, name: "", items: [], loading: false, error: "" });
@@ -130,17 +142,25 @@ function GroupsTable({ env, setLoading, setError }) {
       setAddrsEmptyPopup(true);
       return;
     }
-    setDraft({ filename: "groups.yaml", name: "", members: [] });
+    if (!Array.isArray(componentItems) || componentItems.length === 0) {
+      setNoComponentsPopup(true);
+      return;
+    }
+    if (groupNameCandidates.length > 0 && groupNameOptions.length === 0) {
+      setNoGroupsPopup(true);
+      return;
+    }
+    setDraft({ filename: "groups.yaml", name: "", members: [], memberFilter: "" });
     setOriginalRef({ filename: "groups.yaml", name: "" });
     setEditingKey("__new__");
-  }, [hasAddrs]);
+  }, [hasAddrs, componentItems, groupNameCandidates, groupNameOptions]);
 
   const onEdit = React.useCallback((row) => {
     const n = safeTrim(row.name);
     const fn = safeTrim(row.filename) || "groups.yaml";
     const members = Array.isArray(row?.data?.members) ? row.data.members : [];
     const cleanedMembers = (members || []).map((m) => safeTrim(m)).filter(Boolean);
-    setDraft({ filename: fn, name: n, members: cleanedMembers });
+    setDraft({ filename: fn, name: n, members: cleanedMembers, memberFilter: "" });
     setOriginalRef({ filename: fn, name: n });
     setEditingKey(`${fn}::${n}`);
   }, []);
@@ -156,7 +176,7 @@ function GroupsTable({ env, setLoading, setError }) {
 
   const onCancelEdit = React.useCallback(() => {
     setEditingKey("");
-    setDraft({ filename: "groups.yaml", name: "", members: [] });
+    setDraft({ filename: "groups.yaml", name: "", members: [], memberFilter: "" });
     setOriginalRef({ filename: "groups.yaml", name: "" });
   }, []);
 
@@ -377,6 +397,24 @@ function GroupsTable({ env, setLoading, setError }) {
         message="Addrs table is empty. Group members are names from Addrs table. Create address objects before creating groups"
         onClose={() => setAddrsEmptyPopup(false)}
         onConfirm={() => setAddrsEmptyPopup(false)}
+        confirmText="OK"
+      />
+
+      <ConfirmationModal
+        show={noComponentsPopup}
+        title="Cannot add group"
+        message="Group names are generated from components and their sites. The components table is empty - create components before creating groups."
+        onClose={() => setNoComponentsPopup(false)}
+        onConfirm={() => setNoComponentsPopup(false)}
+        confirmText="OK"
+      />
+
+      <ConfirmationModal
+        show={noGroupsPopup}
+        title="Cannot add group"
+        message="All allowed groups based on your components table are already part of this groups table. There are no more groups remaining to be added."
+        onClose={() => setNoGroupsPopup(false)}
+        onConfirm={() => setNoGroupsPopup(false)}
         confirmText="OK"
       />
     </>
