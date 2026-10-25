@@ -79,7 +79,7 @@ function ProductsDetailsView({
                 <input
                   className="input"
                   value={String(form?.componentsPrefixListText || "")}
-                  onChange={(e) => setForm((p) => ({ ...p, componentsPrefixListText: e.target.value }))}
+                  onChange={(e) => setForm((p) => ({ ...p, componentsPrefixListText: String(e.target.value || "").toUpperCase() }))}
                   placeholder="prefix1, prefix2"
                 />
                 {isNonEmptyString(prefixError) ? <div className="fieldError">{prefixError}</div> : null}

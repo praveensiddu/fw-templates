@@ -282,6 +282,7 @@ function FwRulesTable({ setLoading, setError }) {
     envs: [],
   });
   const [confirmDelete, setConfirmDelete] = React.useState({ show: false, row: null });
+  const [showNoComponentsPopup, setShowNoComponentsPopup] = React.useState(false);
   const [yamlEditor, setYamlEditor] = React.useState({ show: false, row: null, appflowid: "", yaml: "" });
   const [commitResult, setCommitResult] = React.useState({ show: false, ok: false, errors: [] });
   const [verifyCommitPanel, setVerifyCommitPanel] = React.useState({ show: false, mode: "verify-only", env: "All" });
@@ -628,6 +629,10 @@ function FwRulesTable({ setLoading, setError }) {
   });
 
   const onAdd = React.useCallback(() => {
+    if (!Array.isArray(componentItems) || componentItems.length === 0) {
+      setShowNoComponentsPopup(true);
+      return;
+    }
     const nextAppflowid = createNewAppFlowId();
     const defaultEnvs = ["qa", "prd"];
     setDetailsMode("add");
@@ -665,7 +670,7 @@ function FwRulesTable({ setLoading, setError }) {
     if (`${window.location.pathname}${window.location.search}` !== nextPath) {
       window.history.pushState({}, "", nextPath);
     }
-  }, [createNewAppFlowId]);
+  }, [createNewAppFlowId, componentItems]);
 
   const onEdit = React.useCallback((row) => {
     setDetailsMode("edit");
@@ -1564,6 +1569,15 @@ function FwRulesTable({ setLoading, setError }) {
           </div>
         </div>
       ) : null}
+
+      <ConfirmationModal
+        show={showNoComponentsPopup}
+        title="No components"
+        message="Before create a firewall rule, you need to create components in the component table"
+        onClose={() => setShowNoComponentsPopup(false)}
+        onConfirm={() => setShowNoComponentsPopup(false)}
+        confirmText="OK"
+      />
 
       <ConfirmationModal
         show={confirmDelete.show}

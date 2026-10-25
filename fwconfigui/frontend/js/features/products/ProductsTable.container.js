@@ -136,6 +136,8 @@ function ProductsTable({ setLoading, setError }) {
           .filter(Boolean)
       : [];
     if (prefixes.length === 0) return "";
+    const bad = prefixes.find((p) => !/^[A-Z0-9_]+$/.test(p));
+    if (bad) return `prefix '${bad}' must contain only uppercase letters, digits and '_'`;
     const selfKey = safeTrim(detailsMode === "edit" ? originalName : form?.name).toUpperCase();
     for (const it of items || []) {
       const otherName = safeTrim(it?.name);

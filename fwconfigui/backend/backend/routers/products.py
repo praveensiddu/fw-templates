@@ -46,7 +46,7 @@ def _normalize_description(v: Any) -> str:
 
 def _normalize_components_prefix_list(v: Any) -> list[str]:
     xs = v if isinstance(v, list) else []
-    out = [str(x or "").strip() for x in xs if str(x or "").strip()]
+    out = [str(x or "").strip().upper() for x in xs if str(x or "").strip()]
     return sorted(list(dict.fromkeys(out)))
 
 
@@ -59,6 +59,9 @@ def _normalize_components_exclude_list(v: Any) -> list[str]:
 def _validate_components_prefix_list(raw: Dict[str, Any], *, name: str, original: str, prefixes: list[str]) -> None:
     if not prefixes:
         raise ValidationError("components_prefix_list", "must not be empty")
+    for p in prefixes:
+        if not re.fullmatch(r"[A-Z0-9_]+", p):
+            raise ValidationError("components_prefix_list", f"prefix '{p}' must contain only letters, digits and '_'")
     skip = {str(name or "").strip().upper(), str(original or "").strip().upper()}
     for other_key, other_val in raw.items():
         if str(other_key or "").strip().upper() in skip:
