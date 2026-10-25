@@ -17,6 +17,11 @@ try:
     load_dotenv()
 except Exception:
     pass
+
+from backend.config.env_defaults import apply_repo_demo_defaults
+
+apply_repo_demo_defaults()
+
 from backend.swaggerui import attach_local_swagger
 
 from fastapi import FastAPI, HTTPException, Request
@@ -44,6 +49,8 @@ from backend.routers.predef_port_protocol import router as predef_port_protocol_
 from backend.routers.products import router as products_router
 from backend.routers.rule_files import router as rule_files_router
 from backend.routers.sites import router as sites_router
+from backend.routers.users import router as users_router
+from backend.routers.access_request_api import router as access_request_router
 from backend.routers.role_mgmt_api import create_rolemgmt_router
 from backend.auth.rbac import enforce_request, get_current_user_context
 from backend.services.home_service import apply_saved_home_settings
@@ -152,6 +159,8 @@ app.include_router(sites_router)
 app.include_router(predef_port_protocol_router)
 app.include_router(products_router)
 app.include_router(home_router)
+app.include_router(users_router)
+app.include_router(access_request_router)
 app.include_router(
     create_rolemgmt_router(enforce=enforce_request, get_current_user_context=get_current_user_context),
     prefix="/api/v1",
@@ -208,6 +217,8 @@ def _build_log_config() -> dict:
 
 
 if __name__ == "__main__":
+    host = os.getenv("APP_HOST", "localhost")
+    port = int(os.getenv("APP_PORT", "8099"))
 
     try:
         threading.Timer(1.0, lambda: webbrowser.open("http://localhost:8099/")).start()
@@ -216,8 +227,8 @@ if __name__ == "__main__":
 
     uvicorn.run(
         app,
-        host="localhost",
-        port=8099,
+        host=host,
+        port=port,
         log_config=_build_log_config(),
         reload=False,
         timeout_keep_alive=300,  # default 5s

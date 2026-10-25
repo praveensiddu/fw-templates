@@ -4,6 +4,7 @@ from typing import Any, Dict
 
 from fastapi import APIRouter, Depends, Request
 
+from backend.auth.rbac import enforce_request, get_current_user_context
 from backend.models import BusinessPurposeOverrideRequest, DedupeBusinessPurposeRequest, SaveItemRequest
 from backend.services.business_purpose_service import BusinessPurposeService
 
@@ -15,7 +16,13 @@ def get_service(product: str) -> BusinessPurposeService:
 
 
 @router.get("")
-def list_items(request: Request, product: str, service: BusinessPurposeService = Depends(get_service)):
+def list_items(
+    request: Request,
+    product: str,
+    service: BusinessPurposeService = Depends(get_service),
+    user_context: Dict[str, Any] = Depends(get_current_user_context),
+):
+    enforce_request(user_context, f"/products/{product}/business-purpose", "GET", {"id": product})
     items = service.list_items()
     return {"type": "business-purpose", "items": items}
 
@@ -26,7 +33,9 @@ def save_item(
     product: str,
     payload: SaveItemRequest,
     service: BusinessPurposeService = Depends(get_service),
+    user_context: Dict[str, Any] = Depends(get_current_user_context),
 ) -> Dict[str, Any]:
+    enforce_request(user_context, f"/products/{product}/business-purpose", "POST", {"id": product})
     data = dict(payload.data or {})
     service.save_item(
         name=payload.name,
@@ -42,7 +51,9 @@ def update_item(
     product: str,
     payload: SaveItemRequest,
     service: BusinessPurposeService = Depends(get_service),
+    user_context: Dict[str, Any] = Depends(get_current_user_context),
 ) -> Dict[str, Any]:
+    enforce_request(user_context, f"/products/{product}/business-purpose", "PUT", {"id": product})
     data = dict(payload.data or {})
     service.save_item(
         name=payload.name,
@@ -58,7 +69,9 @@ def delete_item(
     product: str,
     name: str,
     service: BusinessPurposeService = Depends(get_service),
+    user_context: Dict[str, Any] = Depends(get_current_user_context),
 ) -> Dict[str, Any]:
+    enforce_request(user_context, f"/products/{product}/business-purpose", "DELETE", {"id": product})
     service.delete_item(name=name)
     return {"ok": True}
 
@@ -69,7 +82,9 @@ def dedupe_item(
     product: str,
     payload: DedupeBusinessPurposeRequest,
     service: BusinessPurposeService = Depends(get_service),
+    user_context: Dict[str, Any] = Depends(get_current_user_context),
 ) -> Dict[str, Any]:
+    enforce_request(user_context, f"/products/{product}/business-purpose", "POST", {"id": product})
     updated_files, updated_refs = service.dedupe_item(duplicate_name=payload.duplicate_name, original_name=payload.original_name)
     return {"ok": True, "updated_fw_rules_files": updated_files, "updated_fw_rules_references": updated_refs}
 
@@ -80,6 +95,8 @@ def put_text_override(
     product: str,
     payload: BusinessPurposeOverrideRequest,
     service: BusinessPurposeService = Depends(get_service),
+    user_context: Dict[str, Any] = Depends(get_current_user_context),
 ) -> Dict[str, Any]:
+    enforce_request(user_context, f"/products/{product}/business-purpose", "PUT", {"id": product})
     service.save_override(name=payload.name, original_text=payload.original_text, newtext=payload.newtext)
     return {"ok": True}

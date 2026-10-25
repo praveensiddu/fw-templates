@@ -1,0 +1,24 @@
+payments_viewer:
+  PAYMENTS:
+    - viewer
+payments_manager:
+  PAYMENTS:
+    - manager
+claims_viewer:
+  CLAIMS:
+    - viewer
+claims_manager:
+  CLAIMS:
+    - manager
+policy_viewer:
+  POLICY:
+    - viewer
+policy_manager:
+  POLICY:
+    - manager
+billing_viewer:
+  BILLING:
+    - viewer
+billing_manager:
+  BILLING:
+    - manager

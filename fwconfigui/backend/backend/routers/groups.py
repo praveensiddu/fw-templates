@@ -1,11 +1,10 @@
 """API routes for product-scoped groups."""
 
-import logging
-
 from typing import Any, Dict, Optional
 
 from fastapi import APIRouter, Depends, Request
 
+from backend.auth.rbac import enforce_request, get_current_user_context
 from backend.models import SaveItemRequest
 from backend.services.common_service import get_infra_repo, get_product_generated_repo_name
 from backend.services.groups_service import GroupsService
@@ -20,7 +19,14 @@ def get_service(product: str) -> GroupsService:
 
 
 @router.get("")
-def list_items(request: Request, product: str, env: str, service: GroupsService = Depends(get_service)) -> Dict[str, Any]:
+def list_items(
+    request: Request,
+    product: str,
+    env: str,
+    service: GroupsService = Depends(get_service),
+    user_context: Dict[str, Any] = Depends(get_current_user_context),
+) -> Dict[str, Any]:
+    enforce_request(user_context, f"/products/{product}/groups", "GET", {"id": product})
     items = service.list_items(env=env)
     return {"type": "groups", "env": env, "items": items}
 
@@ -33,7 +39,9 @@ def save_item(
     payload: SaveItemRequest,
     filename: Optional[str] = None,
     service: GroupsService = Depends(get_service),
+    user_context: Dict[str, Any] = Depends(get_current_user_context),
 ) -> Dict[str, Any]:
+    enforce_request(user_context, f"/products/{product}/groups", "POST", {"id": product})
     service.save_item(env=env, filename=filename, name=payload.name, data=dict(payload.data or {}), original_name=payload.original_name)
     return {"ok": True}
 
@@ -46,7 +54,9 @@ def update_item(
     payload: SaveItemRequest,
     filename: Optional[str] = None,
     service: GroupsService = Depends(get_service),
+    user_context: Dict[str, Any] = Depends(get_current_user_context),
 ) -> Dict[str, Any]:
+    enforce_request(user_context, f"/products/{product}/groups", "PUT", {"id": product})
     service.save_item(env=env, filename=filename, name=payload.name, data=dict(payload.data or {}), original_name=payload.original_name)
     return {"ok": True}
 
@@ -59,13 +69,22 @@ def delete_item(
     name: str,
     filename: Optional[str] = None,
     service: GroupsService = Depends(get_service),
+    user_context: Dict[str, Any] = Depends(get_current_user_context),
 ) -> Dict[str, Any]:
+    enforce_request(user_context, f"/products/{product}/groups", "DELETE", {"id": product})
     service.delete_item(env=env, filename=filename, name=name)
     return {"ok": True}
 
 
 @router.post("/check-used")
-def check_used(request: Request, product: str, env: str, service: GroupsService = Depends(get_service)) -> Dict[str, Any]:
+def check_used(
+    request: Request,
+    product: str,
+    env: str,
+    service: GroupsService = Depends(get_service),
+    user_context: Dict[str, Any] = Depends(get_current_user_context),
+) -> Dict[str, Any]:
+    enforce_request(user_context, f"/products/{product}/groups", "POST", {"id": product})
     service.build_grp_used_in_group_metadata(env=env)
     service.build_grp_used_in_rule_metadata(env=env)
     return {"ok": True}
@@ -78,7 +97,9 @@ def used_in_groups(
     env: str,
     name: str,
     service: GroupsService = Depends(get_service),
+    user_context: Dict[str, Any] = Depends(get_current_user_context),
 ) -> Dict[str, Any]:
+    enforce_request(user_context, f"/products/{product}/groups", "GET", {"id": product})
     items = service.get_group_used_in_groups(env=env, name=name)
     return {"ok": True, "env": env, "name": name, "items": items}
 
@@ -90,7 +111,9 @@ def used_in_rules(
     env: str,
     name: str,
     service: GroupsService = Depends(get_service),
+    user_context: Dict[str, Any] = Depends(get_current_user_context),
 ) -> Dict[str, Any]:
+    enforce_request(user_context, f"/products/{product}/groups", "GET", {"id": product})
     items = service.get_group_used_in_rules(env=env, name=name)
     return {"ok": True, "env": env, "name": name, "items": items}
 
@@ -101,7 +124,9 @@ def cleanup_strategy_choices(
     product: str,
     env: str,
     service: GroupsService = Depends(get_service),
+    user_context: Dict[str, Any] = Depends(get_current_user_context),
 ) -> Dict[str, Any]:
+    enforce_request(user_context, f"/products/{product}/groups", "GET", {"id": product})
     items = service.get_cleanup_strategy_choices(env=env)
     return {"ok": True, "env": env, "items": items}
 
@@ -113,7 +138,9 @@ def onboard_from_fm_extract(
     env: str,
     payload: SaveItemRequest,
     service: GroupsService = Depends(get_service),
+    user_context: Dict[str, Any] = Depends(get_current_user_context),
 ) -> Dict[str, Any]:
+    enforce_request(user_context, f"/products/{product}/groups", "POST", {"id": product})
     name = str(payload.name or "").strip()
     if not name:
         return {"ok": False, "error": "name is required"}
@@ -126,7 +153,9 @@ def exclude_from_import(
     product: str,
     env: str,
     payload: SaveItemRequest,
+    user_context: Dict[str, Any] = Depends(get_current_user_context),
 ) -> Dict[str, Any]:
+    enforce_request(user_context, f"/products/{product}/groups", "POST", {"id": product})
     name = str(payload.name or "").strip()
     if not name:
         return {"ok": False, "error": "name is required"}
@@ -144,13 +173,17 @@ def exclude_from_import(
     raw[name] = {}
     write_yaml_dict(path, raw, sort_keys=True)
     return {"ok": True}
+
+
 @router.post("/exclude-common")
 def exclude_from_env_common(
     request: Request,
     product: str,
     env: str,
     payload: SaveItemRequest,
+    user_context: Dict[str, Any] = Depends(get_current_user_context),
 ) -> Dict[str, Any]:
+    enforce_request(user_context, f"/products/{product}/groups", "POST", {"id": product})
     name = str(payload.name or "").strip()
     if not name:
         return {"ok": False, "error": "name is required"}

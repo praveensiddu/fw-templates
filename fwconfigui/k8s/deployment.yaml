@@ -1,0 +1,36 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: fwconfigui
+  namespace: fwconfigui
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: fwconfigui
+  template:
+    metadata:
+      labels:
+        app: fwconfigui
+    spec:
+      containers:
+        - name: fwconfigui
+          image: fwconfigui:latest
+          imagePullPolicy: IfNotPresent
+          ports:
+            - containerPort: 8099
+          env:
+            - name: FORTIMGR_EXTRACT_REPO
+              value: "/data/fortimgr-extract"
+            - name: PFC_REPO
+              value: "/data/pfc-repo"
+            - name: GENERATED_FOLDER_PREFIX
+              value: "generated"
+            - name: WORKSPACE
+              value: "/data/workspace"
+            - name: DEPLOYMENT_TYPE
+              value: "test"
+            - name: CURRENT_USER
+              value: "admin"
+            - name: DEMO_MODE
+              value: "true"

@@ -12,6 +12,7 @@ from typing import Any, Dict
 
 from fastapi import APIRouter, Depends, Request
 
+from backend.auth.rbac import enforce_request, get_current_user_context
 from backend.models import SaveItemRequest
 from backend.services.sites_service import SitesService
 
@@ -23,7 +24,12 @@ def get_service() -> SitesService:
 
 
 @router.get("")
-def list_items(request: Request, service: SitesService = Depends(get_service)):
+def list_items(
+    request: Request,
+    service: SitesService = Depends(get_service),
+    user_context: Dict[str, Any] = Depends(get_current_user_context),
+):
+    enforce_request(user_context, "/infra/site", "GET", {})
     items = service.list_items()
     return {"type": "sites", "items": items}
 
@@ -33,7 +39,9 @@ def save_item(
     request: Request,
     payload: SaveItemRequest,
     service: SitesService = Depends(get_service),
+    user_context: Dict[str, Any] = Depends(get_current_user_context),
 ) -> Dict[str, Any]:
+    enforce_request(user_context, "/infra/site", "POST", {})
     service.save_item(name=payload.name, data=dict(payload.data or {}), original_name=str(payload.original_name or ""))
     return {"ok": True}
 
@@ -43,7 +51,9 @@ def update_item(
     request: Request,
     payload: SaveItemRequest,
     service: SitesService = Depends(get_service),
+    user_context: Dict[str, Any] = Depends(get_current_user_context),
 ) -> Dict[str, Any]:
+    enforce_request(user_context, "/infra/site", "PUT", {})
     service.update_item(name=payload.name, data=dict(payload.data or {}), original_name=str(payload.original_name or ""))
     return {"ok": True}
 
@@ -53,6 +63,8 @@ def delete_item(
     request: Request,
     name: str,
     service: SitesService = Depends(get_service),
+    user_context: Dict[str, Any] = Depends(get_current_user_context),
 ) -> Dict[str, Any]:
+    enforce_request(user_context, "/infra/site", "DELETE", {})
     service.delete_item(name=name)
     return {"ok": True}

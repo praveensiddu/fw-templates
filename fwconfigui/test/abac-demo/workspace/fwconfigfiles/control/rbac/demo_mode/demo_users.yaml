@@ -1,0 +1,10 @@
+admin: Platform administrator
+payments_viewer: Payments read-only user
+payments_manager: Payments manager
+claims_viewer: Claims read-only user
+claims_manager: Claims manager
+policy_viewer: Policy read-only user
+policy_manager: Policy manager
+billing_viewer: Billing read-only user
+billing_manager: Billing manager
+no_role_user: User with no assigned roles
