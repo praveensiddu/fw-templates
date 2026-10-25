@@ -19,6 +19,7 @@ function ComponentsTable({ setLoading, setError }) {
   const [cellEdit, setCellEdit] = React.useState(null);
 
   const [confirmDelete, setConfirmDelete] = React.useState({ show: false, row: null });
+  const [infraEmptyPopup, setInfraEmptyPopup] = React.useState({ show: false, message: "" });
 
   const load = React.useCallback(async () => {
     try {
@@ -155,6 +156,18 @@ function ComponentsTable({ setLoading, setError }) {
   });
 
   const onAdd = React.useCallback(() => {
+    const missing = [];
+    if (!Array.isArray(networkareaNames) || networkareaNames.length === 0) missing.push("networkareas");
+    if (!Array.isArray(siteNames) || siteNames.length === 0) missing.push("sites");
+    if (missing.length > 0) {
+      const list = missing.join(" and ");
+      const what = missing.length === 1 ? `The ${list} table is` : `The ${list} tables are`;
+      setInfraEmptyPopup({
+        show: true,
+        message: `${what} empty. Components require a network area and sites - create them under Infra before adding components.`,
+      });
+      return;
+    }
     setDetailsMode("add");
     setOriginalName("");
     setForm({
@@ -174,7 +187,7 @@ function ComponentsTable({ setLoading, setError }) {
     if (`${window.location.pathname}${window.location.search}` !== nextPath) {
       window.history.pushState({}, "", nextPath);
     }
-  }, []);
+  }, [networkareaNames, siteNames]);
 
   const onEditName = React.useCallback((row) => {
     const n = safeTrim(row?.name);
@@ -474,6 +487,15 @@ function ComponentsTable({ setLoading, setError }) {
           applyAllRule={applyAllRule}
         />
       )}
+
+      <ConfirmationModal
+        show={infraEmptyPopup.show}
+        title="Cannot add component"
+        message={infraEmptyPopup.message}
+        onClose={() => setInfraEmptyPopup({ show: false, message: "" })}
+        onConfirm={() => setInfraEmptyPopup({ show: false, message: "" })}
+        confirmText="OK"
+      />
 
       <ConfirmationModal
         show={confirmDelete.show}

@@ -3,6 +3,7 @@ function ProductsTable({ setLoading, setError }) {
   const [items, setItems] = React.useState([]);
   const [envNames, setEnvNames] = React.useState([]);
   const [confirmDelete, setConfirmDelete] = React.useState({ show: false, row: null });
+  const [envEmptyPopup, setEnvEmptyPopup] = React.useState(false);
   const [activePage, setActivePage] = React.useState("list");
   const [detailsMode, setDetailsMode] = React.useState("add");
   const [originalName, setOriginalName] = React.useState("");
@@ -87,6 +88,10 @@ function ProductsTable({ setLoading, setError }) {
   }, [load]);
 
   const onAdd = React.useCallback(() => {
+    if (!Array.isArray(envNames) || envNames.length === 0) {
+      setEnvEmptyPopup(true);
+      return;
+    }
     setDetailsMode("add");
     setOriginalName("");
     setForm({
@@ -99,7 +104,7 @@ function ProductsTable({ setLoading, setError }) {
       excludeFlowidsText: "",
     });
     setActivePage("details");
-  }, []);
+  }, [envNames]);
 
   const onEdit = React.useCallback((row) => {
     const name = safeTrim(row?.name);
@@ -305,6 +310,15 @@ function ProductsTable({ setLoading, setError }) {
           onDelete={onDelete}
         />
       )}
+
+      <ConfirmationModal
+        show={envEmptyPopup}
+        title="Cannot add product"
+        message="The environments table is empty. Products require at least one environment - create environments in Infra > Envs before creating products."
+        onClose={() => setEnvEmptyPopup(false)}
+        onConfirm={() => setEnvEmptyPopup(false)}
+        confirmText="OK"
+      />
 
       <ConfirmationModal
         show={confirmDelete.show}

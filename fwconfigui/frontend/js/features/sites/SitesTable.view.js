@@ -49,10 +49,16 @@ function SitesTableView({
         <thead>
           <tr>
             <th className="fwTableHeaderCell" style={{ width: 240 }}>
-              Name
+              <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 8 }}>
+                <span>Name</span>
+                <HelpIconButton docPath="/static/help/sites/name.html" title="Name" />
+              </div>
             </th>
             <th className="fwTableHeaderCell">
-              Envs
+              <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 8 }}>
+                <span>Envs</span>
+                <HelpIconButton docPath="/static/help/sites/envs.html" title="Envs" />
+              </div>
             </th>
             <th className="fwTableHeaderCell" style={{ width: 100 }}>Actions</th>
           </tr>

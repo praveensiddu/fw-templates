@@ -54,13 +54,22 @@ function NetworkAreasTableView({
         <thead>
           <tr>
             <th className="fwTableHeaderCell" style={{ width: 240 }}>
-              Name
+              <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 8 }}>
+                <span>Name</span>
+                <HelpIconButton docPath="/static/help/networkareas/name.html" title="Name" />
+              </div>
             </th>
             <th className="fwTableHeaderCell" style={{ width: 160 }}>
-              Shortname
+              <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 8 }}>
+                <span>Shortname</span>
+                <HelpIconButton docPath="/static/help/networkareas/shortname.html" title="Shortname" />
+              </div>
             </th>
             <th className="fwTableHeaderCell">
-              Envs
+              <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 8 }}>
+                <span>Envs</span>
+                <HelpIconButton docPath="/static/help/networkareas/envs.html" title="Envs" />
+              </div>
             </th>
             <th className="fwTableHeaderCell" style={{ width: 100 }}>Actions</th>
           </tr>

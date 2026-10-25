@@ -34,13 +34,22 @@ function PredefPortProtocolTableView({
         <thead>
           <tr>
             <th className="fwTableHeaderCell" style={{ width: 240 }}>
-              Port-Protocol
+              <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 8 }}>
+                <span>Port-Protocol</span>
+                <HelpIconButton docPath="/static/help/predef-port-protocol/name.html" title="Port-Protocol" />
+              </div>
             </th>
             <th className="fwTableHeaderCell" style={{ width: 280 }}>
-              Aliases
+              <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 8 }}>
+                <span>Aliases</span>
+                <HelpIconButton docPath="/static/help/predef-port-protocol/aliases.html" title="Aliases" />
+              </div>
             </th>
             <th className="fwTableHeaderCell">
-              Description
+              <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 8 }}>
+                <span>Description</span>
+                <HelpIconButton docPath="/static/help/predef-port-protocol/description.html" title="Description" />
+              </div>
             </th>
             <th className="fwTableHeaderCell" style={{ width: 140 }}>Actions</th>
           </tr>
