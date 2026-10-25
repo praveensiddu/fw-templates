@@ -1,4 +1,14 @@
-function GroupsTableView({ env, rows, filters, setFilters, onAdd, onCheckUsed, isCheckingUsed, onShowUsedInGroups, onShowUsedInRules, usedInGrpModal, setUsedInGrpModal, usedInRuleModal, setUsedInRuleModal, onEdit, onDelete, onOnboard, isOnboarding, onExclude, onExcludeEnvCommon, editingKey, draft, setDraft, groupNameOptions, memberOptions, canSubmit, onCancelEdit, onSave }) {
+function GroupsTableView({ env, rows, filters, setFilters, onAdd, onCheckUsed, isCheckingUsed, onShowUsedInGroups, onShowUsedInRules, usedInGrpModal, setUsedInGrpModal, usedInRuleModal, setUsedInRuleModal, onEdit, onDelete, onOnboard, isOnboarding, onExclude, onExcludeEnvCommon, editingKey, draft, setDraft, groupNameOptions, groupNameCandidates, memberOptions, canSubmit, onCancelEdit, onSave }) {
+  const validGroupNames = React.useMemo(
+    () => new Set((Array.isArray(groupNameCandidates) ? groupNameCandidates : []).map((x) => safeTrim(x).toLowerCase())),
+    [groupNameCandidates]
+  );
+
+  const memberNameSet = React.useMemo(
+    () => new Set((Array.isArray(memberOptions) ? memberOptions : []).map((x) => safeTrim(x).toLowerCase())),
+    [memberOptions]
+  );
+
   function normalizeFilename(v) {
     const s = String(v || "").trim();
     return s || "groups.yaml";
@@ -322,7 +332,16 @@ function GroupsTableView({ env, rows, filters, setFilters, onAdd, onCheckUsed, i
                 <tr key={`${safeTrim(r.filename) || "groups.yaml"}::${r.name || idx}`}>
                   <td>
                     <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 8 }}>
-                      <span>{r.name}</span>
+                      {!validGroupNames.has(safeTrim(r?.name).toLowerCase()) ? (
+                        <span
+                          title="group name does not match a site-component-<ES> combination from the components table"
+                          style={{ background: "#dc3545", color: "#fff", padding: "1px 6px", borderRadius: 4 }}
+                        >
+                          {r.name}
+                        </span>
+                      ) : (
+                        <span>{r.name}</span>
+                      )}
                       {isFmExtract ? (
                         <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
                           <button
@@ -352,7 +371,22 @@ function GroupsTableView({ env, rows, filters, setFilters, onAdd, onCheckUsed, i
                       ) : null}
                     </div>
                   </td>
-                  <td className="muted" style={{ whiteSpace: "pre-line" }}>{(members || []).map((m) => safeTrim(m)).filter(Boolean).join("\n")}</td>
+                  <td className="muted" style={{ whiteSpace: "pre-line" }}>
+                    {(members || []).map((m) => safeTrim(m)).filter(Boolean).map((m, i) => (
+                      <div key={i}>
+                        {!memberNameSet.has(m.toLowerCase()) ? (
+                          <span
+                            title="not present in addrs table"
+                            style={{ background: "#dc3545", color: "#fff", padding: "1px 6px", borderRadius: 4 }}
+                          >
+                            {m}
+                          </span>
+                        ) : (
+                          m
+                        )}
+                      </div>
+                    ))}
+                  </td>
                   <td className="muted">{inFirewall}</td>
                   <td className="muted" style={isNonEmptyString(usedInGrp) ? { color: "#dc3545" } : undefined}>
                     {isNonEmptyString(usedInGrp) ? (

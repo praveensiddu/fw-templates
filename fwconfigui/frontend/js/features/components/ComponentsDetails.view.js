@@ -135,7 +135,9 @@ function ComponentsDetailsView({
                   <div className="field">
                     <div className="muted">Sites</div>
                     <MultiSelectPicker
-                      options={Array.isArray(siteNames) ? siteNames : []}
+                      options={(Array.isArray(siteNames) ? siteNames : []).filter(
+                        (s) => !(Array.isArray(it?.sites) ? it.sites : []).some((v) => safeTrim(v).toLowerCase() === safeTrim(s).toLowerCase())
+                      )}
                       values={Array.isArray(it?.sites) ? it.sites : []}
                       onChange={(nextSites) => {
                         setForm((p) => {

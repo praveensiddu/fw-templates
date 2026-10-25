@@ -32,6 +32,16 @@ def get_rendered_folder_prefix() -> str:
     return prefix or "iac/fw"
 
 
+def get_fwconfigfiles() -> str:
+    """Directory name under WORKSPACE that holds the fwconfig yaml files.
+
+    Read from ~/.fwconfig/fwconfig.yaml (fwconfigfiles, set on the Home tab
+    or by the pre-prepared samples); defaults to 'fwconfigfiles' when unset.
+    """
+    name = str(get_home_setting("FWCONFIGFILES", env_fallback=False) or "").strip()
+    return name or "fwconfigfiles"
+
+
 def get_infra_repo() -> Path:
     """Local root of the cloned infra repo (infrastructure data).
 

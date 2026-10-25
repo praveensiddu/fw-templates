@@ -376,6 +376,7 @@ function GroupsTable({ env, setLoading, setError }) {
         draft={draft}
         setDraft={setDraft}
         groupNameOptions={groupNameOptions}
+        groupNameCandidates={groupNameCandidates}
         memberOptions={memberOptions}
         canSubmit={canSubmit}
         onCancelEdit={onCancelEdit}

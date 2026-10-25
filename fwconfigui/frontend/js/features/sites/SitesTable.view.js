@@ -17,14 +17,41 @@ function SitesTableView({
   onCancelCellEdit,
   onSaveCellEdit,
 }) {
+  const envNameSet = React.useMemo(
+    () => new Set((Array.isArray(envNames) ? envNames : []).map((x) => safeTrim(x).toLowerCase())),
+    [envNames]
+  );
+
   function renderEnvs(v) {
-    const xs = Array.isArray(v) ? v : [];
-    return xs.map((x) => safeTrim(x)).filter(Boolean).join(", ");
+    const xs = (Array.isArray(v) ? v : []).map((x) => safeTrim(x)).filter(Boolean);
+    return xs.map((x, i) => {
+      const unknown = !envNameSet.has(x.toLowerCase());
+      return (
+        <React.Fragment key={`${x}-${i}`}>
+          {i > 0 ? ", " : ""}
+          {unknown ? (
+            <span
+              title="not present in env table"
+              style={{ background: "#dc3545", color: "#fff", padding: "1px 6px", borderRadius: 4 }}
+            >
+              {x}
+            </span>
+          ) : (
+            x
+          )}
+        </React.Fragment>
+      );
+    });
   }
 
   function isEditingEnvs(row) {
     const key = safeTrim(row?.name);
-    return safeTrim(cellEdit?.key) && safeTrim(cellEdit?.key) === key;
+    return safeTrim(cellEdit?.key) && safeTrim(cellEdit?.key) === key && safeTrim(cellEdit?.field) === "envs";
+  }
+
+  function isEditingDescription(row) {
+    const key = safeTrim(row?.name);
+    return safeTrim(cellEdit?.key) && safeTrim(cellEdit?.key) === key && safeTrim(cellEdit?.field) === "description";
   }
 
   function onNewEntryKeyDown(e) {
@@ -60,6 +87,12 @@ function SitesTableView({
                 <HelpIconButton docPath="/static/help/sites/envs.html" title="Envs" />
               </div>
             </th>
+            <th className="fwTableHeaderCell">
+              <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 8 }}>
+                <span>Description</span>
+                <HelpIconButton docPath="/static/help/sites/description.html" title="Description" />
+              </div>
+            </th>
             <th className="fwTableHeaderCell" style={{ width: 100 }}>Actions</th>
           </tr>
           <tr>
@@ -77,6 +110,14 @@ function SitesTableView({
                 placeholder="Filter envs..."
                 value={filters.envs}
                 onChange={(e) => setFilters((p) => ({ ...p, envs: e.target.value }))}
+              />
+            </th>
+            <th>
+              <input
+                className={`filterInput ${isNonEmptyString(filters.description) ? "filterInput-active" : ""}`}
+                placeholder="Filter description..."
+                value={filters.description}
+                onChange={(e) => setFilters((p) => ({ ...p, description: e.target.value }))}
               />
             </th>
             <th />
@@ -102,6 +143,15 @@ function SitesTableView({
                   onChange={(e) => setDraft((p) => ({ ...p, envs: e.target.value }))}
                   onKeyDown={onNewEntryKeyDown}
                   placeholder="envs (comma-separated)"
+                />
+              </td>
+              <td>
+                <input
+                  className="filterInput"
+                  value={draft.description}
+                  onChange={(e) => setDraft((p) => ({ ...p, description: e.target.value }))}
+                  onKeyDown={onNewEntryKeyDown}
+                  placeholder="description"
                 />
               </td>
               <td>
@@ -139,6 +189,13 @@ function SitesTableView({
                         className="filterInput"
                         value={draft.envs}
                         onChange={(e) => setDraft((p) => ({ ...p, envs: e.target.value }))}
+                      />
+                    </td>
+                    <td>
+                      <input
+                        className="filterInput"
+                        value={draft.description}
+                        onChange={(e) => setDraft((p) => ({ ...p, description: e.target.value }))}
                       />
                     </td>
                     <td>
@@ -189,7 +246,52 @@ function SitesTableView({
                         <button
                           className="iconBtn"
                           title="Edit"
-                          onClick={() => onStartCellEdit(r)}
+                          onClick={() => onStartCellEdit(r, "envs")}
+                          style={{ alignSelf: "flex-start" }}
+                        >
+                          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                            <path d="M12 20h9" />
+                            <path d="M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4 12.5-12.5z" />
+                          </svg>
+                        </button>
+                      </div>
+                    )}
+                  </td>
+                  <td>
+                    {isEditingDescription(r) ? (
+                      <div style={{ display: "flex", gap: 8, alignItems: "flex-start" }}>
+                        <input
+                          className="filterInput"
+                          value={safeTrim(cellEdit?.description)}
+                          onChange={(e) => setCellEdit((p) => ({ ...(p || {}), description: e.target.value }))}
+                          onKeyDown={(e) => {
+                            if (e.key === "Enter") {
+                              e.preventDefault();
+                              onSaveCellEdit();
+                            }
+                          }}
+                          placeholder="description"
+                          style={{ flex: 1 }}
+                        />
+                        <button className="iconBtn iconBtn-primary" title="Save" onClick={onSaveCellEdit} style={{ alignSelf: "flex-start" }}>
+                          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                            <polyline points="20 6 9 17 4 12" />
+                          </svg>
+                        </button>
+                        <button className="iconBtn" title="Cancel" onClick={onCancelCellEdit} style={{ alignSelf: "flex-start" }}>
+                          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                            <path d="M18 6L6 18" />
+                            <path d="M6 6l12 12" />
+                          </svg>
+                        </button>
+                      </div>
+                    ) : (
+                      <div style={{ display: "flex", gap: 8, alignItems: "flex-start" }}>
+                        <div style={{ whiteSpace: "pre-line", flex: 1 }}>{safeTrim(r?.description)}</div>
+                        <button
+                          className="iconBtn"
+                          title="Edit"
+                          onClick={() => onStartCellEdit(r, "description")}
                           style={{ alignSelf: "flex-start" }}
                         >
                           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
@@ -217,7 +319,7 @@ function SitesTableView({
           ))}
           {(rows || []).length === 0 ? (
             <tr>
-              <td colSpan={3} className="muted">
+              <td colSpan={4} className="muted">
                 No items
               </td>
             </tr>

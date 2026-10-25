@@ -27,6 +27,9 @@ class SitesService:
         out = [str(x or "").strip().lower() for x in envs if str(x or "").strip()]
         return sorted(list(dict.fromkeys(out)))
 
+    def _normalize_description(self, v: Any) -> str:
+        return str(v or "").strip()
+
     def list_items(self) -> List[Dict[str, Any]]:
         raw = read_yaml_dict(self._path())
         if not isinstance(raw, dict):
@@ -42,6 +45,7 @@ class SitesService:
                     "data": {
                         "name": k,
                         "envs": data.get("envs") if isinstance(data.get("envs"), list) else [],
+                        "description": str(data.get("description") or "").strip(),
                     },
                 }
             )
@@ -57,6 +61,7 @@ class SitesService:
             raise ValidationError("original_name", "use PUT for update")
 
         envs = self._normalize_envs(data.get("envs"))
+        desc = self._normalize_description(data.get("description"))
 
         path = self._path()
         raw = read_yaml_dict(path)
@@ -67,6 +72,8 @@ class SitesService:
             raise AlreadyExistsError("Item", n)
 
         raw[n] = {"envs": envs}
+        if desc:
+            raw[n]["description"] = desc
         write_yaml_dict(path, raw, sort_keys=True)
 
     def update_item(self, *, name: str, data: Dict[str, Any], original_name: str) -> None:
@@ -78,6 +85,7 @@ class SitesService:
         n = self._normalize_name(name)
 
         envs = self._normalize_envs(data.get("envs"))
+        desc = self._normalize_description(data.get("description"))
 
         path = self._path()
         raw = read_yaml_dict(path)
@@ -90,6 +98,8 @@ class SitesService:
             raw.pop(original, None)
 
         raw[n] = {"envs": envs}
+        if desc:
+            raw[n]["description"] = desc
         write_yaml_dict(path, raw, sort_keys=True)
 
     def delete_item(self, *, name: str) -> None:

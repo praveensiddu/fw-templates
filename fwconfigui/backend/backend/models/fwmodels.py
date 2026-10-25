@@ -86,6 +86,7 @@ class HomeSettings(BaseModel):
     RENDERED_GITREPO_GROUP: Optional[str] = ""
     RENDERED_FOLDER_PREFIX: Optional[str] = ""
     INFRA_REPO: Optional[str] = ""
+    FWCONFIGFILES: Optional[str] = ""
 
 
 class SaveHomeSettingsRequest(BaseModel):

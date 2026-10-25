@@ -46,6 +46,7 @@ from backend.routers.rule_files import router as rule_files_router
 from backend.routers.sites import router as sites_router
 from backend.routers.role_mgmt_api import create_rolemgmt_router
 from backend.auth.rbac import enforce_request, get_current_user_context
+from backend.services.common_service import get_fwconfigfiles
 from backend.services.home_service import apply_saved_home_settings
 from backend.utils.workspace import ensure_fwconfigfiles_root
 
@@ -60,7 +61,7 @@ def _apply_env_defaults() -> None:
     """Set defaults for optional env vars when they are not provided."""
     home = Path.home()
     defaults = {
-        "FORTIMGR_EXTRACT_REPO": str(home / "workspace" / "fwconfigfiles" / "cloned-repositories" / "fmg_extract" / "fortimgr"),
+        "FORTIMGR_EXTRACT_REPO": str(home / "workspace" / get_fwconfigfiles() / "cloned-repositories" / "fmg_extract" / "fortimgr"),
         "CURRENT_USER": getpass.getuser(),
     }
     for key, value in defaults.items():

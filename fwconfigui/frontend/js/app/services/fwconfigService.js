@@ -458,3 +458,12 @@ async function saveHomeSettings(settings) {
 async function loadHomeSamples() {
   return await fetchJson("/api/v1/home/samples");
 }
+
+/**
+ * Apply pre-prepared sample Home settings: persists fwconfigfiles=demofwconfig
+ * and clones the sample repositories into the workspace.
+ * @returns {Promise<Object>} - Response with settings map and clone results
+ */
+async function applyHomeSamples() {
+  return await postJson("/api/v1/home/samples/apply", {});
+}

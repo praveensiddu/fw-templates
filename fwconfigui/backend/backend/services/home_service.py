@@ -2,8 +2,9 @@
 
 import logging
 import os
+import subprocess
 from pathlib import Path
-from typing import Any, Dict
+from typing import Any, Dict, List
 
 from backend.exceptions.custom import ValidationError
 from backend.utils.logging_utils import log_all_methods
@@ -14,6 +15,7 @@ logger = logging.getLogger("uvicorn.error")
 
 _DEFAULT_WORKSPACE = "~/workspace"
 _DEFAULT_RENDERED_FOLDER_PREFIX = "iac/fw"
+_DEFAULT_FWCONFIGFILES_DIRNAME = "fwconfigfiles"
 
 _HOME_SETTINGS_KEYS = (
     "WORKSPACE",
@@ -21,6 +23,7 @@ _HOME_SETTINGS_KEYS = (
     "RENDERED_GITREPO_GROUP",
     "RENDERED_FOLDER_PREFIX",
     "INFRA_REPO",
+    "FWCONFIGFILES",
 )
 
 _SAMPLE_SETTINGS: Dict[str, str] = {
@@ -29,7 +32,15 @@ _SAMPLE_SETTINGS: Dict[str, str] = {
     "RENDERED_GITREPO_GROUP": "https://github.com/your-org/fw-rendered",
     "RENDERED_FOLDER_PREFIX": _DEFAULT_RENDERED_FOLDER_PREFIX,
     "INFRA_REPO": "https://github.com/your-org/fw-infra",
+    "FWCONFIGFILES": "demofwconfig",
 }
+
+# Sample repositories cloned by "Use pre-prepared samples" into
+# <WORKSPACE>/<fwconfigfiles>/cloned-repositories/<name>
+_SAMPLE_REPOS = (
+    ("https://github.com/fwconfigdata/infrarepo", "infrarepo"),
+    ("https://github.com/fwconfigdata/fwtemplates", "templates"),
+)
 
 
 def _home_settings_path() -> Path:
@@ -114,6 +125,8 @@ class HomeService:
                 val = _DEFAULT_WORKSPACE
             if not val and key == "RENDERED_FOLDER_PREFIX":
                 val = _DEFAULT_RENDERED_FOLDER_PREFIX
+            if not val and key == "FWCONFIGFILES":
+                val = _DEFAULT_FWCONFIGFILES_DIRNAME
             out[key] = val
         return out
 
@@ -151,6 +164,9 @@ class HomeService:
             logger.warning("Invalid field value for 'WORKSPACE': %s", out["WORKSPACE"])
             raise ValidationError("WORKSPACE", "must be an absolute path")
 
+        if not out["FWCONFIGFILES"]:
+            out["FWCONFIGFILES"] = _DEFAULT_FWCONFIGFILES_DIRNAME
+
         yaml_path = _home_settings_path()
         yaml_path.parent.mkdir(parents=True, exist_ok=True)
         write_yaml_dict(yaml_path, {k.lower(): v for k, v in out.items()})
@@ -159,3 +175,67 @@ class HomeService:
 
         ensure_fwconfigfiles_root()
         return out
+
+    def apply_samples(self) -> Dict[str, Any]:
+        """Apply the pre-prepared sample setup.
+
+        Persists fwconfigfiles=demofwconfig in ~/.fwconfig/fwconfig.yaml
+        (preserving other saved settings) and clones the sample repositories
+        into <WORKSPACE>/<fwconfigfiles>/cloned-repositories/.
+
+        Returns:
+            Sample settings under 'settings' and per-repo clone results
+            under 'clones'
+        """
+        samples = self.get_samples()
+        dirname = str(samples.get("FWCONFIGFILES") or "").strip() or _DEFAULT_FWCONFIGFILES_DIRNAME
+
+        yaml_path = _home_settings_path()
+        yaml_path.parent.mkdir(parents=True, exist_ok=True)
+        raw = read_yaml_dict(yaml_path)
+        if not isinstance(raw, dict):
+            raw = {}
+        raw["fwconfigfiles"] = dirname
+        write_yaml_dict(yaml_path, raw)
+        os.environ["FWCONFIGFILES"] = dirname
+        logger.info("Applied sample fwconfigfiles=%s to %s", dirname, yaml_path)
+
+        ensure_fwconfigfiles_root()
+        clones = self.clone_repositories()
+        return {"settings": samples, "clones": clones}
+
+    def clone_repositories(self) -> List[Dict[str, Any]]:
+        """Clone the sample repositories into the workspace.
+
+        Targets under <WORKSPACE>/<fwconfigfiles>/cloned-repositories/:
+            https://github.com/fwconfigdata/infrarepo   -> infrarepo
+            https://github.com/fwconfigdata/fwtemplates -> templates
+
+        Returns:
+            Per-repo results: status 'cloned', 'exists', or 'error'
+        """
+        target_root = ensure_fwconfigfiles_root() / "cloned-repositories"
+        target_root.mkdir(parents=True, exist_ok=True)
+
+        results: List[Dict[str, Any]] = []
+        for url, name in _SAMPLE_REPOS:
+            dest = target_root / name
+            entry: Dict[str, Any] = {"repo": url, "path": str(dest)}
+            if (dest / ".git").exists():
+                entry["status"] = "exists"
+            else:
+                try:
+                    subprocess.run(
+                        ["git", "clone", url, str(dest)],
+                        check=True,
+                        capture_output=True,
+                        text=True,
+                        timeout=300,
+                    )
+                    entry["status"] = "cloned"
+                except Exception as e:
+                    entry["status"] = "error"
+                    entry["error"] = str(e)
+                    logger.warning("Sample clone failed %s -> %s: %s", url, dest, e)
+            results.append(entry)
+        return results

@@ -3,10 +3,10 @@ function SitesTable({ setLoading, setError }) {
   const [items, setItems] = React.useState([]);
   const [envNames, setEnvNames] = React.useState([]);
   const [editingKey, setEditingKey] = React.useState("");
-  const [draft, setDraft] = React.useState({ name: "", envs: "" });
+  const [draft, setDraft] = React.useState({ name: "", envs: "", description: "" });
   const [confirmDelete, setConfirmDelete] = React.useState({ show: false, row: null });
 
-  const [cellEdit, setCellEdit] = React.useState({ key: "", row: null, envs: [] });
+  const [cellEdit, setCellEdit] = React.useState({ key: "", row: null, field: "", envs: [], description: "" });
 
   const rows = React.useMemo(() => {
     return (items || []).map((it) => {
@@ -15,16 +15,18 @@ function SitesTable({ setLoading, setError }) {
         ...it,
         name: safeTrim(it?.name),
         envs,
+        description: safeTrim(it?.data?.description),
       };
     });
   }, [items]);
 
   const { sortedRows, filters, setFilters } = useTableFilter({
     rows,
-    initialFilters: { name: "", envs: "" },
+    initialFilters: { name: "", envs: "", description: "" },
     fieldMapping: (row) => ({
       name: safeTrim(row?.name),
       envs: Array.isArray(row?.envs) ? row.envs.join(",") : "",
+      description: safeTrim(row?.description),
     }),
     sortBy: (a, b) => safeTrim(a?.name).toLowerCase().localeCompare(safeTrim(b?.name).toLowerCase()),
   });
@@ -56,7 +58,7 @@ function SitesTable({ setLoading, setError }) {
   }, [load]);
 
   const onAdd = React.useCallback(() => {
-    setDraft({ name: "", envs: "pac, prd" });
+    setDraft({ name: "", envs: "pac, prd", description: "" });
     setEditingKey("__new__");
   }, []);
 
@@ -70,7 +72,7 @@ function SitesTable({ setLoading, setError }) {
 
   const onCancelEdit = React.useCallback(() => {
     setEditingKey("");
-    setDraft({ name: "", envs: "" });
+    setDraft({ name: "", envs: "", description: "" });
   }, []);
 
   const getRowKey = React.useCallback((row) => {
@@ -79,16 +81,17 @@ function SitesTable({ setLoading, setError }) {
   }, []);
 
   const onStartCellEdit = React.useCallback(
-    (row) => {
+    (row, field) => {
       const key = getRowKey(row);
       const envs = Array.isArray(row?.data?.envs) ? row.data.envs : [];
-      setCellEdit({ key, row, envs });
+      const description = safeTrim(row?.data?.description);
+      setCellEdit({ key, row, field: safeTrim(field), envs, description });
     },
     [getRowKey]
   );
 
   const onCancelCellEdit = React.useCallback(() => {
-    setCellEdit({ key: "", row: null, envs: [] });
+    setCellEdit({ key: "", row: null, field: "", envs: [], description: "" });
   }, []);
 
   const onSaveCellEdit = React.useCallback(async () => {
@@ -108,6 +111,7 @@ function SitesTable({ setLoading, setError }) {
         data: {
           name,
           envs: Array.isArray(cellEdit.envs) ? cellEdit.envs : [],
+          description: safeTrim(cellEdit.description),
         },
       });
 
@@ -138,7 +142,7 @@ function SitesTable({ setLoading, setError }) {
       await saveFwConfigItem("sites", {
         filename: FIXED_FILENAME,
         name: nextName,
-        data: { name: nextName, envs: nextEnvs },
+        data: { name: nextName, envs: nextEnvs, description: safeTrim(draft.description) },
       });
 
       onCancelEdit();

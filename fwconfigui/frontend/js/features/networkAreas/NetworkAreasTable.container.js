@@ -59,7 +59,7 @@ function NetworkAreasTable({ setLoading, setError }) {
   }, [load]);
 
   const onAdd = React.useCallback(() => {
-    setDraft({ name: "", shortname: "", envs: "pac, prd" });
+    setDraft({ name: "", shortname: "", envs: "qa, prd" });
     setOriginalRef({ name: "" });
     setEditingKey("__new__");
   }, []);

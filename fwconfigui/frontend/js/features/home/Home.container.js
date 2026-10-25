@@ -11,6 +11,7 @@ function Home({ setLoading, setError, onSaved }) {
     RENDERED_GITREPO_GROUP: "",
     RENDERED_FOLDER_PREFIX: "iac/fw",
     INFRA_REPO: "",
+    FWCONFIGFILES: "fwconfigfiles",
   });
   const [busy, setBusy] = React.useState(false);
   const [savedMsg, setSavedMsg] = React.useState("");
@@ -23,6 +24,7 @@ function Home({ setLoading, setError, onSaved }) {
       RENDERED_GITREPO_GROUP: safeTrim(src.RENDERED_GITREPO_GROUP),
       RENDERED_FOLDER_PREFIX: safeTrim(src.RENDERED_FOLDER_PREFIX) || "iac/fw",
       INFRA_REPO: safeTrim(src.INFRA_REPO),
+      FWCONFIGFILES: safeTrim(src.FWCONFIGFILES) || "fwconfigfiles",
     });
   }, []);
 
@@ -52,9 +54,16 @@ function Home({ setLoading, setError, onSaved }) {
     try {
       setBusy(true);
       setError("");
-      const resp = await loadHomeSamples();
+      const resp = await applyHomeSamples();
       applySettings(resp?.settings);
-      setSavedMsg("");
+      const failed = (Array.isArray(resp?.clones) ? resp.clones : []).filter(
+        (c) => c && c.status === "error"
+      );
+      if (failed.length) {
+        setError("Sample repository clone failed for: " + failed.map((c) => c.repo).join(", "));
+      } else {
+        setSavedMsg("Sample repositories ready under cloned-repositories.");
+      }
     } catch (e) {
       setError(formatError(e));
     } finally {

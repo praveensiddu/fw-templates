@@ -2,6 +2,7 @@ function ComponentsTable({ setLoading, setError }) {
   const [items, setItems] = React.useState([]);
   const [networkareaNames, setNetworkareaNames] = React.useState([]);
   const [siteNames, setSiteNames] = React.useState([]);
+  const [envNames, setEnvNames] = React.useState([]);
   const [productNames, setProductNames] = React.useState([]);
   const [products, setProducts] = React.useState([]);
 
@@ -26,10 +27,11 @@ function ComponentsTable({ setLoading, setError }) {
       setLoading(true);
       setError("");
 
-      const [componentsResp, networkareasResp, sitesResp, productsResp] = await Promise.all([
+      const [componentsResp, networkareasResp, sitesResp, envResp, productsResp] = await Promise.all([
         listFwConfigItems("components"),
         listFwConfigItems("networkareas"),
         listFwConfigItems("sites"),
+        listFwConfigItems("env"),
         listFwConfigItems("products"),
       ]);
 
@@ -42,6 +44,12 @@ function ComponentsTable({ setLoading, setError }) {
       );
       setSiteNames(
         (sitesResp?.items || [])
+          .map((x) => safeTrim(x?.name))
+          .filter((x) => x)
+          .sort((a, b) => a.localeCompare(b))
+      );
+      setEnvNames(
+        (envResp?.items || [])
           .map((x) => safeTrim(x?.name))
           .filter((x) => x)
           .sort((a, b) => a.localeCompare(b))
@@ -86,6 +94,9 @@ function ComponentsTable({ setLoading, setError }) {
 
       const envOrder = ["prd", "qa", "rtb", "ent", "dev"];
       const envKeys = [...envOrder.filter((k) => Object.prototype.hasOwnProperty.call(sites || {}, k)), ...Object.keys(sites || {}).filter((k) => !envOrder.includes(k))];
+      const sitesItems = envKeys
+        .map((env) => ({ env, sites: Array.isArray(sites?.[env]) ? sites[env] : [] }))
+        .filter((x) => isNonEmptyString(x?.env) && x.sites.length > 0);
       const sitesLines = envKeys
         .map((k) => {
           const lst = Array.isArray(sites?.[k]) ? sites[k] : [];
@@ -126,6 +137,7 @@ function ComponentsTable({ setLoading, setError }) {
         description: safeTrim(data?.description),
         exposedto: Array.isArray(data?.exposedto) ? data.exposedto : [],
         sites,
+        sitesItems,
         sitesLines,
         fmSites,
         fmSitesLines,
@@ -483,6 +495,8 @@ function ComponentsTable({ setLoading, setError }) {
           onCancelCellEdit={onCancelCellEdit}
           onSaveCellEdit={onSaveCellEdit}
           networkareaNames={networkareaNames}
+          siteNames={siteNames}
+          envNames={envNames}
           productNames={exposedtoOptions}
           applyAllRule={applyAllRule}
         />

@@ -13,11 +13,66 @@ function ComponentsTableView({
   onCancelCellEdit,
   onSaveCellEdit,
   networkareaNames,
+  siteNames,
+  envNames,
   productNames,
   applyAllRule,
 }) {
+  const envNameSet = React.useMemo(
+    () => new Set((Array.isArray(envNames) ? envNames : []).map((x) => safeTrim(x).toLowerCase())),
+    [envNames]
+  );
+  const siteNameSet = React.useMemo(
+    () => new Set((Array.isArray(siteNames) ? siteNames : []).map((x) => safeTrim(x).toLowerCase())),
+    [siteNames]
+  );
+
   function renderList(v) {
     return (Array.isArray(v) ? v : []).join(", ");
+  }
+
+  function renderSitesCell(r) {
+    const items = Array.isArray(r?.sitesItems) ? r.sitesItems : [];
+    if (!items.length) return <div className="muted">(none)</div>;
+    return items.map((it, i) => {
+      const env = safeTrim(it?.env);
+      const envUnknown = env && !envNameSet.has(env.toLowerCase());
+      const lst = Array.isArray(it?.sites) ? it.sites : [];
+      return (
+        <div key={i} className="muted" style={{ whiteSpace: "pre-wrap" }}>
+          {envUnknown ? (
+            <span
+              title="not present in env table"
+              style={{ background: "#dc3545", color: "#fff", padding: "1px 6px", borderRadius: 4 }}
+            >
+              {env}
+            </span>
+          ) : (
+            env
+          )}
+          {": "}
+          {lst.map((s, j) => {
+            const sv = safeTrim(s);
+            const siteUnknown = sv && !siteNameSet.has(sv.toLowerCase());
+            return (
+              <React.Fragment key={j}>
+                {j > 0 ? ", " : ""}
+                {siteUnknown ? (
+                  <span
+                    title="not present in sites table"
+                    style={{ background: "#dc3545", color: "#fff", padding: "1px 6px", borderRadius: 4 }}
+                  >
+                    {sv}
+                  </span>
+                ) : (
+                  sv
+                )}
+              </React.Fragment>
+            );
+          })}
+        </div>
+      );
+    });
   }
 
   function CellActions({ row, field }) {
@@ -232,12 +287,7 @@ function ComponentsTableView({
 
                 <td>
                   <div style={{ display: "flex", flexDirection: "column", gap: 4 }}>
-                    {(Array.isArray(r?.sitesLines) ? r.sitesLines : []).length === 0 ? <div className="muted">(none)</div> : null}
-                    {(Array.isArray(r?.sitesLines) ? r.sitesLines : []).map((ln, i) => (
-                      <div key={i} className="muted" style={{ whiteSpace: "pre-wrap" }}>
-                        {ln}
-                      </div>
-                    ))}
+                    {renderSitesCell(r)}
                   </div>
                 </td>
 

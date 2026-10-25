@@ -17,9 +17,31 @@ function NetworkAreasTableView({
   onCancelCellEdit,
   onSaveCellEdit,
 }) {
+  const envNameSet = React.useMemo(
+    () => new Set((Array.isArray(envNames) ? envNames : []).map((x) => safeTrim(x).toLowerCase())),
+    [envNames]
+  );
+
   function renderEnvs(v) {
-    const xs = Array.isArray(v) ? v : [];
-    return xs.map((x) => safeTrim(x)).filter(Boolean).join(", ");
+    const xs = (Array.isArray(v) ? v : []).map((x) => safeTrim(x)).filter(Boolean);
+    return xs.map((x, i) => {
+      const unknown = !envNameSet.has(x.toLowerCase());
+      return (
+        <React.Fragment key={`${x}-${i}`}>
+          {i > 0 ? ", " : ""}
+          {unknown ? (
+            <span
+              title="not present in env table"
+              style={{ background: "#dc3545", color: "#fff", padding: "1px 6px", borderRadius: 4 }}
+            >
+              {x}
+            </span>
+          ) : (
+            x
+          )}
+        </React.Fragment>
+      );
+    });
   }
 
   function isEditingEnvs(row) {

@@ -52,3 +52,16 @@ def get_samples(request: Request, service: HomeService = Depends(get_service)) -
         Mapping of setting name to sample value under 'settings'
     """
     return {"settings": service.get_samples()}
+
+
+@router.post("/samples/apply")
+def apply_samples(request: Request, service: HomeService = Depends(get_service)) -> Dict[str, Any]:
+    """Apply pre-prepared sample Home settings.
+
+    Persists fwconfigfiles=demofwconfig in ~/.fwconfig/fwconfig.yaml and clones
+    the sample repositories into the workspace.
+
+    Returns:
+        Sample settings under 'settings' and per-repo clone results under 'clones'
+    """
+    return service.apply_samples()

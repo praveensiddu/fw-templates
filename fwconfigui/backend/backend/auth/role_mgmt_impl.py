@@ -7,6 +7,8 @@ from typing import Any, Dict, List
 
 import yaml
 
+from backend.services.common_service import get_fwconfigfiles
+
 
 def is_demo_mode() -> bool:
     return str(os.getenv("DEMO_MODE", os.getenv("IS_DEMO_MODE", "")) or "").strip().lower() in {
@@ -24,7 +26,7 @@ class RoleMgmtImpl:
 
     def __init__(self) -> None:
         self._lock = RLock()
-        self._rbac_dir = Path.home() / "workspace" / "fwconfigfiles" / "control" / "rbac"
+        self._rbac_dir = Path.home() / "workspace" / get_fwconfigfiles() / "control" / "rbac"
         self._demo_mode = is_demo_mode()
         self._legacy_store_path = self._rbac_dir / "role_assignments.yaml"
         self._store_paths: Dict[str, Path] = {}
@@ -61,7 +63,7 @@ class RoleMgmtImpl:
         else:
             workspace = Path.home() / "workspace"
 
-        rbac_dir = workspace / "fwconfigfiles" / "control" / "rbac"
+        rbac_dir = workspace / get_fwconfigfiles() / "control" / "rbac"
         if demo_mode:
             rbac_dir = rbac_dir / "demo_mode"
 

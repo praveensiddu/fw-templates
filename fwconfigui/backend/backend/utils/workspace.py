@@ -29,22 +29,29 @@ def _normalize_product_name(product: str) -> str:
     return v
 
 
+def _fwconfigfiles_dirname() -> str:
+    # Lazy import: services.common_service imports this module for other helpers.
+    from backend.services.common_service import get_fwconfigfiles
+
+    return get_fwconfigfiles()
+
+
 def get_fwconfigfiles_root(product: Optional[str] = None) -> Path:
     """Get the root directory where fwconfig yaml files are stored.
 
-    Root is always under: <WORKSPACE>/fwconfigfiles
+    Root is always under: <WORKSPACE>/<fwconfigfiles dirname>
 
     If product is provided, returns:
-        <WORKSPACE>/fwconfigfiles/<lowercase(product)>
+        <WORKSPACE>/<fwconfigfiles dirname>/<lowercase(product)>
 
     Raises:
         NotInitializedError: If the root does not exist
     """
 
-    root = get_workspace_root() / "fwconfigfiles"
+    root = get_workspace_root() / _fwconfigfiles_dirname()
     if not root.exists() or not root.is_dir():
         logger.warning("fwconfigfiles root directory not found: %s", root)
-        raise NotInitializedError("fwconfigfiles")
+        raise NotInitializedError(_fwconfigfiles_dirname())
 
     if product is None:
         return root
@@ -58,7 +65,7 @@ def get_fwconfigfiles_root(product: Optional[str] = None) -> Path:
 def ensure_fwconfigfiles_root() -> Path:
     """Create the fwconfigfiles root directory if missing."""
 
-    root = get_workspace_root() / "fwconfigfiles"
+    root = get_workspace_root() / _fwconfigfiles_dirname()
     root.mkdir(parents=True, exist_ok=True)
     return root
 
