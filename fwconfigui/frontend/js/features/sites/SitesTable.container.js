@@ -3,7 +3,7 @@ function SitesTable({ setLoading, setError }) {
   const [items, setItems] = React.useState([]);
   const [envNames, setEnvNames] = React.useState([]);
   const [editingKey, setEditingKey] = React.useState("");
-  const [draft, setDraft] = React.useState({ name: "", envs: "" });
+  const [draft, setDraft] = React.useState({ name: "", envs: [] });
   const [confirmDelete, setConfirmDelete] = React.useState({ show: false, row: null });
 
   const [cellEdit, setCellEdit] = React.useState({ key: "", row: null, envs: [] });
@@ -55,11 +55,6 @@ function SitesTable({ setLoading, setError }) {
     load();
   }, [load]);
 
-  const onAdd = React.useCallback(() => {
-    setDraft({ name: "", envs: "pac, prd" });
-    setEditingKey("__new__");
-  }, []);
-
   const onDelete = React.useCallback((row) => {
     setConfirmDelete({ show: true, row });
   }, []);
@@ -70,7 +65,7 @@ function SitesTable({ setLoading, setError }) {
 
   const onCancelEdit = React.useCallback(() => {
     setEditingKey("");
-    setDraft({ name: "", envs: "" });
+    setDraft({ name: "", envs: [] });
   }, []);
 
   const getRowKey = React.useCallback((row) => {
@@ -128,12 +123,10 @@ function SitesTable({ setLoading, setError }) {
       const nextName = safeTrim(draft.name)
         .toUpperCase()
         .replace(/[^A-Z0-9_-]/g, "");
-      const nextEnvs = safeTrim(draft.envs)
-        ? safeTrim(draft.envs)
-            .split(",")
-            .map((x) => safeTrim(x).toLowerCase())
-            .filter(Boolean)
-        : [];
+      const allowedEnvs = new Set(envNames.map((x) => x.toLowerCase()));
+      const nextEnvs = (Array.isArray(draft.envs) ? draft.envs : [])
+        .map((x) => safeTrim(x).toLowerCase())
+        .filter((x) => allowedEnvs.has(x));
 
       await saveFwConfigItem("sites", {
         filename: FIXED_FILENAME,
@@ -148,7 +141,7 @@ function SitesTable({ setLoading, setError }) {
     } finally {
       setLoading(false);
     }
-  }, [draft, setLoading, setError, load, onCancelEdit]);
+  }, [draft, envNames, setLoading, setError, load, onCancelEdit]);
 
   const onConfirmDelete = React.useCallback(async () => {
     const row = confirmDelete.row;
@@ -171,7 +164,6 @@ function SitesTable({ setLoading, setError }) {
         rows={sortedRows}
         filters={filters}
         setFilters={setFilters}
-        onAdd={onAdd}
         onDelete={onDelete}
         editingKey={editingKey}
         draft={draft}

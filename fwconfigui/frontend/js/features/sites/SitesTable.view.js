@@ -35,17 +35,8 @@ function SitesTableView({
 
   return (
     <div className="card" style={{ padding: 12 }}>
-      <div className="actions">
-        <div className="muted">sites ({Array.isArray(rows) ? rows.length : 0})</div>
-        <button className="iconBtn iconBtn-primary" title="Add" onClick={onAdd}>
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-            <path d="M12 5v14" />
-            <path d="M5 12h14" />
-          </svg>
-        </button>
-      </div>
-
-      <table>
+      <TableFilterBar filters={filters} setFilters={setFilters} />
+      <table className={tableFilterClass(filters)}>
         <thead>
           <tr>
             <th className="fwTableHeaderCell" style={{ width: 240 }}>
@@ -82,13 +73,13 @@ function SitesTableView({
             <th />
           </tr>
         </thead>
-        <tbody>
-          {editingKey === "__new__" ? (
+        {/* tfoot always renders below the list: the entry row for adding a new item */}
+        <tfoot>
+          {editingKey === "" || editingKey === "__new__" ? (
             <tr key="__new__">
               <td>
                 <input
                   className="filterInput"
-                  autoFocus
                   value={draft.name}
                   onChange={(e) => setDraft((p) => ({ ...p, name: String(e.target.value || "").toUpperCase() }))}
                   onKeyDown={onNewEntryKeyDown}
@@ -96,12 +87,15 @@ function SitesTableView({
                 />
               </td>
               <td>
-                <input
-                  className="filterInput"
-                  value={draft.envs}
-                  onChange={(e) => setDraft((p) => ({ ...p, envs: e.target.value }))}
-                  onKeyDown={onNewEntryKeyDown}
-                  placeholder="envs (comma-separated)"
+                <FloatingMultiSelect
+                  options={Array.isArray(envNames) ? envNames : []}
+                  values={Array.isArray(draft.envs) ? draft.envs : []}
+                  onChange={(next) => setDraft((p) => ({ ...p, envs: next }))}
+                  placeholder={(envNames || []).length ? "Select envs..." : "No envs defined - add them in the Environments tab"}
+                  inputTestId="site-new-envs"
+                  onEnter={() => {
+                    if (canSubmit) onSave();
+                  }}
                 />
               </td>
               <td>
@@ -119,7 +113,8 @@ function SitesTableView({
               </td>
             </tr>
           ) : null}
-
+        </tfoot>
+        <tbody>
           {(rows || []).map((r, idx) => (
             (() => {
               const rowKey = `${r.name || idx}`;
@@ -135,10 +130,11 @@ function SitesTableView({
                       />
                     </td>
                     <td>
-                      <input
-                        className="filterInput"
-                        value={draft.envs}
-                        onChange={(e) => setDraft((p) => ({ ...p, envs: e.target.value }))}
+                      <FloatingMultiSelect
+                        options={Array.isArray(envNames) ? envNames : []}
+                        values={Array.isArray(draft.envs) ? draft.envs : []}
+                        onChange={(next) => setDraft((p) => ({ ...p, envs: next }))}
+                        placeholder="Select envs..."
                       />
                     </td>
                     <td>
@@ -163,7 +159,7 @@ function SitesTableView({
                   <td>
                     {isEditingEnvs(r) ? (
                       <div style={{ display: "flex", gap: 8, alignItems: "flex-start" }}>
-                        <MultiSelectPicker
+                        <FloatingMultiSelect
                           options={Array.isArray(envNames) ? envNames : []}
                           values={Array.isArray(cellEdit?.envs) ? cellEdit.envs : []}
                           onChange={(next) => setCellEdit((p) => ({ ...(p || {}), envs: next }))}

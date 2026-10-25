@@ -21,7 +21,6 @@ function KeywordsTableView({
   return (
     <div className="card" style={{ padding: 12 }}>
       <div className="actions">
-        <div className="muted">keywords ({Array.isArray(rows) ? rows.length : 0})</div>
         <button className="iconBtn iconBtn-primary" title="Add" onClick={onAdd}>
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
             <path d="M12 5v14" />
@@ -30,7 +29,8 @@ function KeywordsTableView({
         </button>
       </div>
 
-      <table>
+      <TableFilterBar filters={filters} setFilters={setFilters} />
+      <table className={tableFilterClass(filters)}>
         <thead>
           <tr>
             <th className="fwTableHeaderCell" style={{ width: 220 }}>

@@ -36,12 +36,6 @@ function EnvTable({ setLoading, setError }) {
     sortBy: (a, b) => safeTrim(a?.name).localeCompare(safeTrim(b?.name)),
   });
 
-  const onAdd = React.useCallback(() => {
-    setDraft({ name: "" });
-    setOriginalRef({ name: "" });
-    setEditingKey("__new__");
-  }, []);
-
   const onEdit = React.useCallback((row) => {
     const n = safeTrim(row.name);
     setDraft({ name: n });
@@ -117,7 +111,6 @@ function EnvTable({ setLoading, setError }) {
         rows={sortedRows}
         filters={filters}
         setFilters={setFilters}
-        onAdd={onAdd}
         onEdit={onEdit}
         onDelete={onDelete}
         editingKey={editingKey}

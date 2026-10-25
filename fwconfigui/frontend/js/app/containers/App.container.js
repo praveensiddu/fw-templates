@@ -396,201 +396,79 @@ function App() {
         return <ProductsTable setLoading={setLoading} setError={setError} />;
       }
 
+      const envScopedTabs = ["groups", "addrs", "rules", "ip_inventory"];
+      const productTabs = [
+        { key: "rule-templates", label: "Rule Templates" },
+        { key: "components", label: "Components" },
+        { key: "groups", label: "Groups" },
+        { key: "addrs", label: "Addresses" },
+        { key: "rules", label: "Rules" },
+        { key: "port-protocol", label: "Port Protocol" },
+        { key: "business-purpose", label: "Business Purpose" },
+        { key: "keywords", label: "Keywords" },
+        { key: "rule-files", label: "Rule Files" },
+        { key: "ip_inventory", label: "IP Inventory" },
+      ];
+
+      const selectProductTab = (it) => {
+        const key = it.key;
+        const envScoped = envScopedTabs.includes(key);
+        const nextEnv = envScoped
+          ? safeTrim(productEnv) || getProductEnvFromPath(window.location.pathname) || ((productEnvOptions || [])[0] || "")
+          : "";
+        const base = `/products/${encodeURIComponent(currentProduct)}/${key}`;
+        const nextPath = nextEnv ? `${base}/${encodeURIComponent(nextEnv)}` : base;
+        if (`${window.location.pathname}${window.location.search}` !== nextPath) {
+          window.history.pushState({}, "", nextPath);
+        }
+        setProductSubTab(key);
+        if (envScoped) setProductEnv(nextEnv);
+        else if (key === "rule-files") setProductEnv("");
+      };
+
+      const goBackToProducts = async () => {
+        const ok = await canNavigateAway();
+        if (!ok) return;
+        if (typeof setCurrentProduct === "function") setCurrentProduct("");
+        if (window.__fwCurrentProduct) window.__fwCurrentProduct = "";
+        if (`${window.location.pathname}${window.location.search}` !== "/products") {
+          window.history.pushState({}, "", "/products");
+          window.dispatchEvent(new PopStateEvent("popstate"));
+        }
+      };
+
       const subTabs = (
-        <div className="card" style={{ padding: 12 }}>
-          <div className="actions" style={{ marginTop: 0, justifyContent: "flex-start" }}>
-            <div style={{ display: "flex", gap: 8, flexWrap: "wrap", alignItems: "center" }}>
-              <button
-                className="btn"
-                onClick={async () => {
-                  const ok = await canNavigateAway();
-                  if (!ok) return;
-                  if (typeof setCurrentProduct === "function") setCurrentProduct("");
-                  if (window.__fwCurrentProduct) window.__fwCurrentProduct = "";
-                  if (`${window.location.pathname}${window.location.search}` !== "/products") {
-                    window.history.pushState({}, "", "/products");
-                    window.dispatchEvent(new PopStateEvent("popstate"));
-                  }
-                }}
-              >
-                <span style={{ display: "inline-flex", gap: 6, alignItems: "center" }}>
-                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ width: 16, height: 16 }}>
-                    <polyline points="15 18 9 12 15 6" />
-                  </svg>
-                  Back to Products
-                </span>
-              </button>
-              <button
-                className={`tab ${productSubTab === "rule-templates" ? "active" : ""}`}
-                onClick={() => {
-                  const nextPath = `/products/${encodeURIComponent(currentProduct)}/rule-templates`;
+        <div className="contextBar">
+          <nav className="breadcrumb" aria-label="Breadcrumb">
+            <a
+              href="/products"
+              onClick={(e) => {
+                e.preventDefault();
+                goBackToProducts();
+              }}
+            >
+              Products
+            </a>
+            <span className="breadcrumbSep" aria-hidden="true">/</span>
+            <span className="breadcrumbCurrent" aria-current="page">{currentProduct}</span>
+          </nav>
+          <SubNav items={productTabs} activeKey={productSubTab} onSelect={selectProductTab} ariaLabel="Product sections" />
+          {envScopedTabs.includes(productSubTab) ? (
+            <div className="envBar">
+              <span className="envBarLabel">Environment</span>
+              <SubNav
+                variant="pill"
+                ariaLabel="Environment"
+                items={(productEnvOptions || []).map((n) => ({ key: n, label: n }))}
+                activeKey={safeTrim(productEnv)}
+                onSelect={(it) => {
+                  const nextPath = `/products/${encodeURIComponent(currentProduct)}/${encodeURIComponent(productSubTab)}/${encodeURIComponent(it.key)}`;
                   if (`${window.location.pathname}${window.location.search}` !== nextPath) {
                     window.history.pushState({}, "", nextPath);
                   }
-                  setProductSubTab("rule-templates");
+                  setProductEnv(it.key);
                 }}
-              >
-                rule-templates
-              </button>
-
-              <button
-                className={`tab ${productSubTab === "components" ? "active" : ""}`}
-                onClick={() => {
-                  const nextPath = `/products/${encodeURIComponent(currentProduct)}/components`;
-                  if (`${window.location.pathname}${window.location.search}` !== nextPath) {
-                    window.history.pushState({}, "", nextPath);
-                  }
-                  setProductSubTab("components");
-                }}
-              >
-                components
-              </button>
-              <button
-                className={`tab ${productSubTab === "groups" ? "active" : ""}`}
-                onClick={() => {
-                  const envNames = (productEnvOptions || []).length ? productEnvOptions : [];
-                  const nextEnv = safeTrim(productEnv) || getProductEnvFromPath(window.location.pathname) || (envNames.length ? envNames[0] : "");
-                  const nextPath = nextEnv
-                    ? `/products/${encodeURIComponent(currentProduct)}/groups/${encodeURIComponent(nextEnv)}`
-                    : `/products/${encodeURIComponent(currentProduct)}/groups`;
-                  if (`${window.location.pathname}${window.location.search}` !== nextPath) {
-                    window.history.pushState({}, "", nextPath);
-                  }
-                  setProductSubTab("groups");
-                  setProductEnv(nextEnv);
-                }}
-              >
-                groups
-              </button>
-
-              <button
-                className={`tab ${productSubTab === "addrs" ? "active" : ""}`}
-                onClick={() => {
-                  const envNames = (productEnvOptions || []).length ? productEnvOptions : [];
-                  const nextEnv = safeTrim(productEnv) || getProductEnvFromPath(window.location.pathname) || (envNames.length ? envNames[0] : "");
-                  const nextPath = nextEnv
-                    ? `/products/${encodeURIComponent(currentProduct)}/addrs/${encodeURIComponent(nextEnv)}`
-                    : `/products/${encodeURIComponent(currentProduct)}/addrs`;
-                  if (`${window.location.pathname}${window.location.search}` !== nextPath) {
-                    window.history.pushState({}, "", nextPath);
-                  }
-                  setProductSubTab("addrs");
-                  setProductEnv(nextEnv);
-                }}
-              >
-                addrs
-              </button>
-
-              <button
-                className={`tab ${productSubTab === "rules" ? "active" : ""}`}
-                onClick={() => {
-                  const envNames = (productEnvOptions || []).length ? productEnvOptions : [];
-                  const nextEnv = safeTrim(productEnv) || getProductEnvFromPath(window.location.pathname) || (envNames.length ? envNames[0] : "");
-                  const nextPath = nextEnv
-                    ? `/products/${encodeURIComponent(currentProduct)}/rules/${encodeURIComponent(nextEnv)}`
-                    : `/products/${encodeURIComponent(currentProduct)}/rules`;
-                  if (`${window.location.pathname}${window.location.search}` !== nextPath) {
-                    window.history.pushState({}, "", nextPath);
-                  }
-                  setProductSubTab("rules");
-                  setProductEnv(nextEnv);
-                }}
-              >
-                rules
-              </button>
-
-              <button
-                className={`tab ${productSubTab === "port-protocol" ? "active" : ""}`}
-                onClick={() => {
-                  const nextPath = `/products/${encodeURIComponent(currentProduct)}/port-protocol`;
-                  if (`${window.location.pathname}${window.location.search}` !== nextPath) {
-                    window.history.pushState({}, "", nextPath);
-                  }
-                  setProductSubTab("port-protocol");
-                }}
-              >
-                port-protocol
-              </button>
-
-              <button
-                className={`tab ${productSubTab === "business-purpose" ? "active" : ""}`}
-                onClick={() => {
-                  const nextPath = `/products/${encodeURIComponent(currentProduct)}/business-purpose`;
-                  if (`${window.location.pathname}${window.location.search}` !== nextPath) {
-                    window.history.pushState({}, "", nextPath);
-                  }
-                  setProductSubTab("business-purpose");
-                }}
-              >
-                business-purpose
-              </button>
-
-              <button
-                className={`tab ${productSubTab === "keywords" ? "active" : ""}`}
-                onClick={() => {
-                  const nextPath = `/products/${encodeURIComponent(currentProduct)}/keywords`;
-                  if (`${window.location.pathname}${window.location.search}` !== nextPath) {
-                    window.history.pushState({}, "", nextPath);
-                  }
-                  setProductSubTab("keywords");
-                }}
-              >
-                keywords
-              </button>
-
-              <button
-                className={`tab ${productSubTab === "rule-files" ? "active" : ""}`}
-                onClick={() => {
-                  const nextPath = `/products/${encodeURIComponent(currentProduct)}/rule-files`;
-                  if (`${window.location.pathname}${window.location.search}` !== nextPath) {
-                    window.history.pushState({}, "", nextPath);
-                  }
-                  setProductSubTab("rule-files");
-                  setProductEnv("");
-                }}
-              >
-                rule-files
-              </button>
-
-              <button
-                className={`tab ${productSubTab === "ip_inventory" ? "active" : ""}`}
-                onClick={() => {
-                  const envNames = (productEnvOptions || []).length ? productEnvOptions : [];
-                  const nextEnv = safeTrim(productEnv) || getProductEnvFromPath(window.location.pathname) || (envNames.length ? envNames[0] : "");
-                  const nextPath = nextEnv
-                    ? `/products/${encodeURIComponent(currentProduct)}/ip_inventory/${encodeURIComponent(nextEnv)}`
-                    : `/products/${encodeURIComponent(currentProduct)}/ip_inventory`;
-                  if (`${window.location.pathname}${window.location.search}` !== nextPath) {
-                    window.history.pushState({}, "", nextPath);
-                  }
-                  setProductSubTab("ip_inventory");
-                  setProductEnv(nextEnv);
-                }}
-              >
-                ip_inventory
-              </button>
-            </div>
-          </div>
-
-          {productSubTab === "groups" || productSubTab === "addrs" || productSubTab === "rules" || productSubTab === "ip_inventory" ? (
-            <div className="actions" style={{ marginTop: 10, justifyContent: "flex-start" }}>
-              <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
-                {(productEnvOptions || []).map((envName) => (
-                    <button
-                      key={envName}
-                      className={`tab ${safeTrim(productEnv) === envName ? "active" : ""}`}
-                      onClick={() => {
-                        const nextPath = `/products/${encodeURIComponent(currentProduct)}/${encodeURIComponent(productSubTab)}/${encodeURIComponent(envName)}`;
-                        if (`${window.location.pathname}${window.location.search}` !== nextPath) {
-                          window.history.pushState({}, "", nextPath);
-                        }
-                        setProductEnv(envName);
-                      }}
-                    >
-                      {envName}
-                    </button>
-                  ))}
-              </div>
+              />
             </div>
           ) : null}
         </div>
@@ -651,55 +529,24 @@ function App() {
     if (activeTab === "infra") {
       return (
         <>
-          <div className="card" style={{ padding: 12 }}>
-            <div className="actions" style={{ marginTop: 0, justifyContent: "flex-start" }}>
-              <div style={{ display: "flex", gap: 8 }}>
-                <button
-                  className={`tab ${infraSubTab === "env" ? "active" : ""}`}
-                  onClick={() => {
-                    setInfraSubTab("env");
-                    if (window.location.pathname !== "/infra/env") {
-                      window.history.pushState({}, "", "/infra/env");
-                    }
-                  }}
-                >
-                  env
-                </button>
-                <button
-                  className={`tab ${infraSubTab === "networkarea" ? "active" : ""}`}
-                  onClick={() => {
-                    setInfraSubTab("networkarea");
-                    if (window.location.pathname !== "/infra/networkarea") {
-                      window.history.pushState({}, "", "/infra/networkarea");
-                    }
-                  }}
-                >
-                  networkarea
-                </button>
-                <button
-                  className={`tab ${infraSubTab === "site" ? "active" : ""}`}
-                  onClick={() => {
-                    setInfraSubTab("site");
-                    if (window.location.pathname !== "/infra/site") {
-                      window.history.pushState({}, "", "/infra/site");
-                    }
-                  }}
-                >
-                  site
-                </button>
-                <button
-                  className={`tab ${infraSubTab === "predef-port-protocol" ? "active" : ""}`}
-                  onClick={() => {
-                    setInfraSubTab("predef-port-protocol");
-                    if (window.location.pathname !== "/infra/predef-port-protocol") {
-                      window.history.pushState({}, "", "/infra/predef-port-protocol");
-                    }
-                  }}
-                >
-                  predef-port-protocol
-                </button>
-              </div>
-            </div>
+          <div className="contextBar">
+            <SubNav
+              ariaLabel="Infrastructure sections"
+              activeKey={infraSubTab}
+              items={[
+                { key: "env", label: "Environments" },
+                { key: "networkarea", label: "Network Areas" },
+                { key: "site", label: "Sites" },
+                { key: "predef-port-protocol", label: "Predefined Port Protocols" },
+              ]}
+              onSelect={(it) => {
+                setInfraSubTab(it.key);
+                const p = `/infra/${it.key}`;
+                if (window.location.pathname !== p) {
+                  window.history.pushState({}, "", p);
+                }
+              }}
+            />
           </div>
           {infraSubTab === "env" ? <EnvTable setLoading={setLoading} setError={setError} /> : null}
           {infraSubTab === "networkarea" ? <NetworkAreasTable setLoading={setLoading} setError={setError} /> : null}

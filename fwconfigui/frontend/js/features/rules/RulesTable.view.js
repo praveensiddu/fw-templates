@@ -5,13 +5,8 @@ function RulesTableView({ env, rows, filters, setFilters }) {
 
   return (
     <div className="card" style={{ padding: 12 }}>
-      <div className="actions">
-        <div className="muted">
-          rules{isNonEmptyString(env) ? ` / ${env}` : ""} ({Array.isArray(rows) ? rows.length : 0})
-        </div>
-      </div>
-
-      <table>
+      <TableFilterBar filters={filters} setFilters={setFilters} />
+      <table className={tableFilterClass(filters)}>
         <thead>
           <tr>
             <th className="fwTableHeaderCell" style={{ width: 120 }}>

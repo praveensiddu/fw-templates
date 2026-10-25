@@ -3,7 +3,7 @@ function NetworkAreasTable({ setLoading, setError }) {
   const [items, setItems] = React.useState([]);
   const [envNames, setEnvNames] = React.useState([]);
   const [editingKey, setEditingKey] = React.useState("");
-  const [draft, setDraft] = React.useState({ name: "", shortname: "", envs: "" });
+  const [draft, setDraft] = React.useState({ name: "", shortname: "", envs: [] });
   const [originalRef, setOriginalRef] = React.useState({ name: "" });
   const [confirmDelete, setConfirmDelete] = React.useState({ show: false, row: null });
 
@@ -58,12 +58,6 @@ function NetworkAreasTable({ setLoading, setError }) {
     load();
   }, [load]);
 
-  const onAdd = React.useCallback(() => {
-    setDraft({ name: "", shortname: "", envs: "pac, prd" });
-    setOriginalRef({ name: "" });
-    setEditingKey("__new__");
-  }, []);
-
   const onDelete = React.useCallback((row) => {
     setConfirmDelete({ show: true, row });
   }, []);
@@ -74,7 +68,7 @@ function NetworkAreasTable({ setLoading, setError }) {
 
   const onCancelEdit = React.useCallback(() => {
     setEditingKey("");
-    setDraft({ name: "", shortname: "", envs: "" });
+    setDraft({ name: "", shortname: "", envs: [] });
     setOriginalRef({ name: "" });
   }, []);
 
@@ -139,12 +133,10 @@ function NetworkAreasTable({ setLoading, setError }) {
       const nextShortname = safeTrim(draft.shortname)
         .toUpperCase()
         .replace(/[^A-Z0-9_-]/g, "");
-      const nextEnvs = safeTrim(draft.envs)
-        ? safeTrim(draft.envs)
-            .split(",")
-            .map((x) => safeTrim(x).toLowerCase())
-            .filter(Boolean)
-        : [];
+      const allowedEnvs = new Set(envNames.map((x) => x.toLowerCase()));
+      const nextEnvs = (Array.isArray(draft.envs) ? draft.envs : [])
+        .map((x) => safeTrim(x).toLowerCase())
+        .filter((x) => x && allowedEnvs.has(x));
 
       await saveFwConfigItem("networkareas", {
         filename: FIXED_FILENAME,
@@ -166,7 +158,7 @@ function NetworkAreasTable({ setLoading, setError }) {
     } finally {
       setLoading(false);
     }
-  }, [draft, originalRef, setLoading, setError, load, onCancelEdit]);
+  }, [draft, envNames, originalRef, setLoading, setError, load, onCancelEdit]);
 
   const onConfirmDelete = React.useCallback(async () => {
     const row = confirmDelete.row;
@@ -189,7 +181,6 @@ function NetworkAreasTable({ setLoading, setError }) {
         rows={sortedRows}
         filters={filters}
         setFilters={setFilters}
-        onAdd={onAdd}
         onDelete={onDelete}
         editingKey={editingKey}
         draft={draft}

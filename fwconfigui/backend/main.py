@@ -157,9 +157,18 @@ app.include_router(
     prefix="/api/v1",
 )
 
+class RevalidatingStaticFiles(StaticFiles):
+    """Serve static assets with ETag revalidation so UI changes show up on reload."""
+
+    async def get_response(self, path, scope):
+        response = await super().get_response(path, scope)
+        response.headers["Cache-Control"] = "no-cache"
+        return response
+
+
 app.mount(
     "/static",
-    StaticFiles(directory=str(FRONTEND_DIR), html=False),
+    RevalidatingStaticFiles(directory=str(FRONTEND_DIR), html=False),
     name="static",
 )
 
@@ -170,7 +179,7 @@ INDEX_HTML = FRONTEND_DIR / "index.html"
 
 @app.get("/", include_in_schema=False)
 def frontend_index():
-    return FileResponse(INDEX_HTML)
+    return FileResponse(INDEX_HTML, headers={"Cache-Control": "no-cache"})
 
 
 @app.get("/{full_path:path}", include_in_schema=False)
@@ -182,7 +191,7 @@ def frontend_spa_fallback(full_path: str):
         or full_path.startswith("docs")
     ):
         raise HTTPException(status_code=404)
-    return FileResponse(INDEX_HTML)
+    return FileResponse(INDEX_HTML, headers={"Cache-Control": "no-cache"})
 
 
 def _build_log_config() -> dict:

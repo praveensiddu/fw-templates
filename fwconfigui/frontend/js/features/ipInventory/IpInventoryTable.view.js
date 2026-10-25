@@ -2,9 +2,6 @@ function IpInventoryTableView({ env, rows, filters, setFilters, onImport, isImpo
   return (
     <div className="card" style={{ padding: 12 }}>
       <div className="actions">
-        <div className="muted">
-          ip_inventory{isNonEmptyString(env) ? ` / ${env}` : ""} ({Array.isArray(rows) ? rows.length : 0})
-        </div>
         <div style={{ display: "flex", gap: 10, alignItems: "center" }}>
           <button
             className="iconBtn"
@@ -81,7 +78,8 @@ function IpInventoryTableView({ env, rows, filters, setFilters, onImport, isImpo
         </div>
       ) : null}
 
-      <table>
+      <TableFilterBar filters={filters} setFilters={setFilters} />
+      <table className={tableFilterClass(filters)}>
         <thead>
           <tr>
             <th className="fwTableHeaderCell" style={{ width: 520 }}>ip</th>

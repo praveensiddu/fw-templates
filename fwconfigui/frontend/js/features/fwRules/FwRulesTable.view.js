@@ -27,7 +27,6 @@ function FwRulesTableView({
   return (
     <div className="card" style={{ padding: 12 }}>
       <div className="actions">
-        <div className="muted">fw-templates ({Array.isArray(rows) ? rows.length : 0})</div>
         <div style={{ display: "flex", gap: 6, alignItems: "center" }}>
           <button className="iconBtn iconBtn-primary" title="Verify and commit" onClick={onCommit}>
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
@@ -45,7 +44,8 @@ function FwRulesTableView({
         </div>
       </div>
 
-      <table>
+      <TableFilterBar filters={filters} setFilters={setFilters} />
+      <table className={tableFilterClass(filters)}>
         <thead>
           <tr>
             <th className="fwTableHeaderCell" style={{ width: 140 }}>

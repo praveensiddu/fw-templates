@@ -1,4 +1,4 @@
-function MultiSelectPicker({
+function FloatingMultiSelect({
   options,
   values,
   onChange,
@@ -8,6 +8,8 @@ function MultiSelectPicker({
 }) {
   const [query, setQuery] = React.useState("");
   const [open, setOpen] = React.useState(false);
+  const [menuPos, setMenuPos] = React.useState(null);
+  const wrapRef = React.useRef(null);
 
   const normalizedOptions = Array.isArray(options) ? options : [];
   const selected = React.useMemo(() => {
@@ -24,6 +26,37 @@ function MultiSelectPicker({
     }
     return out;
   }, [values]);
+
+  // The menu is position:fixed so scroll containers (e.g. table cards) never clip it;
+  // it flips upward when there is not enough room below.
+  React.useLayoutEffect(() => {
+    if (!open) {
+      setMenuPos(null);
+      return undefined;
+    }
+    const update = () => {
+      const el = wrapRef.current;
+      if (!el) return;
+      const r = el.getBoundingClientRect();
+      const below = window.innerHeight - r.bottom - 12;
+      const above = r.top - 12;
+      const up = below < 200 && above > below;
+      setMenuPos({
+        left: r.left,
+        width: r.width,
+        top: up ? undefined : r.bottom + 4,
+        bottom: up ? window.innerHeight - r.top + 4 : undefined,
+        maxHeight: Math.max(120, Math.min(260, up ? above : below)),
+      });
+    };
+    update();
+    window.addEventListener("scroll", update, true);
+    window.addEventListener("resize", update);
+    return () => {
+      window.removeEventListener("scroll", update, true);
+      window.removeEventListener("resize", update);
+    };
+  }, [open, selected.length]);
 
   const optionRecords = React.useMemo(() => {
     const out = [];
@@ -53,9 +86,11 @@ function MultiSelectPicker({
 
   const filteredOptions = React.useMemo(() => {
     const q = String(query || "").trim().toLowerCase();
-    if (!q) return optionRecords;
-    return optionRecords.filter((x) => String(x?.label || "").toLowerCase().includes(q) || String(x?.value || "").toLowerCase().includes(q));
-  }, [optionRecords, query]);
+    const chosen = new Set(selected.map((x) => String(x).toLowerCase()));
+    const available = optionRecords.filter((x) => !chosen.has(String(x.value).toLowerCase()));
+    if (!q) return available;
+    return available.filter((x) => String(x?.label || "").toLowerCase().includes(q) || String(x?.value || "").toLowerCase().includes(q));
+  }, [optionRecords, query, selected]);
 
   function addValue(name) {
     const v = String(name || "").trim();
@@ -64,7 +99,7 @@ function MultiSelectPicker({
     const nextList = exists ? selected : [...selected, v];
     onChange(nextList);
     setQuery("");
-    setOpen(true);
+    setOpen(false);
   }
 
   function removeValue(name) {
@@ -76,6 +111,7 @@ function MultiSelectPicker({
 
   return (
     <div
+      ref={wrapRef}
       style={{ position: "relative", flex: 1 }}
       onBlur={(e) => {
         if (!e.currentTarget.contains(e.relatedTarget)) setOpen(false);
@@ -166,22 +202,25 @@ function MultiSelectPicker({
       {open ? (
         <div
           style={{
-            position: "absolute",
+            position: "fixed",
             zIndex: 10001,
-            left: 0,
-            right: 0,
-            marginTop: 4,
+            left: menuPos ? menuPos.left : 0,
+            width: menuPos ? menuPos.width : undefined,
+            top: menuPos ? menuPos.top : undefined,
+            bottom: menuPos ? menuPos.bottom : undefined,
+            visibility: menuPos ? "visible" : "hidden",
             background: "#fff",
             border: "1px solid rgba(0,0,0,0.12)",
             borderRadius: 8,
-            maxHeight: 220,
+            boxShadow: "0 8px 24px rgba(0,0,0,0.12)",
+            maxHeight: menuPos ? menuPos.maxHeight : 220,
             overflow: "auto",
           }}
           tabIndex={-1}
         >
           {filteredOptions.length === 0 ? (
             <div className="muted" style={{ padding: 10 }}>
-              No matches
+              {optionRecords.length > 0 && !String(query || "").trim() ? "All options selected" : "No matches"}
             </div>
           ) : (
             filteredOptions.map((c) => (

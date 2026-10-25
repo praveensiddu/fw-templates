@@ -173,9 +173,6 @@ function GroupsTableView({ env, rows, filters, setFilters, onAdd, onCheckUsed, i
       ) : null}
 
       <div className="actions">
-        <div className="muted">
-          groups{isNonEmptyString(env) ? ` / ${env}` : ""} ({Array.isArray(rows) ? rows.length : 0})
-        </div>
         <div style={{ display: "flex", alignItems: "center", gap: 8, marginLeft: "auto" }}>
           <button
             className="iconBtn"
@@ -198,7 +195,8 @@ function GroupsTableView({ env, rows, filters, setFilters, onAdd, onCheckUsed, i
         </div>
       </div>
 
-      <table>
+      <TableFilterBar filters={filters} setFilters={setFilters} />
+      <table className={tableFilterClass(filters)}>
         <thead>
           <tr>
             <th className="fwTableHeaderCell" style={{ width: 260 }}>

@@ -135,9 +135,6 @@ function AddrsTableView({ env, rows, duplicateValues, filters, setFilters, onAdd
       ) : null}
 
       <div className="actions">
-        <div className="muted">
-          addrs{isNonEmptyString(env) ? ` / ${env}` : ""} ({Array.isArray(rows) ? rows.length : 0})
-        </div>
         <div style={{ display: "flex", alignItems: "center", gap: 8, marginLeft: "auto" }}>
           <button
             className="iconBtn"
@@ -173,7 +170,8 @@ function AddrsTableView({ env, rows, duplicateValues, filters, setFilters, onAdd
         </div>
       </div>
 
-      <table>
+      <TableFilterBar filters={filters} setFilters={setFilters} />
+      <table className={tableFilterClass(filters)}>
         <thead>
           <tr>
             <th className="fwTableHeaderCell" style={{ width: 260 }}>

@@ -41,18 +41,18 @@ function HomeView({
   ];
 
   return (
-    <div className="card" style={{ padding: 12 }}>
-      <h3 style={{ marginTop: 0, marginBottom: 6 }}>FW Config UI - workspace and repository setup</h3>
+    <div className="card" style={{ padding: 20 }}>
+      <h3 className="cardHeading">Workspace and repository setup</h3>
       <div className="muted" style={{ marginBottom: 16 }}>
         Self-service tool for managing firewall rule templates per product. Template repos are cloned
         from git into the local workspace, edited here, and rendered configs are pushed to the rendered
         repos.
       </div>
 
-      <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
+      <div className="formStack">
         {fields.map((f) => (
           <div key={f.key}>
-            <div style={{ fontWeight: 650, marginBottom: 6 }}>{f.title}</div>
+            <div className="formLabel">{f.title}</div>
             <input
               className="input"
               value={String(form?.[f.key] || "")}

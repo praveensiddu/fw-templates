@@ -1,38 +1,69 @@
 function AppView({ activeTab, onSetTab, error, loading, children, homeInitialized }) {
+  const items = homeInitialized
+    ? [
+        { key: "home", label: "Home" },
+        { key: "products", label: "Products" },
+        { key: "infra", label: "Infrastructure" },
+        { key: "role-mgmt", label: "Role Management" },
+      ]
+    : [{ key: "home", label: "Home" }];
+
   return (
     <>
-      <div className="topbar">
-        <div className="title">FW Config UI</div>
-        <div style={{ color: "rgba(255,255,255,0.88)", fontSize: 13 }}>{loading ? "Loading..." : ""}</div>
-      </div>
-      <div className="container">
-        <div className="tabs">
-          {homeInitialized ? (
+      <header className="topbar">
+        <div className="brand">
+          <span className="brandMark" aria-hidden="true">FW</span>
+          <span className="title">FW Config</span>
+        </div>
+        <nav className="primaryNav" role="tablist" aria-label="Main sections">
+          {items.map((it) => (
+            <button
+              key={it.key}
+              role="tab"
+              aria-selected={activeTab === it.key}
+              className={`navTab ${activeTab === it.key ? "active" : ""}`}
+              onClick={() => onSetTab(it.key)}
+            >
+              {it.label}
+            </button>
+          ))}
+        </nav>
+        <div className="topbarStatus" role="status" aria-live="polite">
+          {loading ? (
             <>
-              <button className={`tab ${activeTab === "products" ? "active" : ""}`} onClick={() => onSetTab("products")}>
-                products
-              </button>
-              <button className={`tab ${activeTab === "infra" ? "active" : ""}`} onClick={() => onSetTab("infra")}>
-                infra
-              </button>
-              <button className={`tab ${activeTab === "role-mgmt" ? "active" : ""}`} onClick={() => onSetTab("role-mgmt")}>
-                role management
-              </button>
+              <span className="spinner" aria-hidden="true" />
+              Loading…
             </>
           ) : null}
-          <button className={`tab ${activeTab === "home" ? "active" : ""}`} onClick={() => onSetTab("home")}>
-            Home
-          </button>
         </div>
-
+      </header>
+      <main className="container">
         {error ? (
-          <div className="card" style={{ padding: 12, borderColor: "rgba(220,53,69,0.5)", color: "#dc3545" }}>
+          <div className="alert alert-error" role="alert">
             {error}
           </div>
         ) : null}
 
         {children}
-      </div>
+      </main>
     </>
+  );
+}
+
+function SubNav({ items, activeKey, onSelect, ariaLabel, variant }) {
+  return (
+    <div className={`subNav ${variant === "pill" ? "subNav-pill" : ""}`} role="tablist" aria-label={ariaLabel}>
+      {items.map((it) => (
+        <button
+          key={it.key}
+          role="tab"
+          aria-selected={activeKey === it.key}
+          className={`subTab ${activeKey === it.key ? "active" : ""}`}
+          onClick={() => onSelect(it)}
+        >
+          {it.label}
+        </button>
+      ))}
+    </div>
   );
 }

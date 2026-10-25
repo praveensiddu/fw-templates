@@ -35,7 +35,14 @@ function useTableFilter({
     return rows.filter((row) => {
       const fields = fieldMapping(row);
 
+      const search = safeTrim(filters.__search).toLowerCase();
+      if (search) {
+        const hit = Object.values(fields).some((v) => formatTableValue(v).toLowerCase().includes(search));
+        if (!hit) return false;
+      }
+
       return Object.keys(filters).every((filterKey) => {
+        if (filterKey.startsWith("__")) return true;
         const filterValue = safeTrim(filters[filterKey]);
         if (!filterValue) return true;
 

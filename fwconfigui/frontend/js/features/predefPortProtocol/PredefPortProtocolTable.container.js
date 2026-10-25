@@ -45,11 +45,6 @@ function PredefPortProtocolTable({ setLoading, setError }) {
     load();
   }, [load]);
 
-  const onAdd = React.useCallback(() => {
-    setDraft({ name: "", aliases: "", description: "", original_name: "" });
-    setEditingKey("__new__");
-  }, []);
-
   const onEdit = React.useCallback((row) => {
     setDraft({
       name: safeTrim(row?.name),
@@ -179,7 +174,6 @@ function PredefPortProtocolTable({ setLoading, setError }) {
         rows={sortedRows}
         filters={filters}
         setFilters={setFilters}
-        onAdd={onAdd}
         onEdit={onEdit}
         onCopy={onCopy}
         onDelete={onDelete}

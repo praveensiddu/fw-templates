@@ -8,7 +8,6 @@ function RoleMgmtView({
   return (
     <div className="card" style={{ padding: 12 }}>
       <div className="actions">
-        <div className="muted">role management ({Array.isArray(rows) ? rows.length : 0})</div>
         <div style={{ display: "flex", gap: 8 }}>
           <button className="btn" onClick={onRefresh} disabled={!!busy}>
             Refresh
