@@ -58,10 +58,12 @@ def get_samples(request: Request, service: HomeService = Depends(get_service)) -
 def apply_samples(request: Request, service: HomeService = Depends(get_service)) -> Dict[str, Any]:
     """Apply pre-prepared sample Home settings.
 
-    Persists fwconfigfiles=demofwconfig in ~/.fwconfig/fwconfig.yaml and clones
-    the sample repositories into the workspace.
+    Persists fwconfigfiles=demofwconfig in ~/.fwconfig/fwconfig.yaml, clones
+    the sample repositories into the workspace, and clones each product's
+    rendered repo branches per env.
 
     Returns:
-        Sample settings under 'settings' and per-repo clone results under 'clones'
+        Sample settings under 'settings', per-repo clone results under
+        'clones', and per-branch results under 'rendered_clones'
     """
     return service.apply_samples()

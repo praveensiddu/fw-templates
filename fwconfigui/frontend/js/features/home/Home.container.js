@@ -15,6 +15,7 @@ function Home({ setLoading, setError, onSaved }) {
   });
   const [busy, setBusy] = React.useState(false);
   const [savedMsg, setSavedMsg] = React.useState("");
+  const [samplesPopup, setSamplesPopup] = React.useState({ show: false, message: "" });
 
   const applySettings = React.useCallback((s) => {
     const src = s && typeof s === "object" ? s : {};
@@ -56,13 +57,21 @@ function Home({ setLoading, setError, onSaved }) {
       setError("");
       const resp = await applyHomeSamples();
       applySettings(resp?.settings);
-      const failed = (Array.isArray(resp?.clones) ? resp.clones : []).filter(
-        (c) => c && c.status === "error"
-      );
+      const allClones = [
+        ...(Array.isArray(resp?.clones) ? resp.clones : []),
+        ...(Array.isArray(resp?.rendered_clones) ? resp.rendered_clones : []),
+      ];
+      const failed = allClones.filter((c) => c && (c.status === "error" || c.status === "skipped"));
       if (failed.length) {
-        setError("Sample repository clone failed for: " + failed.map((c) => c.repo).join(", "));
+        setError(
+          "Sample repository clone failed for: " +
+            failed.map((c) => (c?.branch ? `${c.repo} (${c.branch})` : c?.repo || c?.path || "unknown")).join(", ")
+        );
       } else {
-        setSavedMsg("Sample repositories ready under cloned-repositories.");
+        setSamplesPopup({
+          show: true,
+          message: "Pre-prepared samples applied successfully - repositories cloned under cloned-repositories.",
+        });
       }
     } catch (e) {
       setError(formatError(e));
@@ -99,14 +108,24 @@ function Home({ setLoading, setError, onSaved }) {
   );
 
   return (
-    <HomeView
-      form={form}
-      busy={busy}
-      savedMsg={savedMsg}
-      canSave={canSave}
-      onChange={onChange}
-      onUseSamples={onUseSamples}
-      onSave={onSave}
-    />
+    <>
+      <HomeView
+        form={form}
+        busy={busy}
+        savedMsg={savedMsg}
+        canSave={canSave}
+        onChange={onChange}
+        onUseSamples={onUseSamples}
+        onSave={onSave}
+      />
+      <ConfirmationModal
+        show={samplesPopup.show}
+        title="Pre-prepared samples"
+        message={samplesPopup.message}
+        onClose={() => setSamplesPopup({ show: false, message: "" })}
+        onConfirm={() => setSamplesPopup({ show: false, message: "" })}
+        confirmText="OK"
+      />
+    </>
   );
 }

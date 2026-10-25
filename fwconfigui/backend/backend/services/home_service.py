@@ -8,7 +8,7 @@ from typing import Any, Dict, List
 
 from backend.exceptions.custom import ValidationError
 from backend.utils.logging_utils import log_all_methods
-from backend.utils.workspace import ensure_fwconfigfiles_root
+from backend.utils.workspace import ensure_fwconfigfiles_root, get_settings_yaml_path
 from backend.utils.yaml_utils import read_yaml_dict, write_yaml_dict
 
 logger = logging.getLogger("uvicorn.error")
@@ -196,13 +196,24 @@ class HomeService:
         if not isinstance(raw, dict):
             raw = {}
         raw["fwconfigfiles"] = dirname
+        # Point infra_repo at the cloned sample repo (relative names resolve
+        # under <WORKSPACE>/<fwconfigfiles>/cloned-repositories/).
+        raw["infra_repo"] = "infrarepo"
         write_yaml_dict(yaml_path, raw)
         os.environ["FWCONFIGFILES"] = dirname
-        logger.info("Applied sample fwconfigfiles=%s to %s", dirname, yaml_path)
+        os.environ["INFRA_REPO"] = "infrarepo"
+        logger.info("Applied sample fwconfigfiles=%s infra_repo=infrarepo to %s", dirname, yaml_path)
 
         ensure_fwconfigfiles_root()
         clones = self.clone_repositories()
-        return {"settings": samples, "clones": clones}
+        rendered_clones: List[Dict[str, Any]] = []
+        if all(str(c.get("status") or "") in ("cloned", "exists") for c in clones):
+            rendered_clones = self.clone_rendered_repo_branches()
+        else:
+            rendered_clones = [
+                {"status": "skipped", "error": "sample repository clone failed; rendered repo branches not cloned"}
+            ]
+        return {"settings": samples, "clones": clones, "rendered_clones": rendered_clones}
 
     def clone_repositories(self) -> List[Dict[str, Any]]:
         """Clone the sample repositories into the workspace.
@@ -238,4 +249,58 @@ class HomeService:
                     entry["error"] = str(e)
                     logger.warning("Sample clone failed %s -> %s: %s", url, dest, e)
             results.append(entry)
+        return results
+
+    def clone_rendered_repo_branches(self) -> List[Dict[str, Any]]:
+        """Clone per-env branches of each product's rendered repo.
+
+        For every product in products.yaml and every env it uses, clones
+        https://github.com/fwconfigdata/<product>_rendered (branch <env>) into
+        <WORKSPACE>/<fwconfigfiles>/cloned-repositories/rendered/<product>_rendered/<env>
+
+        Returns:
+            Per-branch results: status 'cloned', 'exists', or 'error'
+        """
+        try:
+            raw = read_yaml_dict(get_settings_yaml_path("products.yaml"))
+        except Exception as e:
+            logger.warning("Cannot read products.yaml for rendered repo branches: %s", e)
+            return [{"status": "error", "error": f"cannot read products.yaml: {e}"}]
+        if not isinstance(raw, dict):
+            return []
+
+        target_root = ensure_fwconfigfiles_root() / "cloned-repositories" / "rendered"
+
+        results: List[Dict[str, Any]] = []
+        for product_name in sorted(raw.keys(), key=str):
+            data = raw.get(product_name)
+            data = data if isinstance(data, dict) else {}
+            prod = str(product_name or "").strip().lower()
+            if not prod:
+                continue
+            url = f"https://github.com/fwconfigdata/{prod}_rendered"
+            envs = data.get("envs") if isinstance(data.get("envs"), list) else []
+            for e in envs:
+                env = str(e or "").strip().lower()
+                if not env:
+                    continue
+                dest = target_root / f"{prod}_rendered" / env
+                entry: Dict[str, Any] = {"repo": url, "branch": env, "path": str(dest)}
+                if (dest / ".git").exists():
+                    entry["status"] = "exists"
+                else:
+                    try:
+                        subprocess.run(
+                            ["git", "clone", "--branch", env, "--single-branch", url, str(dest)],
+                            check=True,
+                            capture_output=True,
+                            text=True,
+                            timeout=300,
+                        )
+                        entry["status"] = "cloned"
+                    except Exception as exc:
+                        entry["status"] = "error"
+                        entry["error"] = str(exc)
+                        logger.warning("Rendered repo branch clone failed %s@%s -> %s: %s", url, env, dest, exc)
+                results.append(entry)
         return results
