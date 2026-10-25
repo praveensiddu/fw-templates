@@ -1,0 +1,7 @@
+DEMO_FLOW_1:
+  srcaddr:
+    - DEMO_ADDR_1
+  dstaddr:
+    - DEMO_PAYMENTS_SRV
+  service:
+    - HTTPS

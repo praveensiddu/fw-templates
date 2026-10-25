@@ -6,6 +6,7 @@ import re
 import yaml
 from fastapi import APIRouter, Body, Depends, Request
 
+from backend.auth.rbac import enforce_request, get_current_user_context
 from backend.exceptions.custom import NotFoundError, ValidationError
 from backend.models import (
     ListItemsResponse,
@@ -26,13 +27,25 @@ def get_service(product: str) -> FwConfigService:
 
 
 @router.get("/files", response_model=ListYamlFilesResponse)
-def list_yaml_files(request: Request, product: str, service: FwConfigService = Depends(get_service)):
+def list_yaml_files(
+    request: Request,
+    product: str,
+    service: FwConfigService = Depends(get_service),
+    user_context: Dict[str, Any] = Depends(get_current_user_context),
+):
+    enforce_request(user_context, f"/products/{product}/rule-templates", "GET", {"id": product})
     files = [{"filename": f} for f in service.list_files("fw-rules")]
     return {"type": "fw-rules", "files": files}
 
 
 @router.get("", response_model=ListItemsResponse)
-def list_items(request: Request, product: str, service: FwConfigService = Depends(get_service)):
+def list_items(
+    request: Request,
+    product: str,
+    service: FwConfigService = Depends(get_service),
+    user_context: Dict[str, Any] = Depends(get_current_user_context),
+):
+    enforce_request(user_context, f"/products/{product}/rule-templates", "GET", {"id": product})
     items = service.list_items("fw-rules")
     return {"type": "fw-rules", "items": items}
 
@@ -44,7 +57,9 @@ def save_item(
     filename: Optional[str] = None,
     payload: SaveFwRuleRequest = Body(...),
     service: FwConfigService = Depends(get_service),
+    user_context: Dict[str, Any] = Depends(get_current_user_context),
 ) -> Dict[str, Any]:
+    enforce_request(user_context, f"/products/{product}/rule-templates", "POST", {"id": product})
     file_name = str(filename or payload.filename or "").strip()
     if not file_name:
         raise ValidationError("filename", "is required")
@@ -70,6 +85,7 @@ def update_item(
     filename: Optional[str] = None,
     payload: SaveFwRuleRequest = Body(...),
     service: FwConfigService = Depends(get_service),
+    user_context: Dict[str, Any] = Depends(get_current_user_context),
 ) -> Dict[str, Any]:
     """Update an existing fw-rule.
 
@@ -77,6 +93,7 @@ def update_item(
     It also supports rename and moving between files by deleting the original
     record (as identified by original_name) after saving the new payload.
     """
+    enforce_request(user_context, f"/products/{product}/rule-templates", "PUT", {"id": product})
 
     file_name = str(filename or payload.filename or "").strip()
     if not file_name:
@@ -123,7 +140,9 @@ def delete_item(
     name: str,
     filename: Optional[str] = None,
     service: FwConfigService = Depends(get_service),
+    user_context: Dict[str, Any] = Depends(get_current_user_context),
 ) -> Dict[str, Any]:
+    enforce_request(user_context, f"/products/{product}/rule-templates", "DELETE", {"id": product})
     key = str(name or "").strip().upper()
     key = re.sub(r"[^A-Z0-9_-]", "", key)
     if not key:
@@ -146,7 +165,9 @@ def get_rule_yaml(
     product: str,
     filename: str,
     appflowid: Optional[str] = None,
+    user_context: Dict[str, Any] = Depends(get_current_user_context),
 ) -> Dict[str, Any]:
+    enforce_request(user_context, f"/products/{product}/rule-templates", "GET", {"id": product})
     file_name = str(filename or "").strip()
     if not file_name:
         raise ValidationError("filename", "is required")
@@ -180,7 +201,9 @@ def put_rule_yaml(
     appflowid: Optional[str] = None,
     yaml_text: str = Body(..., embed=True),
     service: FwConfigService = Depends(get_service),
+    user_context: Dict[str, Any] = Depends(get_current_user_context),
 ) -> Dict[str, Any]:
+    enforce_request(user_context, f"/products/{product}/rule-templates", "PUT", {"id": product})
     file_name = str(filename or "").strip()
     if not file_name:
         raise ValidationError("filename", "is required")
@@ -232,7 +255,9 @@ def put_rule_fields(
     product: str,
     payload: UpdateFwRuleFieldsRequest,
     service: FwConfigService = Depends(get_service),
+    user_context: Dict[str, Any] = Depends(get_current_user_context),
 ) -> Dict[str, Any]:
+    enforce_request(user_context, f"/products/{product}/rule-templates", "PUT", {"id": product})
     filename, _ = service.update_fw_rule_fields(
         appflowid=payload.appflowid,
         protocol_port_reference=payload.protocol_port_reference,
@@ -249,7 +274,9 @@ def put_move_rule(
     product: str,
     payload: MoveFwRuleRequest,
     service: FwConfigService = Depends(get_service),
+    user_context: Dict[str, Any] = Depends(get_current_user_context),
 ) -> Dict[str, Any]:
+    enforce_request(user_context, f"/products/{product}/rule-templates", "PUT", {"id": product})
     service.move_fw_rule(appflowid=payload.appflowid, from_filename=payload.from_filename, to_filename=payload.to_filename)
     return {"ok": True}
 
@@ -259,7 +286,9 @@ def commit_validate_rules(
     request: Request,
     product: str,
     service: FwConfigService = Depends(get_service),
+    user_context: Dict[str, Any] = Depends(get_current_user_context),
 ) -> Dict[str, Any]:
+    enforce_request(user_context, f"/products/{product}/rule-templates", "POST", {"id": product})
     errors = service.validate_fw_rules_commit()
     return {"ok": len(errors) == 0, "errors": errors}
 
@@ -270,7 +299,9 @@ def verify_and_commit_rules(
     product: str,
     payload: VerifyAndCommitRequest,
     service: FwConfigService = Depends(get_service),
+    user_context: Dict[str, Any] = Depends(get_current_user_context),
 ) -> Dict[str, Any]:
+    enforce_request(user_context, f"/products/{product}/rule-templates", "POST", {"id": product})
     mode = str(payload.mode or "").strip().lower()
     if mode not in {"verify-only", "verify and commit", "verify-and-commit"}:
         raise ValidationError("mode", "must be one of: verify-only, verify-and-commit")

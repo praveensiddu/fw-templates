@@ -157,6 +157,9 @@ ENV/
 env.bak/
 venv.bak/
 
+# ABAC demo runtime temp files (access requests, etc.)
+fwconfigui/test/abac-demo/workspace/fwconfigfiles/temp/
+
 # Spyder project settings
 .spyderproject
 .spyproject
