@@ -31,10 +31,27 @@ function FwRuleDetailsView({
       .replace(/[^A-Z0-9_-]/g, "");
   }
 
+  function matchesGroupPattern(value, pattern) {
+    const v = safeTrim(value).toLowerCase();
+    const pat = safeTrim(pattern).toLowerCase();
+    if (!v) return false;
+    if (!pat) return true;
+    if (pat.includes("*")) {
+      const re = new RegExp("^" + pat.split("*").map((x) => x.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")).join(".*") + "$");
+      return re.test(v);
+    }
+    return v.includes(pat);
+  }
+
+  const [sourceGroupFilter, setSourceGroupFilter] = React.useState("");
+  const [destinationGroupFilter, setDestinationGroupFilter] = React.useState("");
+
   const sourceItems = Array.isArray(form?.sourceItems) ? form.sourceItems : [];
   const destinationItems = Array.isArray(form?.destinationItems) ? form.destinationItems : [];
 
   const groupChoices = Array.isArray(groupOptions) ? groupOptions : [];
+  const sourceGroupChoices = groupChoices.filter((o) => matchesGroupPattern(o, sourceGroupFilter));
+  const destinationGroupChoices = groupChoices.filter((o) => matchesGroupPattern(o, destinationGroupFilter));
 
   return (
     <div>
@@ -157,6 +174,15 @@ function FwRuleDetailsView({
 
             {isEditingSource ? (
               <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
+                <div className="field">
+                  <div className="muted">show groups with this pattern</div>
+                  <input
+                    className="filterInput"
+                    value={sourceGroupFilter}
+                    onChange={(e) => setSourceGroupFilter(e.target.value)}
+                    placeholder="e.g. web or web-*"
+                  />
+                </div>
                 {sourceItems.map((it, idx) => (
                   <div
                     key={idx}
@@ -170,7 +196,7 @@ function FwRuleDetailsView({
                     <div className="field">
                       <div className="muted">Group</div>
                       <SingleSelectPicker
-                        options={groupChoices}
+                        options={sourceGroupChoices}
                         value={safeTrim(it?.group)}
                         onChange={(v) => {
                           setForm((p) => {
@@ -273,6 +299,15 @@ function FwRuleDetailsView({
 
             {isEditingDestination ? (
               <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
+                <div className="field">
+                  <div className="muted">show groups with this pattern</div>
+                  <input
+                    className="filterInput"
+                    value={destinationGroupFilter}
+                    onChange={(e) => setDestinationGroupFilter(e.target.value)}
+                    placeholder="e.g. web or web-*"
+                  />
+                </div>
                 {destinationItems.map((it, idx) => (
                   <div
                     key={idx}
@@ -286,7 +321,7 @@ function FwRuleDetailsView({
                     <div className="field">
                       <div className="muted">Group</div>
                       <SingleSelectPicker
-                        options={groupChoices}
+                        options={destinationGroupChoices}
                         value={safeTrim(it?.group)}
                         onChange={(v) => {
                           setForm((p) => {
