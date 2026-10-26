@@ -196,7 +196,12 @@ function FwRuleDetailsView({
                     <div className="field">
                       <div className="muted">Group</div>
                       <SingleSelectPicker
-                        options={sourceGroupChoices}
+                        options={sourceGroupChoices.filter(
+                          (o) =>
+                            !sourceItems.some(
+                              (x, xi) => xi !== idx && safeTrim(x?.group).toLowerCase() === safeTrim(o).toLowerCase()
+                            )
+                        )}
                         value={safeTrim(it?.group)}
                         onChange={(v) => {
                           setForm((p) => {
@@ -321,7 +326,12 @@ function FwRuleDetailsView({
                     <div className="field">
                       <div className="muted">Group</div>
                       <SingleSelectPicker
-                        options={destinationGroupChoices}
+                        options={destinationGroupChoices.filter(
+                          (o) =>
+                            !destinationItems.some(
+                              (x, xi) => xi !== idx && safeTrim(x?.group).toLowerCase() === safeTrim(o).toLowerCase()
+                            )
+                        )}
                         value={safeTrim(it?.group)}
                         onChange={(v) => {
                           setForm((p) => {

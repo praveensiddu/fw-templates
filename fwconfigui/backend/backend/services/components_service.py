@@ -1,3 +1,4 @@
+import logging
 import re
 from pathlib import Path
 from typing import Any, Dict, List, Optional
@@ -10,6 +11,8 @@ from backend.utils.yaml_utils import list_yaml_files, read_yaml_dict, write_yaml
 
 _COMPONENTS_FILENAME = "components.yaml"
 _ALLOWED_SITE_ENVS = {"prd", "qa", "rtb", "ent", "dev"}
+
+logger = logging.getLogger("uvicorn.error")
 
 
 @log_all_methods()
@@ -216,3 +219,53 @@ class ComponentsService:
 
         raw.pop(key, None)
         write_yaml_dict(path, raw, sort_keys=True)
+
+
+def allowed_group_names(product: str) -> List[str]:
+    """Group names a product may reference (SITE-COMP-<ES> convention).
+
+    A component contributes its names when it belongs to the product itself,
+    or when its 'exposedto' list contains 'ALL' or the product name.
+
+    Args:
+        product: Product name (case-insensitive)
+
+    Returns:
+        Sorted, de-duplicated list of allowed group names
+    """
+    current = str(product or "").strip().upper()
+
+    raw = read_yaml_dict(get_settings_yaml_path("products.yaml"))
+    if not isinstance(raw, dict):
+        raw = {}
+
+    names: set[str] = set()
+    for prod_key in raw.keys():
+        owner = str(prod_key or "").strip()
+        if not owner:
+            continue
+        try:
+            items = ComponentsService(owner).list_items()
+        except Exception as e:
+            logger.warning("allowed_group_names: cannot read components for '%s': %s", owner, e)
+            continue
+        for it in items:
+            comp = str(it.get("name") or "").strip() if isinstance(it, dict) else ""
+            if not comp:
+                continue
+            data = it.get("data") if isinstance(it.get("data"), dict) else {}
+            exp = {
+                str(x or "").strip().upper()
+                for x in (data.get("exposedto") if isinstance(data.get("exposedto"), list) else [])
+                if str(x or "").strip()
+            }
+            if owner.upper() != current and "ALL" not in exp and current not in exp:
+                continue
+            sites = data.get("sites") if isinstance(data.get("sites"), dict) else {}
+            for lst in sites.values():
+                for s in (lst if isinstance(lst, list) else []):
+                    site = str(s or "").strip()
+                    if site:
+                        names.add(f"{site}-{comp}-<ES>")
+
+    return sorted(names, key=str.lower)

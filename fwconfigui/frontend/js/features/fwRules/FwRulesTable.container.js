@@ -241,30 +241,7 @@ function FwRulesTable({ setLoading, setError }) {
     envs: [],
   });
 
-  const groupOptions = React.useMemo(() => {
-    const seen = new Set();
-    const out = [];
-
-    for (const it of Array.isArray(componentItems) ? componentItems : []) {
-      const comp = safeTrim(it?.name);
-      const sites = it?.data?.sites && typeof it.data.sites === "object" ? it.data.sites : {};
-      if (!comp) continue;
-
-      for (const envKey of Object.keys(sites || {})) {
-        const lst = Array.isArray(sites?.[envKey]) ? sites[envKey] : [];
-        for (const s of lst) {
-          const site = safeTrim(s);
-          if (!site) continue;
-          const val = `${site}-${comp}-<ES>`;
-          if (seen.has(val)) continue;
-          seen.add(val);
-          out.push(val);
-        }
-      }
-    }
-
-    return out.sort((a, b) => String(a).localeCompare(String(b)));
-  }, [componentItems]);
+  const [groupOptions, setGroupOptions] = React.useState([]);
   const [activePage, setActivePage] = React.useState("list");
   const [detailsMode, setDetailsMode] = React.useState("add");
   const [isEditingSource, setIsEditingSource] = React.useState(false);
@@ -418,7 +395,7 @@ function FwRulesTable({ setLoading, setError }) {
       setLoading(true);
       setError("");
 
-      const [fwResp, ppResp, predefPpResp, bpResp, productsResp, kwResp, rfResp, compResp] = await Promise.all([
+      const [fwResp, ppResp, predefPpResp, bpResp, productsResp, kwResp, rfResp, compResp, groupOpts] = await Promise.all([
         listFwConfigItems("fw-rules"),
         listFwConfigItems("port-protocol"),
         listFwConfigItems("predef-port-protocol"),
@@ -427,6 +404,7 @@ function FwRulesTable({ setLoading, setError }) {
         listFwConfigItems("keywords"),
         listFwConfigItems("rule-files"),
         listFwConfigItems("components"),
+        listGroupNameOptions(),
       ]);
 
       setItems(fwResp?.items || []);
@@ -510,6 +488,7 @@ function FwRulesTable({ setLoading, setError }) {
       setRuleFileNames(ruleFiles);
 
       setComponentItems(compResp?.items || []);
+      setGroupOptions(Array.isArray(groupOpts) ? groupOpts : []);
     } catch (e) {
       setError(formatError(e));
     } finally {

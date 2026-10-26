@@ -127,9 +127,11 @@ async function saveFwConfigItem(type, payload) {
     delete nextData.name;
   }
 
+  const filename = safeTrim(payload?.filename);
   const body = {
     name,
     original_name: originalName || undefined,
+    ...(filename ? { filename } : {}),
     ...(Object.keys(nextData).length ? { data: nextData } : {}),
   };
 
@@ -161,6 +163,18 @@ async function listGroups(env) {
   if (!isNonEmptyString(product)) throw new Error("Select a product first");
   const e = requireEnv(env);
   return await fetchJson(`/api/v1/products/${encodeURIComponent(product)}/groups/${encodeURIComponent(e)}`);
+}
+
+/**
+ * Group names the current product may reference in rule templates
+ * (own components plus components of other products exposed via 'ALL').
+ * @returns {Promise<Array>} - Array of group name strings
+ */
+async function listGroupNameOptions() {
+  const product = getCurrentProduct();
+  if (!isNonEmptyString(product)) throw new Error("Select a product first");
+  const resp = await fetchJson(`/api/v1/products/${encodeURIComponent(product)}/components/group-name-options`);
+  return Array.isArray(resp?.options) ? resp.options : [];
 }
 
 async function saveGroup(env, payload) {

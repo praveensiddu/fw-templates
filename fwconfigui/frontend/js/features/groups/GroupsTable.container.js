@@ -2,6 +2,7 @@ function GroupsTable({ env, setLoading, setError }) {
   const [items, setItems] = React.useState([]);
   const [memberOptions, setMemberOptions] = React.useState([]);
   const [componentItems, setComponentItems] = React.useState([]);
+  const [groupNameCandidates, setGroupNameCandidates] = React.useState([]);
   const [editingKey, setEditingKey] = React.useState("");
   const [usedInGrpModal, setUsedInGrpModal] = React.useState({ isOpen: false, name: "", items: [], loading: false, error: "" });
   const [usedInRuleModal, setUsedInRuleModal] = React.useState({ isOpen: false, name: "", items: [], loading: false, error: "" });
@@ -19,13 +20,15 @@ function GroupsTable({ env, setLoading, setError }) {
     try {
       setLoading(true);
       setError("");
-      const [groupsResp, addrsResp, compResp] = await Promise.all([
+      const [groupsResp, addrsResp, compResp, groupOpts] = await Promise.all([
         listGroups(env),
         listAddrs(env),
         listFwConfigItems("components"),
+        listGroupNameOptions(),
       ]);
       setItems(groupsResp?.items || []);
       setComponentItems(compResp?.items || []);
+      setGroupNameCandidates(Array.isArray(groupOpts) ? groupOpts : []);
       setHasAddrs((addrsResp?.items || []).length > 0);
 
       const opts = (addrsResp?.items || [])
@@ -39,32 +42,6 @@ function GroupsTable({ env, setLoading, setError }) {
       setLoading(false);
     }
   }, [env, setLoading, setError]);
-
-  const groupNameCandidates = React.useMemo(() => {
-    const seen = new Set();
-    const out = [];
-
-    for (const it of Array.isArray(componentItems) ? componentItems : []) {
-      const comp = safeTrim(it?.name);
-      const sites = it?.data?.sites && typeof it.data.sites === "object" ? it.data.sites : {};
-      if (!comp) continue;
-
-      for (const envKey of Object.keys(sites || {})) {
-        const lst = Array.isArray(sites?.[envKey]) ? sites[envKey] : [];
-        for (const s of lst) {
-          const site = safeTrim(s);
-          if (!site) continue;
-          const val = `${site}-${comp}-<ES>`;
-          const lc = val.toLowerCase();
-          if (seen.has(lc)) continue;
-          seen.add(lc);
-          out.push(val);
-        }
-      }
-    }
-
-    return out.sort((a, b) => String(a).localeCompare(String(b)));
-  }, [componentItems]);
 
   const groupNameOptions = React.useMemo(() => {
     const existing = new Set((items || []).map((it) => safeTrim(it?.name).toLowerCase()).filter(Boolean));

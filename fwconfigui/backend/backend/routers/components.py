@@ -5,7 +5,7 @@ from typing import Any, Dict
 from fastapi import APIRouter, Depends, Request
 
 from backend.models import SaveItemRequest
-from backend.services.components_service import ComponentsService
+from backend.services.components_service import ComponentsService, allowed_group_names
 
 router = APIRouter(prefix="/api/v1/products/{product}/components", tags=["components"])
 
@@ -18,6 +18,16 @@ def get_service(product: str) -> ComponentsService:
 def list_items(request: Request, product: str, service: ComponentsService = Depends(get_service)):
     items = service.list_items()
     return {"type": "components", "items": items}
+
+
+@router.get("/group-name-options")
+def group_name_options(request: Request, product: str) -> Dict[str, Any]:
+    """Group names the product may reference (SITE-COMP-<ES>).
+
+    Includes names derived from this product's components plus components of
+    other products exposed to 'ALL' or to this product.
+    """
+    return {"options": allowed_group_names(product)}
 
 
 @router.post("")

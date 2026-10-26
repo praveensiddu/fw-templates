@@ -7,6 +7,7 @@ from typing import Any, Dict, List, Optional, Set, Tuple
 from backend.exceptions.custom import AlreadyExistsError, ResourceInUseError, ValidationError
 from backend.repositories.fwconfig_repository import FwConfigRepository
 from backend.services.business_purpose_service import BusinessPurposeService
+from backend.services.components_service import allowed_group_names
 from backend.services.env_service import EnvService
 from backend.services.keywords_service import KeywordsService
 from backend.services.port_protocol_service import PortProtocolService
@@ -314,6 +315,18 @@ class FwConfigService:
                 n = str(e or "").strip().lower()
                 if n and n not in env_names:
                     raise ValidationError("envs", f"unknown env '{e}' valid envs: {env_names}")
+
+        grp_names = {x.lower() for x in allowed_group_names(self._product)}
+        for field in ("source-list", "destination-list"):
+            lst = next_payload.get(field)
+            if not isinstance(lst, list):
+                continue
+            for ep in lst:
+                if not isinstance(ep, dict):
+                    continue
+                g = str(ep.get("group") or "").strip()
+                if g and g.lower() not in grp_names:
+                    raise ValidationError(field, f"unknown group '{g}'")
 
     def validate_fw_rules_commit(self, envs: Optional[List[str]] = None) -> List[str]:
         """Validate fw-rules across all files.
