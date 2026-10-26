@@ -262,7 +262,7 @@ function FwRulesTable({ setLoading, setError }) {
   const [showNoComponentsPopup, setShowNoComponentsPopup] = React.useState(false);
   const [yamlEditor, setYamlEditor] = React.useState({ show: false, row: null, appflowid: "", yaml: "" });
   const [commitResult, setCommitResult] = React.useState({ show: false, ok: false, errors: [] });
-  const [verifyCommitPanel, setVerifyCommitPanel] = React.useState({ show: false, mode: "verify-only", env: "All" });
+  const [verifyCommitPanel, setVerifyCommitPanel] = React.useState({ show: false, mode: "verify-only", env: "" });
   const [ppServiceEditor, setPpServiceEditor] = React.useState({ show: false, name: "", port: "", originalservice: "", newservice: "" });
   const [bpTextEditor, setBpTextEditor] = React.useState({ show: false, name: "", originalText: "", newText: "" });
   const [originalAppflowid, setOriginalAppflowid] = React.useState("");
@@ -845,8 +845,8 @@ function FwRulesTable({ setLoading, setError }) {
       try {
         setLoading(true);
         setError("");
-        const selectedEnv = safeTrim(env) || "All";
-        const envs = selectedEnv.toLowerCase() === "all" ? ["All"] : [selectedEnv];
+        const selectedEnv = safeTrim(env);
+        const envs = selectedEnv ? [selectedEnv] : [];
         const res = await postJson(`${fwconfigTypeBasePath("fw-rules")}/verify_and_commit`, { mode, envs });
         const ok = !!res?.ok;
         const errors = Array.isArray(res?.errors) ? res.errors : [];
@@ -865,7 +865,7 @@ function FwRulesTable({ setLoading, setError }) {
   );
 
   const onCommit = React.useCallback(() => {
-    setVerifyCommitPanel({ show: true, mode: "verify-only", env: "All" });
+    setVerifyCommitPanel({ show: true, mode: "verify-only", env: "" });
   }, []);
 
   const onMoveFile = React.useCallback(
@@ -1379,13 +1379,13 @@ function FwRulesTable({ setLoading, setError }) {
         <div
           className="modalOverlay"
           onClick={(e) =>
-            e.target === e.currentTarget && setVerifyCommitPanel({ show: false, mode: "verify-only", env: "All" })
+            e.target === e.currentTarget && setVerifyCommitPanel({ show: false, mode: "verify-only", env: "" })
           }
         >
           <div className="modalCard">
             <div className="modalHeader">
               <h3 style={{ margin: 0 }}>Verify and commit</h3>
-              <button className="btn" onClick={() => setVerifyCommitPanel({ show: false, mode: "verify-only", env: "All" })}>
+              <button className="btn" onClick={() => setVerifyCommitPanel({ show: false, mode: "verify-only", env: "" })}>
                 Close
               </button>
             </div>
@@ -1413,10 +1413,12 @@ function FwRulesTable({ setLoading, setError }) {
               <label style={{ display: "flex", gap: 8, alignItems: "center" }}>
                 <span style={{ minWidth: 48 }}>Envs</span>
                 <select
-                  value={safeTrim(verifyCommitPanel.env) || "All"}
+                  value={safeTrim(verifyCommitPanel.env)}
                   onChange={(e) => setVerifyCommitPanel((p) => ({ ...p, env: e.target.value }))}
                 >
-                  <option value="All">All</option>
+                  <option value="" disabled>
+                    Select environment
+                  </option>
                   {(Array.isArray(envNames) ? envNames : []).map((e) => {
                     const v = safeTrim(e);
                     if (!v) return null;
@@ -1431,15 +1433,17 @@ function FwRulesTable({ setLoading, setError }) {
             </div>
 
             <div className="modalActions">
-              <button className="btn" onClick={() => setVerifyCommitPanel({ show: false, mode: "verify-only", env: "All" })}>
+              <button className="btn" onClick={() => setVerifyCommitPanel({ show: false, mode: "verify-only", env: "" })}>
                 Cancel
               </button>
               <button
                 className="btn btn-primary"
+                disabled={!safeTrim(verifyCommitPanel.env)}
                 onClick={async () => {
                   const mode = safeTrim(verifyCommitPanel.mode) || "verify-only";
-                  const env = safeTrim(verifyCommitPanel.env) || "All";
-                  setVerifyCommitPanel({ show: false, mode: "verify-only", env: "All" });
+                  const env = safeTrim(verifyCommitPanel.env);
+                  if (!env) return;
+                  setVerifyCommitPanel({ show: false, mode: "verify-only", env: "" });
                   await runVerifyAndCommit(mode, env);
                 }}
               >
