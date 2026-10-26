@@ -18,6 +18,13 @@ function EnvTableView({
       .replace(/[^a-z0-9]/g, "");
   }
 
+  function normalizeLetterIdentifier(v) {
+    return String(v || "")
+      .toUpperCase()
+      .replace(/[^A-Z]/g, "")
+      .slice(0, 1);
+  }
+
   function onNewEntryKeyDown(e) {
     if (e.key !== "Enter" || e.repeat || !canSubmit) return;
     e.preventDefault();
@@ -45,6 +52,12 @@ function EnvTableView({
                 <HelpIconButton docPath="/static/help/environments/name.html" title="Name" />
               </div>
             </th>
+            <th className="fwTableHeaderCell" style={{ width: 140 }}>
+              <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 8 }}>
+                <span>LetterIdentifier</span>
+                <HelpIconButton docPath="/static/help/environments/letteridentifier.html" title="LetterIdentifier" />
+              </div>
+            </th>
             <th className="fwTableHeaderCell" style={{ width: 100 }}>Actions</th>
           </tr>
           <tr>
@@ -54,6 +67,14 @@ function EnvTableView({
                 placeholder="Filter name..."
                 value={filters.name}
                 onChange={(e) => setFilters((p) => ({ ...p, name: e.target.value }))}
+              />
+            </th>
+            <th>
+              <input
+                className={`filterInput ${isNonEmptyString(filters.letteridentifier) ? "filterInput-active" : ""}`}
+                placeholder="Filter letter..."
+                value={filters.letteridentifier}
+                onChange={(e) => setFilters((p) => ({ ...p, letteridentifier: e.target.value }))}
               />
             </th>
             <th />
@@ -70,6 +91,17 @@ function EnvTableView({
                   onChange={(e) => setDraft((p) => ({ ...p, name: normalizeEnvName(e.target.value) }))}
                   onKeyDown={onNewEntryKeyDown}
                   placeholder="name"
+                />
+              </td>
+              <td>
+                <input
+                  className="filterInput"
+                  style={{ width: 60, textAlign: "center" }}
+                  value={draft.letteridentifier || ""}
+                  onChange={(e) => setDraft((p) => ({ ...p, letteridentifier: normalizeLetterIdentifier(e.target.value) }))}
+                  onKeyDown={onNewEntryKeyDown}
+                  placeholder="A"
+                  maxLength={1}
                 />
               </td>
               <td>
@@ -103,6 +135,18 @@ function EnvTableView({
                       />
                     </td>
                     <td>
+                      <input
+                        className="filterInput"
+                        style={{ width: 60, textAlign: "center" }}
+                        value={draft.letteridentifier || ""}
+                        onChange={(e) =>
+                          setDraft((p) => ({ ...p, letteridentifier: normalizeLetterIdentifier(e.target.value) }))
+                        }
+                        placeholder="A"
+                        maxLength={1}
+                      />
+                    </td>
+                    <td>
                       <button className="iconBtn iconBtn-primary" title="Save" disabled={!canSubmit} onClick={onSave}>
                         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                           <polyline points="20 6 9 17 4 12" />
@@ -121,7 +165,13 @@ function EnvTableView({
               return (
                 <tr key={`${r.name || idx}`}>
                   <td>{r.name}</td>
+                  <td>{safeTrim(r?.data?.letteridentifier)}</td>
                   <td>
+                    <button className="iconBtn iconBtn-primary" title="Edit" onClick={() => onEdit(r)}>
+                      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                        <path d="M17 3a2.828 2.828 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5L17 3z" />
+                      </svg>
+                    </button>
                     <button className="iconBtn iconBtn-danger" title="Delete" onClick={() => onDelete(r)}>
                       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                         <polyline points="3 6 5 6 21 6" />
@@ -138,7 +188,7 @@ function EnvTableView({
           ))}
           {rows.length === 0 ? (
             <tr>
-              <td colSpan={2} className="muted">
+              <td colSpan={3} className="muted">
                 No items
               </td>
             </tr>

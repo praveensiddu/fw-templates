@@ -24,7 +24,7 @@ function GroupsTable({ env, setLoading, setError }) {
         listGroups(env),
         listAddrs(env),
         listFwConfigItems("components"),
-        listGroupNameOptions(),
+        listGroupNameOptions(env),
       ]);
       setItems(groupsResp?.items || []);
       setComponentItems(compResp?.items || []);

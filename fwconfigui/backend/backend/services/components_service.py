@@ -221,7 +221,21 @@ class ComponentsService:
         write_yaml_dict(path, raw, sort_keys=True)
 
 
-def allowed_group_names(product: str) -> List[str]:
+def _env_letteridentifier(env: str) -> str:
+    """Letter identifier for an env from env.yaml ('' when unset/unknown)."""
+    target = str(env or "").strip().lower()
+    if not target:
+        return ""
+    from backend.services.env_service import EnvService
+
+    for it in EnvService().list_items():
+        if str(it.get("name") or "").strip().lower() == target:
+            data = it.get("data") if isinstance(it.get("data"), dict) else {}
+            return str(data.get("letteridentifier") or "").strip().upper()
+    return ""
+
+
+def allowed_group_names(product: str, env: Optional[str] = None) -> List[str]:
     """Group names a product may reference (SITE-COMP-<ES> convention).
 
     A component contributes its names when it belongs to the product itself,
@@ -229,6 +243,8 @@ def allowed_group_names(product: str) -> List[str]:
 
     Args:
         product: Product name (case-insensitive)
+        env: When given, '<ES>' is replaced by the env's letteridentifier
+             (left literal when the env has none)
 
     Returns:
         Sorted, de-duplicated list of allowed group names
@@ -267,5 +283,9 @@ def allowed_group_names(product: str) -> List[str]:
                     site = str(s or "").strip()
                     if site:
                         names.add(f"{site}-{comp}-<ES>")
+
+    letter = _env_letteridentifier(env) if env is not None else ""
+    if letter:
+        names = {n.replace("<ES>", letter) for n in names}
 
     return sorted(names, key=str.lower)

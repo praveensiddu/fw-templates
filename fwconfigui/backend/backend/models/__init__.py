@@ -7,6 +7,7 @@ from backend.models.fwmodels import (
     ListYamlFilesResponse,
     MoveFwRuleRequest,
     PortProtocolOverrideRequest,
+    RenderRequest,
     SaveFwRuleRequest,
     SaveHomeSettingsRequest,
     SaveItemRequest,

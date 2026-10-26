@@ -2,6 +2,7 @@ function FwRulesTableView({
   rows,
   filters,
   setFilters,
+  onRender,
   onCommit,
   onEditPortProtocolService,
   onEditBusinessPurposeText,
@@ -29,6 +30,13 @@ function FwRulesTableView({
       <div className="actions">
         <div className="muted">fw-templates ({Array.isArray(rows) ? rows.length : 0})</div>
         <div style={{ display: "flex", gap: 6, alignItems: "center" }}>
+          <button className="iconBtn iconBtn-primary" title="Render" onClick={onRender}>
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+              <path d="M4 4h16v6H4z" />
+              <path d="M4 14h7v6H4z" />
+              <path d="M15 14h5v6h-5z" />
+            </svg>
+          </button>
           <button className="iconBtn iconBtn-primary" title="Verify and commit" onClick={onCommit}>
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
               <path d="M9 12l2 2 4-4" />

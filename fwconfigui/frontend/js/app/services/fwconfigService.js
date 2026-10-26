@@ -119,7 +119,12 @@ async function saveFwConfigItem(type, payload) {
   const isUpdate = isNonEmptyString(originalName);
   if (t === "env" || t === "keywords") {
     const sep = url.includes("?") ? "&" : "?";
-    return await postJson(`${url}${sep}name=${encodeURIComponent(name)}`);
+    let u = `${url}${sep}name=${encodeURIComponent(name)}`;
+    if (t === "env") {
+      const li = safeTrim(payload?.data?.letteridentifier);
+      if (li) u += `&letteridentifier=${encodeURIComponent(li)}`;
+    }
+    return await postJson(u);
   }
 
   const nextData = { ...(payload?.data || {}) };
@@ -170,10 +175,12 @@ async function listGroups(env) {
  * (own components plus components of other products exposed via 'ALL').
  * @returns {Promise<Array>} - Array of group name strings
  */
-async function listGroupNameOptions() {
+async function listGroupNameOptions(env) {
   const product = getCurrentProduct();
   if (!isNonEmptyString(product)) throw new Error("Select a product first");
-  const resp = await fetchJson(`/api/v1/products/${encodeURIComponent(product)}/components/group-name-options`);
+  const e = safeTrim(env);
+  const qs = e ? `?env=${encodeURIComponent(e)}` : "";
+  const resp = await fetchJson(`/api/v1/products/${encodeURIComponent(product)}/components/group-name-options${qs}`);
   return Array.isArray(resp?.options) ? resp.options : [];
 }
 

@@ -66,6 +66,10 @@ class VerifyAndCommitRequest(BaseModel):
     envs: Optional[List[str]] = None
 
 
+class RenderRequest(BaseModel):
+    env: str
+
+
 class PortProtocolOverrideRequest(BaseModel):
     name: str
     port: str

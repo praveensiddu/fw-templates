@@ -2,7 +2,7 @@ function EnvTable({ setLoading, setError }) {
   const FIXED_FILENAME = "env.yaml";
   const [items, setItems] = React.useState([]);
   const [editingKey, setEditingKey] = React.useState("");
-  const [draft, setDraft] = React.useState({ name: "" });
+  const [draft, setDraft] = React.useState({ name: "", letteridentifier: "" });
   const [originalRef, setOriginalRef] = React.useState({ name: "" });
   const [confirmDelete, setConfirmDelete] = React.useState({ show: false, row: null });
 
@@ -29,22 +29,23 @@ function EnvTable({ setLoading, setError }) {
 
   const { sortedRows, filters, setFilters } = useTableFilter({
     rows,
-    initialFilters: { name: "" },
+    initialFilters: { name: "", letteridentifier: "" },
     fieldMapping: (row) => ({
       name: safeTrim(row.name),
+      letteridentifier: safeTrim(row?.data?.letteridentifier),
     }),
     sortBy: (a, b) => safeTrim(a?.name).localeCompare(safeTrim(b?.name)),
   });
 
   const onAdd = React.useCallback(() => {
-    setDraft({ name: "" });
+    setDraft({ name: "", letteridentifier: "" });
     setOriginalRef({ name: "" });
     setEditingKey("__new__");
   }, []);
 
   const onEdit = React.useCallback((row) => {
     const n = safeTrim(row.name);
-    setDraft({ name: n });
+    setDraft({ name: n, letteridentifier: safeTrim(row?.data?.letteridentifier).toUpperCase() });
     setOriginalRef({ name: n });
     setEditingKey(n);
   }, []);
@@ -59,7 +60,7 @@ function EnvTable({ setLoading, setError }) {
 
   const onCancelEdit = React.useCallback(() => {
     setEditingKey("");
-    setDraft({ name: "" });
+    setDraft({ name: "", letteridentifier: "" });
     setOriginalRef({ name: "" });
   }, []);
 
@@ -72,11 +73,16 @@ function EnvTable({ setLoading, setError }) {
         .toLowerCase()
         .replace(/[^a-z0-9]/g, "");
 
+      const letteridentifier = safeTrim(draft.letteridentifier)
+        .toUpperCase()
+        .replace(/[^A-Z]/g, "")
+        .slice(0, 1);
+
       await saveFwConfigItem("env", {
         filename: FIXED_FILENAME,
         name: nextName,
         original_name: safeTrim(originalRef.name) || undefined,
-        data: { name: nextName },
+        data: { name: nextName, letteridentifier },
       });
 
       const oldName = safeTrim(originalRef.name);

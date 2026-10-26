@@ -1,6 +1,6 @@
 """API routes for components YAML type."""
 
-from typing import Any, Dict
+from typing import Any, Dict, Optional
 
 from fastapi import APIRouter, Depends, Request
 
@@ -21,13 +21,14 @@ def list_items(request: Request, product: str, service: ComponentsService = Depe
 
 
 @router.get("/group-name-options")
-def group_name_options(request: Request, product: str) -> Dict[str, Any]:
+def group_name_options(request: Request, product: str, env: Optional[str] = None) -> Dict[str, Any]:
     """Group names the product may reference (SITE-COMP-<ES>).
 
     Includes names derived from this product's components plus components of
-    other products exposed to 'ALL' or to this product.
+    other products exposed to 'ALL' or to this product. When 'env' is given,
+    '<ES>' is replaced by the env's letteridentifier.
     """
-    return {"options": allowed_group_names(product)}
+    return {"options": allowed_group_names(product, env=env)}
 
 
 @router.post("")

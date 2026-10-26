@@ -5,7 +5,7 @@ from typing import Any, Dict, List, Optional
 import yaml
 
 from backend.exceptions.custom import ValidationError
-from backend.services.common_service import get_rendered_folder_prefix, get_product_templates_repo_name
+from backend.services.common_service import get_rendered_folder_prefix, get_product_generated_repo_name
 from backend.utils.logging_utils import log_all_methods
 from backend.utils.workspace import get_fwconfigfiles_root, get_settings_yaml_path
 from backend.utils.yaml_utils import list_yaml_files
@@ -26,14 +26,14 @@ class RulesService:
     def _products_path(self) -> Path:
         return get_settings_yaml_path("products.yaml")
 
-    def _get_templates_repo_name(self) -> str:
-        return get_product_templates_repo_name(product=str(self._product or ""))
+    def _get_rendered_repo_name(self) -> str:
+        return get_product_generated_repo_name(product=str(self._product or ""))
 
     def _env_flows_dir(self, env: str) -> Path:
         e = self._normalize_env(env)
-        repo_name = self._get_templates_repo_name()
+        repo_name = self._get_rendered_repo_name()
         rendered_f_prefix = get_rendered_folder_prefix()
-        root = get_fwconfigfiles_root(None) / "cloned-repositories" / repo_name / e / rendered_f_prefix / "flows"
+        root = get_fwconfigfiles_root(None) / "cloned-repositories" / repo_name / e / rendered_f_prefix / "fw-rules"
         return root
 
     @staticmethod
@@ -46,11 +46,25 @@ class RulesService:
                 return []
             return [str(x or "").strip() for x in v if str(x or "").strip()]
 
+        def _endpoint_names(key: str) -> List[str]:
+            v = payload.get(key)
+            if not isinstance(v, list):
+                return []
+            out: List[str] = []
+            for item in v:
+                if isinstance(item, dict):
+                    g = str(item.get("group") or "").strip()
+                else:
+                    g = str(item or "").strip()
+                if g:
+                    out.append(g)
+            return out
+
         out: Dict[str, Any] = {
-            "appflowid": str(payload.get("appflowid") or "").strip(),
-            "source-list": _list("source-list"),
-            "destination-list": _list("destination-list"),
-            "protocol-port": _list("protocol-port"),
+            "appflowid": str(payload.get("name") or payload.get("appflowid") or "").strip(),
+            "source-list": _endpoint_names("source-list"),
+            "destination-list": _endpoint_names("destination-list"),
+            "protocol-port": _list("protocol-port") or _list("protocol-port-list"),
             "keywords": _list("keywords"),
         }
         return out

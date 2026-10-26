@@ -262,6 +262,8 @@ function FwRulesTable({ setLoading, setError }) {
   const [showNoComponentsPopup, setShowNoComponentsPopup] = React.useState(false);
   const [yamlEditor, setYamlEditor] = React.useState({ show: false, row: null, appflowid: "", yaml: "" });
   const [commitResult, setCommitResult] = React.useState({ show: false, ok: false, errors: [] });
+  const [renderPanel, setRenderPanel] = React.useState({ show: false, env: "" });
+  const [renderResult, setRenderResult] = React.useState({ show: false, ok: false, outputDir: "", files: [], warnings: [] });
   const [verifyCommitPanel, setVerifyCommitPanel] = React.useState({ show: false, mode: "verify-only", env: "" });
   const [ppServiceEditor, setPpServiceEditor] = React.useState({ show: false, name: "", port: "", originalservice: "", newservice: "" });
   const [bpTextEditor, setBpTextEditor] = React.useState({ show: false, name: "", originalText: "", newText: "" });
@@ -868,6 +870,33 @@ function FwRulesTable({ setLoading, setError }) {
     setVerifyCommitPanel({ show: true, mode: "verify-only", env: "" });
   }, []);
 
+  const runRender = React.useCallback(
+    async (env) => {
+      try {
+        setLoading(true);
+        setError("");
+        const res = await postJson(`${fwconfigTypeBasePath("fw-rules")}/render`, { env: safeTrim(env) });
+        setRenderResult({
+          show: true,
+          ok: !!res?.ok,
+          outputDir: String(res?.output_dir || ""),
+          files: Array.isArray(res?.files) ? res.files : [],
+          warnings: Array.isArray(res?.warnings) ? res.warnings : [],
+        });
+      } catch (e) {
+        setError(formatError(e));
+        setRenderResult({ show: true, ok: false, outputDir: "", files: [], warnings: [formatError(e)] });
+      } finally {
+        setLoading(false);
+      }
+    },
+    [setLoading, setError]
+  );
+
+  const onRender = React.useCallback(() => {
+    setRenderPanel({ show: true, env: "" });
+  }, []);
+
   const onMoveFile = React.useCallback(
     async (row, nextFilename) => {
       try {
@@ -1271,6 +1300,7 @@ function FwRulesTable({ setLoading, setError }) {
           rows={sortedRows}
           filters={filters}
           setFilters={setFilters}
+          onRender={onRender}
           onCommit={onCommit}
           onEditPortProtocolService={onEditPortProtocolService}
           onEditBusinessPurposeText={onEditBusinessPurposeText}
@@ -1360,6 +1390,138 @@ function FwRulesTable({ setLoading, setError }) {
                 </div>
                 <div style={{ maxHeight: 360, overflow: "auto" }}>
                   {(commitResult.errors || []).map((msg, idx) => (
+                    <div
+                      key={idx}
+                      className="card"
+                      style={{ padding: 10, marginBottom: 8, borderColor: "rgba(220,53,69,0.35)" }}
+                    >
+                      {String(msg || "")}
+                    </div>
+                  ))}
+                </div>
+              </div>
+            ) : null}
+          </div>
+        </div>
+      ) : null}
+
+      {renderPanel.show ? (
+        <div
+          className="modalOverlay"
+          onClick={(e) => e.target === e.currentTarget && setRenderPanel({ show: false, env: "" })}
+        >
+          <div className="modalCard">
+            <div className="modalHeader">
+              <h3 style={{ margin: 0 }}>Render</h3>
+              <button className="btn" onClick={() => setRenderPanel({ show: false, env: "" })}>
+                Close
+              </button>
+            </div>
+
+            <div style={{ marginTop: 12, display: "flex", flexDirection: "column", gap: 10 }}>
+              <div className="muted">
+                Rendereing converts the rules in template form to rendered form. By creating creating environment
+                specific rules.
+              </div>
+
+              <label style={{ display: "flex", gap: 8, alignItems: "center" }}>
+                <span style={{ minWidth: 48 }}>Envs</span>
+                <select
+                  value={safeTrim(renderPanel.env)}
+                  onChange={(e) => setRenderPanel((p) => ({ ...p, env: e.target.value }))}
+                >
+                  <option value="" disabled>
+                    Select environment
+                  </option>
+                  {(Array.isArray(envNames) ? envNames : []).map((e) => {
+                    const v = safeTrim(e);
+                    if (!v) return null;
+                    return (
+                      <option key={v} value={v}>
+                        {v}
+                      </option>
+                    );
+                  })}
+                </select>
+              </label>
+            </div>
+
+            <div className="modalActions">
+              <button className="btn" onClick={() => setRenderPanel({ show: false, env: "" })}>
+                Cancel
+              </button>
+              <button
+                className="btn btn-primary"
+                disabled={!safeTrim(renderPanel.env)}
+                onClick={async () => {
+                  const env = safeTrim(renderPanel.env);
+                  if (!env) return;
+                  setRenderPanel({ show: false, env: "" });
+                  await runRender(env);
+                }}
+              >
+                Run
+              </button>
+            </div>
+          </div>
+        </div>
+      ) : null}
+
+      {renderResult.show ? (
+        <div
+          className="modalOverlay"
+          onClick={(e) =>
+            e.target === e.currentTarget &&
+            setRenderResult({ show: false, ok: false, outputDir: "", files: [], warnings: [] })
+          }
+        >
+          <div className="modalCard">
+            <div className="modalHeader">
+              <h3 style={{ margin: 0 }}>Render result</h3>
+              <button
+                className="btn"
+                onClick={() => setRenderResult({ show: false, ok: false, outputDir: "", files: [], warnings: [] })}
+              >
+                Close
+              </button>
+            </div>
+
+            <div style={{ marginTop: 12 }}>
+              {renderResult.ok ? (
+                <div style={{ color: "#1f7a35" }}>Render completed.</div>
+              ) : (
+                <div style={{ color: "#dc3545" }}>Render failed.</div>
+              )}
+              {renderResult.outputDir ? (
+                <div className="muted" style={{ marginTop: 6, wordBreak: "break-all" }}>
+                  {renderResult.outputDir}
+                </div>
+              ) : null}
+            </div>
+
+            {Array.isArray(renderResult.files) && renderResult.files.length ? (
+              <div style={{ marginTop: 12 }}>
+                <div className="muted" style={{ marginBottom: 6 }}>
+                  Files ({renderResult.files.length})
+                </div>
+                <div style={{ maxHeight: 240, overflow: "auto" }}>
+                  {renderResult.files.map((f, idx) => (
+                    <div key={idx} className="card" style={{ padding: 10, marginBottom: 8 }}>
+                      {String(f?.filename || "")} — {Number(f?.rules_out) || 0} of {Number(f?.rules_in) || 0} rules
+                      rendered
+                    </div>
+                  ))}
+                </div>
+              </div>
+            ) : null}
+
+            {Array.isArray(renderResult.warnings) && renderResult.warnings.length ? (
+              <div style={{ marginTop: 12 }}>
+                <div className="muted" style={{ marginBottom: 6 }}>
+                  Warnings ({renderResult.warnings.length})
+                </div>
+                <div style={{ maxHeight: 240, overflow: "auto" }}>
+                  {renderResult.warnings.map((msg, idx) => (
                     <div
                       key={idx}
                       className="card"

@@ -22,9 +22,10 @@ def list_items(request: Request, service: EnvService = Depends(get_service)):
 def save_item(
     request: Request,
     name: str,
+    letteridentifier: str = "",
     service: EnvService = Depends(get_service),
 ) -> Dict[str, Any]:
-    service.save_item(name=name)
+    service.save_item(name=name, letteridentifier=letteridentifier)
     return {"ok": True}
 
 
