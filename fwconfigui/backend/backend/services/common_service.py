@@ -1,7 +1,9 @@
 import re
 import os
 from pathlib import Path
-from typing import Any, Dict, List
+from typing import Any, Dict, List, Optional
+
+from fastapi import Request
 
 from backend.exceptions.custom import ValidationError
 from backend.services.home_service import get_home_setting
@@ -47,6 +49,31 @@ def is_demo_mode() -> bool:
     if isinstance(v, bool):
         return v
     return str(v or "").strip().lower() in {"1", "true", "yes", "y", "on"}
+
+
+def get_current_user(request: Request) -> Optional[str]:
+    """Resolve the current user.
+
+    Test deployment (default): CURRENT_USER env var (switchable via
+    PUT /current-user when demo_mode is on; never persisted to a file).
+    Live deployment: authenticated identity from forwarded headers.
+    """
+    if get_deployment_type() == "test":
+        return str(os.getenv("CURRENT_USER", "") or "").strip() or None
+
+    headers = request.headers
+    for key in (
+        "x-user",
+        "x-userid",
+        "x-forwarded-user",
+        "x-authenticated-user",
+        "x-auth-request-user",
+        "x-auth-request-email",
+    ):
+        v = str(headers.get(key) or "").strip()
+        if v:
+            return v
+    return None
 
 
 def get_fwconfigfiles() -> str:

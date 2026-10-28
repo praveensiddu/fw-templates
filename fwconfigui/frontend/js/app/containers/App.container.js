@@ -63,6 +63,9 @@ function App() {
   const [error, setError] = React.useState("");
   const [homeInitialized, setHomeInitialized] = React.useState(null);
 
+  const [currentUserInfo, setCurrentUserInfo] = React.useState({ user: "", demo_mode: false });
+  const [demoUsers, setDemoUsers] = React.useState([]);
+
   const [infraEnvItems, setInfraEnvItems] = React.useState([]);
   const [productItems, setProductItems] = React.useState([]);
   const [productEnvOptions, setProductEnvOptions] = React.useState([]);
@@ -285,6 +288,48 @@ function App() {
   const onHomeSaved = React.useCallback(() => {
     setHomeInitialized(true);
   }, []);
+
+  React.useEffect(() => {
+    let cancelled = false;
+    (async () => {
+      try {
+        const resp = await fetchJson("/api/v1/current-user");
+        if (cancelled) return;
+        setCurrentUserInfo(resp && typeof resp === "object" ? resp : {});
+        if (resp?.demo_mode) {
+          try {
+            const du = await fetchJson("/api/v1/demo-users");
+            if (!cancelled) {
+              setDemoUsers(du && typeof du === "object" ? Object.keys(du).sort() : []);
+            }
+          } catch (e) {
+            if (!cancelled) setDemoUsers([]);
+          }
+        } else if (!cancelled) {
+          setDemoUsers([]);
+        }
+      } catch (e) {
+        // Banner user info is best-effort; pages surface their own errors.
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [homeInitialized]);
+
+  const onSwitchUser = React.useCallback(
+    async (userid) => {
+      const u = safeTrim(userid);
+      if (!u) return;
+      try {
+        const resp = await putJson("/api/v1/current-user", { user: u });
+        setCurrentUserInfo(resp && typeof resp === "object" ? resp : {});
+      } catch (e) {
+        setError(formatError(e));
+      }
+    },
+    [setError]
+  );
 
   React.useEffect(() => {
     const loadEnv = async () => {
@@ -761,6 +806,10 @@ function App() {
         }}
         error={error}
         loading={loading}
+        demoMode={!!currentUserInfo?.demo_mode}
+        currentUser={safeTrim(currentUserInfo?.user || currentUserInfo?.username)}
+        demoUsers={demoUsers}
+        onSwitchUser={onSwitchUser}
       >
         {content}
       </AppView>

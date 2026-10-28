@@ -9,8 +9,9 @@ from fastapi import APIRouter, Depends, HTTPException, Request, status
 from pydantic import BaseModel
 
 from backend.auth.rbac import get_user_context
-from backend.auth.role_mgmt_impl import RoleMgmtImpl, is_demo_mode
+from backend.auth.role_mgmt_impl import RoleMgmtImpl
 from backend.dependencies import get_current_user
+from backend.services.common_service import is_demo_mode
 
 router = APIRouter(prefix="/api/v1", tags=["users"])
 
@@ -29,6 +30,7 @@ def _user_context_response(user_id: str) -> Dict[str, Any]:
         "roles": ctx.get("roles", []),
         "groups": ctx.get("groups", []),
         "product_roles": ctx.get("product_roles", {}),
+        "demo_mode": is_demo_mode(),
     }
 
 
