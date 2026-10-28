@@ -1,14 +1,18 @@
 function RoleMgmt({ setLoading, setError }) {
   const [rows, setRows] = React.useState([]);
+  const [groupRows, setGroupRows] = React.useState([]);
   const [busy, setBusy] = React.useState(false);
   const [products, setProducts] = React.useState([]);
+  const [activeTab, setActiveTab] = React.useState("users");
 
   const [grantModal, setGrantModal] = React.useState({
     show: false,
-    userid: "",
+    targetType: "",
+    targetId: "",
     role: "viewall",
     product: "",
   });
+  const [ungrantPopup, setUngrantPopup] = React.useState({ show: false, message: "" });
 
   const productRoles = React.useMemo(() => new Set(["manager", "viewer"]), []);
 
@@ -17,15 +21,35 @@ function RoleMgmt({ setLoading, setError }) {
     []
   );
 
+  const userOptions = React.useMemo(
+    () =>
+      (rows || [])
+        .map((r) => safeTrim(r?.userid))
+        .filter(Boolean)
+        .sort((a, b) => a.localeCompare(b)),
+    [rows]
+  );
+
+  const groupOptions = React.useMemo(
+    () =>
+      (groupRows || [])
+        .map((r) => safeTrim(r?.group))
+        .filter(Boolean)
+        .sort((a, b) => a.localeCompare(b)),
+    [groupRows]
+  );
+
   const load = React.useCallback(async () => {
     try {
       setLoading(true);
       setError("");
-      const [uResp, pResp] = await Promise.all([
+      const [uResp, gResp, pResp] = await Promise.all([
         fetchJson("/api/v1/role-management/users"),
+        fetchJson("/api/v1/role-management/groups"),
         listFwConfigItems("products"),
       ]);
       setRows(Array.isArray(uResp?.rows) ? uResp.rows : []);
+      setGroupRows(Array.isArray(gResp?.rows) ? gResp.rows : []);
 
       const prodNames = (pResp?.items || [])
         .map((x) => safeTrim(x?.name))
@@ -52,7 +76,8 @@ function RoleMgmt({ setLoading, setError }) {
     setGrantModal((p) => ({
       ...p,
       show: true,
-      userid: "",
+      targetType: "",
+      targetId: "",
       role: "viewall",
       product: safeTrim(p?.product) || (products.length ? products[0] : ""),
     }));
@@ -63,12 +88,17 @@ function RoleMgmt({ setLoading, setError }) {
   }, []);
 
   const doGrant = React.useCallback(async () => {
-    const userid = safeTrim(grantModal.userid);
+    const targetType = safeTrim(grantModal.targetType);
+    const targetId = safeTrim(grantModal.targetId);
     const role = safeTrim(grantModal.role);
     const product = safeTrim(grantModal.product);
 
-    if (!userid) {
-      setError("userid is required");
+    if (!targetType) {
+      setError("select whether to grant the role to a User or a Group");
+      return;
+    }
+    if (!targetId) {
+      setError(targetType === "group" ? "group is required" : "userid is required");
       return;
     }
     if (!role) {
@@ -83,9 +113,19 @@ function RoleMgmt({ setLoading, setError }) {
 
       if (productRoles.has(role)) {
         if (!product) throw new Error("product is required for manager/viewer");
-        await postJson("/api/v1/role-management/product/assign", { userid, product, role });
+        await postJson(
+          "/api/v1/role-management/product/assign",
+          targetType === "group"
+            ? { group: targetId, product, role }
+            : { userid: targetId, product, role }
+        );
       } else {
-        await postJson("/api/v1/role-management/userglobal/assign", { user: userid, role });
+        await postJson(
+          targetType === "group"
+            ? "/api/v1/role-management/groupglobal/assign"
+            : "/api/v1/role-management/userglobal/assign",
+          targetType === "group" ? { group: targetId, role } : { user: targetId, role }
+        );
       }
 
       closeGrant();
@@ -99,12 +139,13 @@ function RoleMgmt({ setLoading, setError }) {
   }, [grantModal, productRoles, setLoading, setError, load, closeGrant]);
 
   const onUngrant = React.useCallback(
-    async ({ userid, role, product, scope }) => {
+    async ({ userid, group, role, product, scope }) => {
       const u = safeTrim(userid);
+      const g = safeTrim(group);
       const r = safeTrim(role);
       const p = safeTrim(product);
       const s = safeTrim(scope);
-      if (!u || !r) return;
+      if (!r || (!u && !g)) return;
 
       try {
         setBusy(true);
@@ -112,14 +153,20 @@ function RoleMgmt({ setLoading, setError }) {
         setError("");
 
         if (s === "product" || productRoles.has(r)) {
-          await postJson("/api/v1/role-management/product/unassign", { userid: u, product: p, role: r });
+          await postJson(
+            "/api/v1/role-management/product/unassign",
+            g ? { group: g, product: p, role: r } : { userid: u, product: p, role: r }
+          );
         } else {
-          await postJson("/api/v1/role-management/userglobal/unassign", { user: u, role: r });
+          await postJson(
+            g ? "/api/v1/role-management/groupglobal/unassign" : "/api/v1/role-management/userglobal/unassign",
+            g ? { group: g, role: r } : { user: u, role: r }
+          );
         }
 
         await load();
       } catch (e) {
-        setError(formatError(e));
+        setUngrantPopup({ show: true, message: formatError(e) });
       } finally {
         setLoading(false);
         setBusy(false);
@@ -129,22 +176,37 @@ function RoleMgmt({ setLoading, setError }) {
   );
 
   const canGrant = React.useMemo(() => {
-    const userid = safeTrim(grantModal.userid);
+    const targetType = safeTrim(grantModal.targetType);
+    const targetId = safeTrim(grantModal.targetId);
     const role = safeTrim(grantModal.role);
     const product = safeTrim(grantModal.product);
-    if (!userid || !role) return false;
+    if (!targetType || !targetId || !role) return false;
     if (productRoles.has(role) && !product) return false;
     return true;
   }, [grantModal, productRoles]);
+
+  const grantTargetOptions = safeTrim(grantModal.targetType) === "group" ? groupOptions : userOptions;
 
   return (
     <>
       <RoleMgmtView
         rows={rows}
+        groupRows={groupRows}
+        activeTab={activeTab}
+        onTabChange={setActiveTab}
         onRefresh={load}
         onOpenGrant={openGrant}
         onUngrant={onUngrant}
         busy={busy}
+      />
+
+      <ConfirmationModal
+        show={ungrantPopup.show}
+        title="Ungrant role"
+        message={ungrantPopup.message}
+        onClose={() => setUngrantPopup({ show: false, message: "" })}
+        onConfirm={() => setUngrantPopup({ show: false, message: "" })}
+        confirmText="OK"
       />
 
       {grantModal.show ? (
@@ -160,15 +222,44 @@ function RoleMgmt({ setLoading, setError }) {
             <div style={{ marginTop: 12, display: "flex", flexDirection: "column", gap: 12 }}>
               <div>
                 <div className="muted" style={{ marginBottom: 6 }}>
-                  Userid
+                  Grant role to
                 </div>
-                <input
+                <select
                   className="input"
-                  value={String(grantModal.userid || "")}
-                  onChange={(e) => setGrantModal((p) => ({ ...p, userid: e.target.value }))}
-                  placeholder="userid"
-                />
+                  value={safeTrim(grantModal.targetType) || ""}
+                  onChange={(e) =>
+                    setGrantModal((p) => ({ ...p, targetType: safeTrim(e.target.value), targetId: "" }))
+                  }
+                >
+                  <option value="" disabled>
+                    Select one
+                  </option>
+                  <option value="user">User</option>
+                  <option value="group">Group</option>
+                </select>
               </div>
+
+              {safeTrim(grantModal.targetType) ? (
+                <div>
+                  <div className="muted" style={{ marginBottom: 6 }}>
+                    {safeTrim(grantModal.targetType) === "group" ? "Groupid" : "Userid"}
+                  </div>
+                  <select
+                    className="input"
+                    value={safeTrim(grantModal.targetId) || ""}
+                    onChange={(e) => setGrantModal((p) => ({ ...p, targetId: e.target.value }))}
+                  >
+                    <option value="" disabled>
+                      Select {safeTrim(grantModal.targetType) === "group" ? "group" : "user"}
+                    </option>
+                    {grantTargetOptions.map((id) => (
+                      <option key={id} value={id}>
+                        {id}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+              ) : null}
 
               <div>
                 <div className="muted" style={{ marginBottom: 6 }}>

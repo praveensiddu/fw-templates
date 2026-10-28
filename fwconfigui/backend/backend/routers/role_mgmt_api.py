@@ -121,6 +121,18 @@ def create_rolemgmt_router(
         return {"rows": rows}
 
 
+    @router.get("/role-management/groups")
+    def list_groups_and_roles(
+        user_context: Dict[str, Any] = Depends(get_current_user_context),
+    ) -> Dict[str, Any]:
+        #enforce(user_context, "/role-management/groups", "GET", {})
+
+        groups = rolemgmtimpl.list_all_groups()
+        rows = [rolemgmtimpl.get_group_roles_snapshot(g) for g in groups]
+        rows.sort(key=lambda r: str(r.get("group") or "").lower())
+        return {"rows": rows}
+
+
     @router.post("/role-management/product/assign")
     def assign_role(payload: RoleAssignmentRequest,
                     grantor: Optional[str] = Depends(get_grantor),
