@@ -222,7 +222,7 @@ def create_rolemgmt_router(
                  summary="Assign roles for groups ",
                  description="""{
       "group": "sysgrp",
-      "role": "viewall", "role_mgmt_admin"
+      "role": "platform_admin"
       ]
     }""")
     def assign_groupglobal_role(payload: GlobalRoleAssignmentRequest,
@@ -239,7 +239,7 @@ def create_rolemgmt_router(
                  summary="Unassign roles for groups ",
                  description="""{
       "group": "sysgrp",
-      "role": "viewall", "role_mgmt_admin"
+      "role": "platform_admin"
       ]
     }""")
     def unassign_groupglobal_role(payload: GlobalRoleAssignmentRequest,
@@ -329,7 +329,7 @@ def create_rolemgmt_router(
                  summary="Assign roles for users ",
                  description="""{
       "user": "user1",
-      "role": "viewall", "role_mgmt_admin"
+      "role": "platform_admin"
       ]
     }""")
     def assign_userglobal_role(payload: UserGlobalRoleAssignmentRequest,
@@ -346,7 +346,7 @@ def create_rolemgmt_router(
                  summary="Unassign roles for users ",
                  description="""{
       "user": "user1",
-      "role": "viewall", "role_mgmt_admin"
+      "role": "platform_admin"
       ]
     }""")
     def unassign_userglobal_role(payload: UserGlobalRoleAssignmentRequest,

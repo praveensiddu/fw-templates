@@ -13,7 +13,7 @@ function RoleMgmt({ setLoading, setError }) {
   const productRoles = React.useMemo(() => new Set(["manager", "viewer"]), []);
 
   const allRoles = React.useMemo(
-    () => ["platform_admin", "role_mgmt_admin", "viewall", "manager", "viewer"],
+    () => ["platform_admin", "viewall", "manager", "viewer"],
     []
   );
 

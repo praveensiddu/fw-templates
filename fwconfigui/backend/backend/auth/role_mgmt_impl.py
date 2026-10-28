@@ -97,6 +97,12 @@ class RoleMgmtImpl:
     def _norm(self, s: str | None) -> str:
         return str(s or "").strip()
 
+    def _roles_list(self, val: Any) -> List[str]:
+        if isinstance(val, list):
+            return [self._norm(r) for r in val if self._norm(r)]
+        role = self._norm(str(val)) if val is not None else ""
+        return [role] if role else []
+
     def get_grp2products2roles(self) -> dict:
         with self._lock:
             return dict(self._data.get("group_product_roles") or {})
@@ -246,22 +252,19 @@ class RoleMgmtImpl:
             groups = ug.get(user_id)
             if isinstance(groups, list):
                 return [self._norm(g) for g in groups if self._norm(g)]
-            return []
+            group = self._norm(str(groups)) if groups is not None else ""
+            return [group] if group else []
 
     def get_user_roles(self, user_id: str, groups: List[str]) -> List[str]:
         roles: List[str] = []
         user_id = self._norm(user_id)
         with self._lock:
             umap = self._data.get("user_global_roles") or {}
-            uroles = umap.get(user_id)
-            if isinstance(uroles, list):
-                roles.extend([self._norm(r) for r in uroles if self._norm(r)])
+            roles.extend(self._roles_list(umap.get(user_id)))
 
             gmap = self._data.get("group_global_roles") or {}
             for g in groups or []:
-                groles = gmap.get(g)
-                if isinstance(groles, list):
-                    roles.extend([self._norm(r) for r in groles if self._norm(r)])
+                roles.extend(self._roles_list(gmap.get(g)))
 
         # de-dupe preserving order
         seen = set()
@@ -280,12 +283,7 @@ class RoleMgmtImpl:
                 uamap = umap.get(self._norm(user_id))
                 if isinstance(uamap, dict):
                     for product, roles in uamap.items():
-                        if not isinstance(roles, list):
-                            continue
-                        for r in roles:
-                            rr = self._norm(r)
-                            if not rr:
-                                continue
+                        for rr in self._roles_list(roles):
                             product_roles.setdefault(str(product), [])
                             if rr not in product_roles[str(product)]:
                                 product_roles[str(product)].append(rr)
@@ -296,12 +294,7 @@ class RoleMgmtImpl:
                 if not isinstance(amap, dict):
                     continue
                 for product, roles in amap.items():
-                    if not isinstance(roles, list):
-                        continue
-                    for r in roles:
-                        rr = self._norm(r)
-                        if not rr:
-                            continue
+                    for rr in self._roles_list(roles):
                         product_roles.setdefault(str(product), [])
                         if rr not in product_roles[str(product)]:
                             product_roles[str(product)].append(rr)
@@ -321,10 +314,7 @@ class RoleMgmtImpl:
                 for user_id, products_map in umap.items():
                     if not isinstance(products_map, dict):
                         continue
-                    roles = products_map.get(product)
-                    if not isinstance(roles, list):
-                        continue
-                    if "manager" in [self._norm(r) for r in roles]:
+                    if "manager" in self._roles_list(products_map.get(product)):
                         uid = self._norm(str(user_id))
                         if uid:
                             users.append(uid)
@@ -334,10 +324,7 @@ class RoleMgmtImpl:
                 for group, products_map in gmap.items():
                     if not isinstance(products_map, dict):
                         continue
-                    roles = products_map.get(product)
-                    if not isinstance(roles, list):
-                        continue
-                    if "manager" in [self._norm(r) for r in roles]:
+                    if "manager" in self._roles_list(products_map.get(product)):
                         gg = self._norm(str(group))
                         if gg:
                             groups.append(gg)

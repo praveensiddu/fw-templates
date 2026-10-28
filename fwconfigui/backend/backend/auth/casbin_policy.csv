@@ -33,21 +33,8 @@ p, platform_admin, /home/settings, (GET|PUT), True
 p, platform_admin, /home/samples, (GET|POST), True
 p, platform_admin, /current-user, (GET|PUT), True
 p, platform_admin, /demo-users, GET, True
-p, platform_admin, /role-management/user/roles, GET, True
+p, platform_admin, /role-management/*, (GET|POST|PUT|DELETE), True
 
-
-p, role_mgmt_admin, /role-management/*, (GET|POST|PUT|DELETE), True
-p, role_mgmt_admin, /role-management/product/*, (GET|POST|PUT|DELETE), True
-p, role_mgmt_admin, /role-management/groupglobal/*, (GET|POST|PUT|DELETE), True
-p, role_mgmt_admin, /role-management/userglobal/*, (GET|POST|PUT|DELETE), True
-p, role_mgmt_admin, /role-management/users, GET, True
-p, role_mgmt_admin, /current-user, (GET|PUT), True
-p, role_mgmt_admin, /demo-users, GET, True
-p, role_mgmt_admin, /home/settings, GET, True
-p, role_mgmt_admin, /settings/enforcement, (GET|PUT), True
-p, role_mgmt_admin, /access_requests, GET, True
-p, role_mgmt_admin, /product_access, POST, True
-p, role_mgmt_admin, /global_access, POST, True
 
 p, viewall, /products, GET, True
 p, viewall, /products/*, GET, True
