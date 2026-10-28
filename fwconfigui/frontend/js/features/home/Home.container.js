@@ -74,7 +74,7 @@ function Home({ setLoading, setError, onSaved }) {
         });
       }
     } catch (e) {
-      setError(formatError(e));
+      setSamplesPopup({ show: true, message: formatError(e) });
     } finally {
       setBusy(false);
     }
