@@ -43,6 +43,7 @@ from backend.routers.port_protocol import router as port_protocol_router
 from backend.routers.predef_port_protocol import router as predef_port_protocol_router
 from backend.routers.products import router as products_router
 from backend.routers.render import router as render_router
+from backend.routers.users import router as users_router
 from backend.routers.verify_and_commit import router as verify_and_commit_router
 from backend.routers.rule_files import router as rule_files_router
 from backend.routers.sites import router as sites_router
@@ -156,6 +157,7 @@ app.include_router(predef_port_protocol_router)
 app.include_router(products_router)
 app.include_router(verify_and_commit_router)
 app.include_router(render_router)
+app.include_router(users_router)
 app.include_router(home_router)
 app.include_router(
     create_rolemgmt_router(enforce=enforce_request, get_current_user_context=get_current_user_context),
