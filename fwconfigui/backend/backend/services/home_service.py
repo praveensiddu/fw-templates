@@ -187,6 +187,14 @@ class HomeService:
             Sample settings under 'settings' and per-repo clone results
             under 'clones'
         """
+        # Lazy import: common_service imports get_home_setting from this module.
+        from backend.services.common_service import get_deployment_type
+
+        if get_deployment_type() != "test":
+            raise ValidationError(
+                "samples", "pre-prepared samples are only available when DEPLOYMENT_TYPE is not live"
+            )
+
         samples = self.get_samples()
         dirname = str(samples.get("FWCONFIGFILES") or "").strip() or _DEFAULT_FWCONFIGFILES_DIRNAME
 
@@ -195,6 +203,7 @@ class HomeService:
         raw = read_yaml_dict(yaml_path)
         if not isinstance(raw, dict):
             raw = {}
+        raw["demo_mode"] = True
         raw["fwconfigfiles"] = dirname
         # Point infra_repo at the cloned sample repo (relative names resolve
         # under <WORKSPACE>/<fwconfigfiles>/cloned-repositories/).

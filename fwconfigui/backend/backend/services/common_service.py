@@ -32,6 +32,23 @@ def get_rendered_folder_prefix() -> str:
     return prefix or "iac/fw"
 
 
+def get_deployment_type() -> str:
+    """Deployment type: 'live' only when DEPLOYMENT_TYPE=live, else 'test' (default)."""
+    return "live" if str(os.getenv("DEPLOYMENT_TYPE", "") or "").strip().lower() == "live" else "test"
+
+
+def is_demo_mode() -> bool:
+    """demo_mode flag read from ~/.fwconfig/fwconfig.yaml.
+
+    Set to true by the "Use pre-prepared samples" flow. Not an env variable.
+    """
+    raw = read_yaml_dict(Path.home() / ".fwconfig" / "fwconfig.yaml")
+    v = raw.get("demo_mode") if isinstance(raw, dict) else None
+    if isinstance(v, bool):
+        return v
+    return str(v or "").strip().lower() in {"1", "true", "yes", "y", "on"}
+
+
 def get_fwconfigfiles() -> str:
     """Directory name under WORKSPACE that holds the fwconfig yaml files.
 

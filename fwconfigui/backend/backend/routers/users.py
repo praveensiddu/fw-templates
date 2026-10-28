@@ -44,12 +44,7 @@ def _resolve_user_id(payload: CurrentUserUpdateRequest) -> str:
 
 
 def _demo_users_path() -> Path:
-    workspace_raw = str(os.getenv("WORKSPACE", "") or "").strip()
-    if workspace_raw:
-        workspace = Path(workspace_raw).expanduser()
-    else:
-        workspace = Path.home() / "workspace"
-    return workspace / "fwconfigfiles" / "control" / "rbac" / "demo_mode" / "demo_users.yaml"
+    return RoleMgmtImpl.get_instance()._demo_users_path
 
 
 @router.get("/current-user")
@@ -62,7 +57,7 @@ def set_current_user(payload: CurrentUserUpdateRequest) -> Dict[str, Any]:
     if not is_demo_mode():
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
-            detail="Switching current user is only allowed when DEMO_MODE=true",
+            detail="Switching current user is only allowed in demo mode",
         )
 
     user_id = _resolve_user_id(payload)

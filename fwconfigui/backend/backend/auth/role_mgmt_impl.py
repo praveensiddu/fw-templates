@@ -7,17 +7,7 @@ from typing import Any, Dict, List
 
 import yaml
 
-from backend.services.common_service import get_fwconfigfiles
-
-
-def is_demo_mode() -> bool:
-    return str(os.getenv("DEMO_MODE", os.getenv("IS_DEMO_MODE", "")) or "").strip().lower() in {
-        "1",
-        "true",
-        "yes",
-        "y",
-        "on",
-    }
+from backend.services.common_service import get_fwconfigfiles, is_demo_mode
 
 
 class RoleMgmtImpl:
@@ -28,7 +18,6 @@ class RoleMgmtImpl:
         self._lock = RLock()
         self._rbac_dir = Path.home() / "workspace" / get_fwconfigfiles() / "control" / "rbac"
         self._demo_mode = is_demo_mode()
-        self._legacy_store_path = self._rbac_dir / "role_assignments.yaml"
         self._store_paths: Dict[str, Path] = {}
         self._demo_users_path = self._rbac_dir / "demo_users.yaml"
         self._refresh_paths()
@@ -63,14 +52,14 @@ class RoleMgmtImpl:
         else:
             workspace = Path.home() / "workspace"
 
-        rbac_dir = workspace / get_fwconfigfiles() / "control" / "rbac"
         if demo_mode:
-            rbac_dir = rbac_dir / "demo_mode"
+            rbac_dir = workspace / get_fwconfigfiles() / "cloned-repositories" / "infrarepo" / "demorbac"
+        else:
+            rbac_dir = workspace / get_fwconfigfiles() / "rbac"
 
         with self._lock:
             self._demo_mode = demo_mode
             self._rbac_dir = rbac_dir
-            self._legacy_store_path = self._rbac_dir / "role_assignments.yaml"
             self._store_paths = {
                 "group_product_roles": self._rbac_dir / "group_product_roles.yaml",
                 "user_product_roles": self._rbac_dir / "userid_product_roles.yaml",
@@ -84,7 +73,6 @@ class RoleMgmtImpl:
         with self._lock:
             try:
                 keys = ["group_product_roles", "user_product_roles", "group_global_roles", "user_global_roles", "user_groups"]
-                loaded_any = False
                 for key in keys:
                     p = self._store_paths.get(key)
                     if not p or not p.exists() or not p.is_file():
@@ -92,23 +80,6 @@ class RoleMgmtImpl:
                     raw = yaml.safe_load(p.read_text())
                     if isinstance(raw, dict):
                         self._data[key] = raw
-                        loaded_any = True
-
-                if loaded_any:
-                    return
-
-                if not self._legacy_store_path.exists() or not self._legacy_store_path.is_file():
-                    return
-                raw = yaml.safe_load(self._legacy_store_path.read_text())
-                if not isinstance(raw, dict):
-                    return
-
-                for key in keys:
-                    val = raw.get(key)
-                    if isinstance(val, dict):
-                        self._data[key] = val
-
-                self._flush()
             except Exception:
                 # Best effort: keep in-memory defaults
                 return

@@ -6,6 +6,7 @@ from typing import Optional
 from fastapi import Request
 
 from backend.exceptions.custom import ValidationError
+from backend.services.common_service import get_deployment_type
 
 
 def require_yaml_type(yaml_type: Optional[str]) -> str:
@@ -23,8 +24,7 @@ def require_yaml_type(yaml_type: Optional[str]) -> str:
 
 
 def get_current_user(request: Request) -> Optional[str]:
-    deployment_type = str(os.getenv("DEPLOYMENT_TYPE", "") or "").strip().lower()
-    if deployment_type == "test":
+    if get_deployment_type() == "test":
         return str(os.getenv("CURRENT_USER", "") or "").strip() or None
 
     headers = request.headers

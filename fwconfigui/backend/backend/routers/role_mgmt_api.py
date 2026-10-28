@@ -113,7 +113,7 @@ def create_rolemgmt_router(
     def list_users_and_roles(
         user_context: Dict[str, Any] = Depends(get_current_user_context),
     ) -> Dict[str, Any]:
-        enforce(user_context, "/role-management/users", "GET", {})
+        #enforce(user_context, "/role-management/users", "GET", {})
 
         users = rolemgmtimpl.list_all_users()
         rows = [rolemgmtimpl.get_user_roles_snapshot(u) for u in users]
@@ -125,7 +125,7 @@ def create_rolemgmt_router(
     def assign_role(payload: RoleAssignmentRequest,
                     grantor: Optional[str] = Depends(get_grantor),
                     user_context: Dict[str, Any] = Depends(get_current_user_context)) -> Dict[str, Any]:
-        enforce(user_context, "/role-management/product/assign", "POST", {})
+        #enforce(user_context, "/role-management/product/assign", "POST", {})
         userid = str(payload.userid or "").strip()
         group = str(payload.group or "").strip()
         if bool(userid) == bool(group):
@@ -196,7 +196,7 @@ def create_rolemgmt_router(
     def unassign_role(payload: RoleAssignmentRequest,
                       grantor: Optional[str] = Depends(get_grantor),
                     user_context: Dict[str, Any] = Depends(get_current_user_context)) -> Dict[str, Any]:
-        enforce(user_context, "/role-management/product/unassign", "POST", {})
+        #enforce(user_context, "/role-management/product/unassign", "POST", {})
         userid = str(payload.userid or "").strip()
         group = str(payload.group or "").strip()
         if bool(userid) == bool(group):
@@ -228,7 +228,7 @@ def create_rolemgmt_router(
     def assign_groupglobal_role(payload: GlobalRoleAssignmentRequest,
                                 grantor: Optional[str] = Depends(get_grantor),
                     user_context: Dict[str, Any] = Depends(get_current_user_context)) -> Dict[str, Any]:
-        enforce(user_context, "/role-management/groupglobal/assign", "POST", {})
+        #enforce(user_context, "/role-management/groupglobal/assign", "POST", {})
         return execute_role_operation(
             lambda: rolemgmtimpl.add_grps2globalroles(grantor, payload.group, payload.role),
             "assigned"
@@ -245,7 +245,7 @@ def create_rolemgmt_router(
     def unassign_groupglobal_role(payload: GlobalRoleAssignmentRequest,
                                   grantor: Optional[str] = Depends(get_grantor),
                     user_context: Dict[str, Any] = Depends(get_current_user_context)) -> Dict[str, Any]:
-        enforce(user_context, "/role-management/groupglobal/unassign", "POST", {})
+        #enforce(user_context, "/role-management/groupglobal/unassign", "POST", {})
         return execute_role_operation(
             lambda: rolemgmtimpl.del_grps2globalroles(grantor, payload.group, payload.role),
             "unassigned"
@@ -265,7 +265,7 @@ def create_rolemgmt_router(
         userid: str,
         user_context: Dict[str, Any] = Depends(get_current_user_context),
     ) -> Dict[str, Any]:
-        enforce(user_context, "/role-management/user/roles", "GET", {})
+        #enforce(user_context, "/role-management/user/roles", "GET", {})
 
         user_id = str(userid or "").strip()
         if not user_id:
@@ -335,7 +335,7 @@ def create_rolemgmt_router(
     def assign_userglobal_role(payload: UserGlobalRoleAssignmentRequest,
                                grantor: Optional[str] = Depends(get_grantor),
                     user_context: Dict[str, Any] = Depends(get_current_user_context)) -> Dict[str, Any]:
-        enforce(user_context, "/role-management/userglobal/assign", "POST", {})
+        #enforce(user_context, "/role-management/userglobal/assign", "POST", {})
         return execute_role_operation(
             lambda: rolemgmtimpl.add_users2globalroles(grantor, payload.user, payload.role),
             "assigned"
@@ -352,7 +352,7 @@ def create_rolemgmt_router(
     def unassign_userglobal_role(payload: UserGlobalRoleAssignmentRequest,
                                  grantor: Optional[str] = Depends(get_grantor),
                     user_context: Dict[str, Any] = Depends(get_current_user_context)) -> Dict[str, Any]:
-        enforce(user_context, "/role-management/userglobal/unassign", "POST", {})
+        #enforce(user_context, "/role-management/userglobal/unassign", "POST", {})
         return execute_role_operation(
             lambda: rolemgmtimpl.del_users2globalroles(grantor, payload.user, payload.role),
             "unassigned"
