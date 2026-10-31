@@ -10,9 +10,7 @@ p, platform_admin, /products, POST, True
 p, platform_admin, /products, GET, True
 p, platform_admin, /products, (PUT|DELETE), True
 p, platform_admin, /products/*, (GET|POST|PUT|DELETE), True
-p, platform_admin, /products/*/rule-templates, (GET|POST|PUT|DELETE), True
 p, platform_admin, /products/*/port-protocol, (GET|POST|PUT|DELETE), True
-p, platform_admin, /products/*/business-purpose, (GET|POST|PUT|DELETE), True
 p, platform_admin, /products/*/components, (GET|POST|PUT|DELETE), True
 p, platform_admin, /products/*/keywords, (GET|POST|PUT|DELETE), True
 p, platform_admin, /products/*/rule-files, (GET|POST|PUT|DELETE), True
@@ -38,9 +36,7 @@ p, platform_admin, /role-management/*, (GET|POST|PUT|DELETE), True
 
 p, viewall, /products, GET, True
 p, viewall, /products/*, GET, True
-p, viewall, /products/*/rule-templates, GET, True
 p, viewall, /products/*/port-protocol, GET, True
-p, viewall, /products/*/business-purpose, GET, True
 p, viewall, /products/*/components, GET, True
 p, viewall, /products/*/keywords, GET, True
 p, viewall, /products/*/rule-files, GET, True
@@ -64,9 +60,7 @@ p, viewall, /role-management/user/roles, GET, True
 
 
 p, manager, /products, GET, True
-p, manager, /products/*/rule-templates, (GET|POST|PUT|DELETE), True
 p, manager, /products/*/port-protocol, (GET|POST|PUT|DELETE), True
-p, manager, /products/*/business-purpose, (GET|POST|PUT|DELETE), True
 p, manager, /products/*/components, (GET|POST|PUT|DELETE), True
 p, manager, /products/*/keywords, (GET|POST|PUT|DELETE), True
 p, manager, /products/*/rule-files, (GET|POST|PUT|DELETE), True
@@ -91,9 +85,7 @@ p, manager, /role-management/user/roles, GET, True
 
 
 p, viewer, /products, GET, True
-p, viewer, /products/*/rule-templates, (GET), True
 p, viewer, /products/*/port-protocol, (GET), True
-p, viewer, /products/*/business-purpose, (GET), True
 p, viewer, /products/*/components, (GET), True
 p, viewer, /products/*/keywords, (GET), True
 p, viewer, /products/*/rule-files, (GET), True

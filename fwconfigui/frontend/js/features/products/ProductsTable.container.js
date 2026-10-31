@@ -264,7 +264,7 @@ function ProductsTable({ setLoading, setError }) {
     const name = safeTrim(row?.name);
     if (!name) return;
     if (typeof setCurrentProduct === "function") setCurrentProduct(name);
-    const nextPath = `/products/${encodeURIComponent(name)}/rule-templates`;
+    const nextPath = `/products/${encodeURIComponent(name)}/components`;
     if (`${window.location.pathname}${window.location.search}` !== nextPath) {
       window.history.pushState({}, "", nextPath);
       window.dispatchEvent(new PopStateEvent("popstate"));

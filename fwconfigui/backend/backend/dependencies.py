@@ -1,22 +1,5 @@
 """Shared FastAPI dependencies."""
 
-from typing import Optional
-
-from backend.exceptions.custom import ValidationError
 from backend.services.common_service import get_current_user, get_deployment_type
 
-__all__ = ["require_yaml_type", "get_current_user", "get_deployment_type"]
-
-
-def require_yaml_type(yaml_type: Optional[str]) -> str:
-    """Validate and normalize yaml_type query parameter."""
-
-    if not yaml_type:
-        raise ValidationError("type", "Missing required query parameter: type")
-
-    normalized = str(yaml_type).strip().lower()
-    allowed = {"fw-rules", "port-protocol", "business-purpose", "env", "keywords"}
-    if normalized not in allowed:
-        raise ValidationError("type", f"Invalid type '{normalized}'. Allowed: {', '.join(sorted(allowed))}")
-
-    return normalized
+__all__ = ["get_current_user", "get_deployment_type"]

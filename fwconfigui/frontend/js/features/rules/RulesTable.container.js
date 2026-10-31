@@ -17,8 +17,6 @@ function RulesTable({ env, setLoading, setError }) {
   });
   const [yamlEditor, setYamlEditor] = React.useState({ show: false, row: null, name: "", yaml: "" });
   const [confirmDelete, setConfirmDelete] = React.useState({ show: false, row: null });
-  const [verifyCommitPanel, setVerifyCommitPanel] = React.useState({ show: false, mode: "verify-only", env: "" });
-  const [commitResult, setCommitResult] = React.useState({ show: false, ok: false, errors: [] });
 
   const rows = React.useMemo(() => {
     return (items || []).map((it) => ({
@@ -339,34 +337,6 @@ function RulesTable({ env, setLoading, setError }) {
     [env, generateCopyName, setLoading, setError, load, openEditForm]
   );
 
-  const runVerifyAndCommit = React.useCallback(
-    async (mode, envName) => {
-      try {
-        setLoading(true);
-        setError("");
-        const selectedEnv = safeTrim(envName);
-        const envs = selectedEnv ? [selectedEnv] : [];
-        const res = await postJson(`${fwconfigTypeBasePath("fw-rules")}/verify_and_commit`, { mode, envs });
-        const ok = !!res?.ok;
-        const errors = Array.isArray(res?.errors) ? res.errors : [];
-        setCommitResult({ show: true, ok, errors });
-        if (!ok && errors.length) {
-          setError(String(errors[0] || "Validation failed"));
-        }
-      } catch (e) {
-        setError(formatError(e));
-        setCommitResult({ show: true, ok: false, errors: [formatError(e)] });
-      } finally {
-        setLoading(false);
-      }
-    },
-    [setLoading, setError]
-  );
-
-  const onCommit = React.useCallback(() => {
-    setVerifyCommitPanel({ show: true, mode: "verify-only", env: safeTrim(env) });
-  }, [env]);
-
   const onDelete = React.useCallback((row) => {
     setConfirmDelete({ show: true, row });
   }, []);
@@ -415,137 +385,12 @@ function RulesTable({ env, setLoading, setError }) {
         rows={sortedRows}
         filters={filters}
         setFilters={setFilters}
-        onCommit={onCommit}
         onAdd={onAdd}
         onEdit={onEdit}
         onEditYaml={onEditYaml}
         onCopy={onCopy}
         onDelete={onDelete}
       />
-
-      {verifyCommitPanel.show ? (
-        <div
-          className="modalOverlay"
-          onClick={(e) =>
-            e.target === e.currentTarget && setVerifyCommitPanel({ show: false, mode: "verify-only", env: "" })
-          }
-        >
-          <div className="modalCard">
-            <div className="modalHeader">
-              <h3 style={{ margin: 0 }}>Verify and commit</h3>
-              <button className="btn" onClick={() => setVerifyCommitPanel({ show: false, mode: "verify-only", env: "" })}>
-                Close
-              </button>
-            </div>
-
-            <div style={{ marginTop: 12, display: "flex", flexDirection: "column", gap: 10 }}>
-              <label style={{ display: "flex", gap: 8, alignItems: "center" }}>
-                <input
-                  type="radio"
-                  name="verify-commit-mode"
-                  checked={safeTrim(verifyCommitPanel.mode) === "verify-only"}
-                  onChange={() => setVerifyCommitPanel((p) => ({ ...p, mode: "verify-only" }))}
-                />
-                <span>Verify-only</span>
-              </label>
-              <label style={{ display: "flex", gap: 8, alignItems: "center" }}>
-                <input
-                  type="radio"
-                  name="verify-commit-mode"
-                  checked={safeTrim(verifyCommitPanel.mode) === "verify-and-commit"}
-                  onChange={() => setVerifyCommitPanel((p) => ({ ...p, mode: "verify-and-commit" }))}
-                />
-                <span>Verify and commit</span>
-              </label>
-
-              <label style={{ display: "flex", gap: 8, alignItems: "center" }}>
-                <span style={{ minWidth: 48 }}>Envs</span>
-                <select
-                  value={safeTrim(verifyCommitPanel.env)}
-                  onChange={(e) => setVerifyCommitPanel((p) => ({ ...p, env: e.target.value }))}
-                >
-                  <option value="" disabled>
-                    Select environment
-                  </option>
-                  {(Array.isArray(envNames) ? envNames : []).map((e) => {
-                    const v = safeTrim(e);
-                    if (!v) return null;
-                    return (
-                      <option key={v} value={v}>
-                        {v}
-                      </option>
-                    );
-                  })}
-                </select>
-              </label>
-            </div>
-
-            <div className="modalActions">
-              <button className="btn" onClick={() => setVerifyCommitPanel({ show: false, mode: "verify-only", env: "" })}>
-                Cancel
-              </button>
-              <button
-                className="btn btn-primary"
-                disabled={!safeTrim(verifyCommitPanel.env)}
-                onClick={async () => {
-                  const mode = safeTrim(verifyCommitPanel.mode) || "verify-only";
-                  const selectedEnv = safeTrim(verifyCommitPanel.env);
-                  if (!selectedEnv) return;
-                  setVerifyCommitPanel({ show: false, mode: "verify-only", env: "" });
-                  await runVerifyAndCommit(mode, selectedEnv);
-                }}
-              >
-                Run
-              </button>
-            </div>
-          </div>
-        </div>
-      ) : null}
-
-      {commitResult.show ? (
-        <div
-          className="modalOverlay"
-          onClick={(e) =>
-            e.target === e.currentTarget && setCommitResult({ show: false, ok: false, errors: [] })
-          }
-        >
-          <div className="modalCard">
-            <div className="modalHeader">
-              <h3 style={{ margin: 0 }}>Commit validation</h3>
-              <button className="btn" onClick={() => setCommitResult({ show: false, ok: false, errors: [] })}>
-                Close
-              </button>
-            </div>
-
-            <div style={{ marginTop: 12 }}>
-              {commitResult.ok ? (
-                <div style={{ color: "#1f7a35" }}>Validation passed.</div>
-              ) : (
-                <div style={{ color: "#dc3545" }}>Validation failed.</div>
-              )}
-            </div>
-
-            {!commitResult.ok ? (
-              <div style={{ marginTop: 12 }}>
-                <div className="muted" style={{ marginBottom: 6 }}>
-                  Errors ({Array.isArray(commitResult.errors) ? commitResult.errors.length : 0})
-                </div>
-                <div style={{ maxHeight: 360, overflow: "auto" }}>
-                  {(commitResult.errors || []).map((msg, idx) => (
-                    <div
-                      key={idx}
-                      className="card"
-                      style={{ padding: 10, marginBottom: 8, borderColor: "rgba(220,53,69,0.35)" }}
-                    >
-                      {String(msg || "")}
-                    </div>
-                  ))}
-                </div>
-              </div>
-            ) : null}
-          </div>
-        </div>
-      ) : null}
 
       {yamlEditor.show ? (
         <div className="modalOverlay" onClick={(e) => e.target === e.currentTarget && closeYamlEditor()}>

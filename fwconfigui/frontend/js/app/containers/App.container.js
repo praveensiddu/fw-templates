@@ -12,9 +12,9 @@ function App() {
 
   const initialProductSubTab = (() => {
     const p = String(initialPathname || "/").trim();
-    const pm = p.match(/^\/products\/[^/]+\/(rule-templates|port-protocol|business-purpose|components|keywords|rule-files|groups|addrs|rules|ip_inventory)(?:\/.*)?$/);
-    if (pm) return safeTrim(pm[1]) || "rule-templates";
-    return "rule-templates";
+    const pm = p.match(/^\/products\/[^/]+\/(port-protocol|components|keywords|rule-files|groups|addrs|rules|ip_inventory)(?:\/.*)?$/);
+    if (pm) return safeTrim(pm[1]) || "components";
+    return "components";
   })();
 
   const initialProductEnv = (() => {
@@ -70,48 +70,7 @@ function App() {
   const [productItems, setProductItems] = React.useState([]);
   const [productEnvOptions, setProductEnvOptions] = React.useState([]);
 
-  const [navConfirm, setNavConfirm] = React.useState({
-    show: false,
-    busy: false,
-    resolve: null,
-  });
-
-  const lastAllowedPathRef = React.useRef("/rule-templates");
   const fetchProductRecordRetryRef = React.useRef(0);
-
-  const canNavigateAway = React.useCallback(async () => {
-    const guard = window.__fwRulesNavGuard;
-    if (!guard || typeof guard.hasUnsavedChanges !== "function") return true;
-    if (!guard.hasUnsavedChanges()) return true;
-
-    if (navConfirm.show) return false;
-
-    return await new Promise((resolve) => {
-      setNavConfirm({ show: true, busy: false, resolve });
-    });
-  }, [navConfirm.show]);
-
-  React.useEffect(() => {
-    window.__fwRulesRequestNavConfirm = canNavigateAway;
-    return () => {
-      if (window.__fwRulesRequestNavConfirm) delete window.__fwRulesRequestNavConfirm;
-    };
-  }, [canNavigateAway]);
-
-  React.useEffect(() => {
-    const onBeforeUnload = (e) => {
-      const guard = window.__fwRulesNavGuard;
-      if (!guard || typeof guard.hasUnsavedChanges !== "function") return;
-      if (!guard.hasUnsavedChanges()) return;
-
-      e.preventDefault();
-      e.returnValue = "You have unsaved changes.";
-      return "You have unsaved changes.";
-    };
-
-    window.addEventListener("beforeunload", onBeforeUnload);
-    return () => window.removeEventListener("beforeunload", onBeforeUnload);
-  }, []);
 
   React.useEffect(() => {
     if (window.location.pathname === "/") {
@@ -126,7 +85,7 @@ function App() {
       const prod = safeTrim(m0[1]);
       if (prod) {
         if (typeof setCurrentProduct === "function") setCurrentProduct(prod);
-        window.history.replaceState({}, "", `/products/${encodeURIComponent(prod)}/rule-templates`);
+        window.history.replaceState({}, "", `/products/${encodeURIComponent(prod)}/components`);
       }
     }
 
@@ -136,17 +95,13 @@ function App() {
 
     // Legacy (non-product) routes are no longer used for these pages.
     if (
-      window.location.pathname === "/rule-templates" ||
       window.location.pathname === "/port-protocol" ||
-      window.location.pathname === "/business-purpose" ||
       window.location.pathname === "/components" ||
       window.location.pathname === "/keywords" ||
       window.location.pathname === "/rule-files"
     ) {
       window.history.replaceState({}, "", "/products");
     }
-
-    lastAllowedPathRef.current = `${window.location.pathname}${window.location.search}` || "/rule-templates";
 
     const p = String(window.location.pathname || "/");
     if (p === "/env") {
@@ -159,9 +114,9 @@ function App() {
       window.history.replaceState({}, "", "/infra/env");
     }
 
-    const pm = p.match(/^\/products\/[^/]+\/(rule-templates|port-protocol|business-purpose|components|keywords|rule-files|groups|addrs|rules|ip_inventory)(?:\/.*)?$/);
+    const pm = p.match(/^\/products\/[^/]+\/(port-protocol|components|keywords|rule-files|groups|addrs|rules|ip_inventory)(?:\/.*)?$/);
     if (pm) {
-      setProductSubTab(safeTrim(pm[1]) || "rule-templates");
+      setProductSubTab(safeTrim(pm[1]) || "components");
       setActiveTab("products");
     } else if (p === "/products" || p.startsWith("/products/")) {
       setActiveTab("products");
@@ -183,9 +138,6 @@ function App() {
         window.history.replaceState({}, "", "/products");
       }
 
-      const full = `${window.location.pathname}${window.location.search}`;
-      lastAllowedPathRef.current = full;
-
       const p = String(window.location.pathname || "/");
       if (p === "/env") {
         setInfraSubTab("env");
@@ -203,10 +155,10 @@ function App() {
       }
 
       const pm = p.match(
-        /^\/products\/[^/]+\/(rule-templates|port-protocol|business-purpose|components|keywords|rule-files|groups|addrs|rules|ip_inventory)(?:\/.*)?$/
+        /^\/products\/[^/]+\/(port-protocol|components|keywords|rule-files|groups|addrs|rules|ip_inventory)(?:\/.*)?$/
       );
       if (pm) {
-        setProductSubTab(safeTrim(pm[1]) || "rule-templates");
+        setProductSubTab(safeTrim(pm[1]) || "components");
         setActiveTab("products");
         const envMatch = p.match(/^\/products\/[^/]+\/(groups|addrs|rules|ip_inventory)\/([^/]+)(?:\/.*)?$/);
         if (envMatch) {
@@ -227,22 +179,11 @@ function App() {
       }
     };
 
-    const onPop = async () => {
-      const ok = await canNavigateAway();
-      if (!ok) {
-        window.history.pushState({}, "", lastAllowedPathRef.current || "/rule-templates");
-        return;
-      }
-
+    const onPop = () => {
       applyRouteFromLocation();
     };
 
-    const onLocationChange = async () => {
-      const ok = await canNavigateAway();
-      if (!ok) {
-        window.history.pushState({}, "", lastAllowedPathRef.current || "/rule-templates");
-        return;
-      }
+    const onLocationChange = () => {
       applyRouteFromLocation();
     };
 
@@ -268,7 +209,7 @@ function App() {
       window.history.pushState = origPush;
       window.history.replaceState = origReplace;
     };
-  }, [canNavigateAway, setError]);
+  }, [setError]);
 
   React.useEffect(() => {
     let cancelled = false;
@@ -461,9 +402,7 @@ function App() {
               <button
                 className="btn"
                 style={{ background: "rgba(108,117,125,0.15)", borderColor: "rgba(108,117,125,0.45)", color: "#495057" }}
-                onClick={async () => {
-                  const ok = await canNavigateAway();
-                  if (!ok) return;
+                onClick={() => {
                   if (typeof setCurrentProduct === "function") setCurrentProduct("");
                   if (window.__fwCurrentProduct) window.__fwCurrentProduct = "";
                   if (`${window.location.pathname}${window.location.search}` !== "/products") {
@@ -479,19 +418,6 @@ function App() {
                   Back to Products
                 </span>
               </button>
-              <button
-                className={`tab ${productSubTab === "rule-templates" ? "active" : ""}`}
-                onClick={() => {
-                  const nextPath = `/products/${encodeURIComponent(currentProduct)}/rule-templates`;
-                  if (`${window.location.pathname}${window.location.search}` !== nextPath) {
-                    window.history.pushState({}, "", nextPath);
-                  }
-                  setProductSubTab("rule-templates");
-                }}
-              >
-                rule-templates
-              </button>
-
               <button
                 className={`tab ${productSubTab === "components" ? "active" : ""}`}
                 onClick={() => {
@@ -572,19 +498,6 @@ function App() {
               </button>
 
               <button
-                className={`tab ${productSubTab === "business-purpose" ? "active" : ""}`}
-                onClick={() => {
-                  const nextPath = `/products/${encodeURIComponent(currentProduct)}/business-purpose`;
-                  if (`${window.location.pathname}${window.location.search}` !== nextPath) {
-                    window.history.pushState({}, "", nextPath);
-                  }
-                  setProductSubTab("business-purpose");
-                }}
-              >
-                business-purpose
-              </button>
-
-              <button
                 className={`tab ${productSubTab === "keywords" ? "active" : ""}`}
                 onClick={() => {
                   const nextPath = `/products/${encodeURIComponent(currentProduct)}/keywords`;
@@ -657,7 +570,6 @@ function App() {
 
       const body = (() => {
         if (productSubTab === "port-protocol") return <PortProtocolTable setLoading={setLoading} setError={setError} />;
-        if (productSubTab === "business-purpose") return <BusinessPurposeTable setLoading={setLoading} setError={setError} />;
         if (productSubTab === "components") return <ComponentsTable setLoading={setLoading} setError={setError} />;
         if (productSubTab === "keywords") return <KeywordsTable setLoading={setLoading} setError={setError} />;
         if (productSubTab === "rule-files") return <RuleFilesTable setLoading={setLoading} setError={setError} />;
@@ -697,7 +609,7 @@ function App() {
             </div>
           );
         }
-        return <FwRulesTable setLoading={setLoading} setError={setError} />;
+        return <ComponentsTable setLoading={setLoading} setError={setError} />;
       })();
 
       return (
@@ -773,7 +685,7 @@ function App() {
     if (activeTab === "role-mgmt") {
       return <RoleMgmt setLoading={setLoading} setError={setError} />;
     }
-    return <FwRulesTable setLoading={setLoading} setError={setError} />;
+    return <ProductsTable setLoading={setLoading} setError={setError} />;
   }, [activeTab, homeInitialized, onHomeSaved, infraSubTab, productSubTab, productEnv, infraEnvItems, sortedProductEnvOptions, getProductFromPath, getProductEnvFromPath, routeVersion]);
 
   return (
@@ -781,10 +693,7 @@ function App() {
       <AppView
         activeTab={homeInitialized === true ? activeTab : "home"}
         homeInitialized={homeInitialized === true}
-        onSetTab={async (t) => {
-          const ok = await canNavigateAway();
-          if (!ok) return;
-
+        onSetTab={(t) => {
           setError("");
           setActiveTab(t);
 
@@ -801,7 +710,7 @@ function App() {
           if (t === "products") {
             const currentProduct = safeTrim(window.__fwCurrentProduct) || getProductFromPath(window.location.pathname);
             if (isNonEmptyString(currentProduct)) {
-              const sub = safeTrim(productSubTab) || "rule-templates";
+              const sub = safeTrim(productSubTab) || "components";
               if (sub === "groups" || sub === "addrs") {
                 const envNames = (infraEnvItems || [])
                   .map((x) => safeTrim(x?.name))
@@ -819,7 +728,6 @@ function App() {
           if (window.location.pathname !== nextPath) {
             window.history.pushState({}, "", nextPath);
           }
-          lastAllowedPathRef.current = nextPath;
         }}
         error={error}
         loading={loading}
@@ -830,90 +738,6 @@ function App() {
       >
         {content}
       </AppView>
-
-      {navConfirm.show ? (
-        <div
-          className="modalOverlay"
-          onClick={() => {
-            if (navConfirm.busy) return;
-            const r = navConfirm.resolve;
-            setNavConfirm({ show: false, busy: false, resolve: null });
-            if (typeof r === "function") r(false);
-          }}
-        >
-          <div className="modalCard" onClick={(e) => e.stopPropagation()}>
-            <div className="modalHeader">
-              <h3 style={{ margin: 0 }}>You have unsaved changes</h3>
-              <button
-                className="btn"
-                onClick={() => {
-                  if (navConfirm.busy) return;
-                  const r = navConfirm.resolve;
-                  setNavConfirm({ show: false, busy: false, resolve: null });
-                  if (typeof r === "function") r(false);
-                }}
-              >
-                Close
-              </button>
-            </div>
-
-            <div style={{ marginTop: 12 }}>
-              Choose what you want to do before leaving this page.
-            </div>
-
-            <div className="modalActions">
-              <button
-                className="btn"
-                onClick={() => {
-                  if (navConfirm.busy) return;
-                  const r = navConfirm.resolve;
-                  setNavConfirm({ show: false, busy: false, resolve: null });
-                  if (typeof r === "function") r(false);
-                }}
-              >
-                Stay
-              </button>
-              <button
-                className="btn"
-                onClick={() => {
-                  if (navConfirm.busy) return;
-                  const guard = window.__fwRulesNavGuard;
-                  if (guard && typeof guard.discard === "function") {
-                    guard.discard();
-                  }
-                  const r = navConfirm.resolve;
-                  setNavConfirm({ show: false, busy: false, resolve: null });
-                  if (typeof r === "function") r(true);
-                }}
-              >
-                Discard
-              </button>
-              <button
-                className="btn btn-primary"
-                onClick={async () => {
-                  if (navConfirm.busy) return;
-                  setNavConfirm((p) => ({ ...p, busy: true }));
-                  try {
-                    const guard = window.__fwRulesNavGuard;
-                    if (guard && typeof guard.save === "function") {
-                      await guard.save();
-                    }
-                    const r = navConfirm.resolve;
-                    setNavConfirm({ show: false, busy: false, resolve: null });
-                    if (typeof r === "function") r(true);
-                  } catch (e) {
-                    const r = navConfirm.resolve;
-                    setNavConfirm({ show: false, busy: false, resolve: null });
-                    if (typeof r === "function") r(false);
-                  }
-                }}
-              >
-                Save
-              </button>
-            </div>
-          </div>
-        </div>
-      ) : null}
     </>
   );
 }

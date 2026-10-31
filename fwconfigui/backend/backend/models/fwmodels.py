@@ -43,44 +43,11 @@ class DedupePortProtocolRequest(BaseModel):
     original_name: str
 
 
-class DedupeBusinessPurposeRequest(BaseModel):
-    duplicate_name: str
-    original_name: str
-
-class UpdateFwRuleFieldsRequest(BaseModel):
-    appflowid: str
-    protocol_port_reference: Optional[List[str]] = None
-    business_purpose_reference: Optional[str] = None
-    keywords: Optional[List[str]] = None
-    envs: Optional[List[str]] = None
-
-
-class MoveFwRuleRequest(BaseModel):
-    appflowid: str
-    from_filename: str
-    to_filename: str
-
-
-class VerifyAndCommitRequest(BaseModel):
-    mode: str
-    envs: Optional[List[str]] = None
-
-
-class RenderRequest(BaseModel):
-    env: str
-
-
 class PortProtocolOverrideRequest(BaseModel):
     name: str
     port: str
     originalservice: str
     newservice: str
-
-
-class BusinessPurposeOverrideRequest(BaseModel):
-    name: str
-    original_text: str
-    newtext: str
 
 
 class HomeSettings(BaseModel):

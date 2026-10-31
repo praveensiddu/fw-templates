@@ -4,7 +4,6 @@ from typing import Any, Dict, List, Optional, Tuple
 
 from backend.exceptions.custom import ValidationError
 from backend.utils.logging_utils import log_all_methods
-from backend.utils.yaml_utils import list_yaml_files
 from backend.services.common_service import get_product_templates_repo_name
 from backend.utils.workspace import get_fwconfigfiles_root
 from backend.utils.yaml_utils import read_yaml_dict, write_yaml_dict
@@ -78,42 +77,6 @@ class PortProtocolService:
             if prev not in existing_keys:
                 raise ValidationError("original_name", "does not exist")
 
-            fw_rules_root = self._repo_root() / "fw-rules"
-            fw_rules_root.mkdir(parents=True, exist_ok=True)
-
-            for fpath in list_yaml_files(fw_rules_root):
-                doc = read_yaml_dict(fpath)
-                if not isinstance(doc, dict):
-                    continue
-                flowtemplates = doc.get("flowtemplates")
-                if not isinstance(flowtemplates, list):
-                    continue
-
-                file_changed = False
-                for entry in flowtemplates:
-                    if not isinstance(entry, dict):
-                        continue
-                    refs = entry.get("protocol-port-reference")
-                    if not isinstance(refs, list):
-                        continue
-
-                    next_refs: List[str] = []
-                    replaced_here = 0
-                    for r in refs:
-                        n = self._normalize_name(r)
-                        if n == prev:
-                            n = key
-                            replaced_here += 1
-                        if n and n not in next_refs:
-                            next_refs.append(n)
-
-                    if replaced_here:
-                        entry["protocol-port-reference"] = sorted(next_refs, key=lambda s: s.lower())
-                        file_changed = True
-
-                if file_changed:
-                    write_yaml_dict(fpath, doc, sort_keys=True)
-
             raw.pop(prev, None)
 
         raw[key] = self._normalize_port_protocol(port_protocol)
@@ -182,48 +145,7 @@ class PortProtocolService:
         if orig not in existing_keys:
             raise ValidationError("original_name", "does not exist")
 
-        updated_files = 0
-        updated_refs = 0
-
-        fw_rules_root = self._repo_root() / "fw-rules"
-        fw_rules_root.mkdir(parents=True, exist_ok=True)
-
-        for path in list_yaml_files(fw_rules_root):
-            doc = read_yaml_dict(path)
-            if not isinstance(doc, dict):
-                continue
-            flowtemplates = doc.get("flowtemplates")
-            if not isinstance(flowtemplates, list):
-                continue
-
-            file_changed = False
-            for entry in flowtemplates:
-                if not isinstance(entry, dict):
-                    continue
-                refs = entry.get("protocol-port-reference")
-                if not isinstance(refs, list):
-                    continue
-
-                next_refs: List[str] = []
-                replaced_here = 0
-                for r in refs:
-                    n = self._normalize_name(r)
-                    if n == dup:
-                        n = orig
-                        replaced_here += 1
-                    if n and n not in next_refs:
-                        next_refs.append(n)
-
-                if replaced_here:
-                    entry["protocol-port-reference"] = sorted(next_refs, key=lambda s: s.lower())
-                    updated_refs += replaced_here
-                    file_changed = True
-
-            if file_changed:
-                write_yaml_dict(path, doc, sort_keys=True)
-                updated_files += 1
-
         raw.pop(dup, None)
         write_yaml_dict(pp_path, raw, sort_keys=True)
 
-        return (updated_files, updated_refs)
+        return (0, 0)

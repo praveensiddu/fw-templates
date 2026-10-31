@@ -1,4 +1,4 @@
-function RulesTableView({ env, rows, filters, setFilters, onCommit, onAdd, onEdit, onEditYaml, onCopy, onDelete }) {
+function RulesTableView({ env, rows, filters, setFilters, onAdd, onEdit, onEditYaml, onCopy, onDelete }) {
   function renderList(xs) {
     return (Array.isArray(xs) ? xs : []).join(", ");
   }
@@ -10,13 +10,6 @@ function RulesTableView({ env, rows, filters, setFilters, onCommit, onAdd, onEdi
           rules{isNonEmptyString(env) ? ` / ${env}` : ""} ({Array.isArray(rows) ? rows.length : 0})
         </div>
         <div style={{ display: "flex", gap: 6, alignItems: "center" }}>
-          <button className="iconBtn iconBtn-primary" title="Verify and commit" onClick={onCommit}>
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-              <path d="M9 12l2 2 4-4" />
-              <path d="M12 22c5.523 0 10-4.477 10-10S17.523 2 12 2 2 6.477 2 12s4.477 10 10 10z" />
-              <path d="M12 6v6" />
-            </svg>
-          </button>
           <button className="iconBtn iconBtn-primary" title="Add" onClick={onAdd}>
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
               <path d="M12 5v14" />

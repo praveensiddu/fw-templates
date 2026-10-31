@@ -40,8 +40,6 @@ function isProductScopedType(type) {
     t === "rule-files" ||
     t === "components" ||
     t === "port-protocol" ||
-    t === "business-purpose" ||
-    t === "fw-rules" ||
     t === "groups" ||
     t === "addrs" ||
     t === "ip_inventory"
@@ -59,16 +57,12 @@ function fwconfigTypeBasePath(type) {
     (t === "keywords" ||
       t === "rule-files" ||
       t === "components" ||
-      t === "port-protocol" ||
-      t === "business-purpose" ||
-      t === "fw-rules")
+      t === "port-protocol")
   ) {
     if (t === "keywords") return `/api/v1/products/${encodeURIComponent(product)}/keywords`;
     if (t === "rule-files") return `/api/v1/products/${encodeURIComponent(product)}/rule-files`;
     if (t === "components") return `/api/v1/products/${encodeURIComponent(product)}/components`;
     if (t === "port-protocol") return `/api/v1/products/${encodeURIComponent(product)}/port-protocol`;
-    if (t === "business-purpose") return `/api/v1/products/${encodeURIComponent(product)}/business-purpose`;
-    if (t === "fw-rules") return `/api/v1/products/${encodeURIComponent(product)}/rule-templates`;
     return `/api/v1/products/${encodeURIComponent(product)}/fwconfig/${encodeURIComponent(t)}`;
   }
 
@@ -81,8 +75,6 @@ function fwconfigTypeBasePath(type) {
     t === "rule-files" ||
     t === "components" ||
     t === "port-protocol" ||
-    t === "business-purpose" ||
-    t === "fw-rules" ||
     t === "predef-port-protocol"
   ) {
     if (t === "env" || t === "networkareas" || t === "sites" || t === "predef-port-protocol") {
@@ -494,17 +486,6 @@ async function dedupePortProtocol(duplicateName, originalName) {
   if (!dup) throw new Error("duplicateName is required");
   if (!orig) throw new Error("originalName is required");
   const url = `/api/v1/products/${encodeURIComponent(product)}/port-protocol/dedupe`;
-  return await postJson(url, { duplicate_name: dup, original_name: orig });
-}
-
-async function dedupeBusinessPurpose(duplicateName, originalName) {
-  const product = getCurrentProduct();
-  if (!isNonEmptyString(product)) throw new Error("Select a product first");
-  const dup = safeTrim(duplicateName);
-  const orig = safeTrim(originalName);
-  if (!dup) throw new Error("duplicateName is required");
-  if (!orig) throw new Error("originalName is required");
-  const url = `/api/v1/products/${encodeURIComponent(product)}/business-purpose/dedupe`;
   return await postJson(url, { duplicate_name: dup, original_name: orig });
 }
 

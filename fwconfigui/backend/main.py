@@ -28,10 +28,8 @@ from uvicorn.config import LOGGING_CONFIG
 
 from backend.config.settings import settings
 from backend.exceptions.handlers import register_exception_handlers
-from backend.routers.business_purpose import router as business_purpose_router
 from backend.routers.components import router as components_router
 from backend.routers.env import router as env_router
-from backend.routers.fwrules import router as fwrules_router
 from backend.routers.groups import router as groups_router
 from backend.routers.home import router as home_router
 from backend.routers.keywords import router as keywords_router
@@ -42,9 +40,7 @@ from backend.routers.rules import router as rules_router
 from backend.routers.port_protocol import router as port_protocol_router
 from backend.routers.predef_port_protocol import router as predef_port_protocol_router
 from backend.routers.products import router as products_router
-from backend.routers.render import router as render_router
 from backend.routers.users import router as users_router
-from backend.routers.verify_and_commit import router as verify_and_commit_router
 from backend.routers.rule_files import router as rule_files_router
 from backend.routers.sites import router as sites_router
 from backend.routers.role_mgmt_api import create_rolemgmt_router
@@ -140,11 +136,9 @@ app.add_middleware(
 )
 
 register_exception_handlers(app)
-app.include_router(fwrules_router)
 app.include_router(keywords_router)
 app.include_router(port_protocol_router)
 app.include_router(env_router)
-app.include_router(business_purpose_router)
 app.include_router(components_router)
 app.include_router(rule_files_router)
 app.include_router(groups_router)
@@ -155,8 +149,6 @@ app.include_router(networkareas_router)
 app.include_router(sites_router)
 app.include_router(predef_port_protocol_router)
 app.include_router(products_router)
-app.include_router(verify_and_commit_router)
-app.include_router(render_router)
 app.include_router(users_router)
 app.include_router(home_router)
 app.include_router(
