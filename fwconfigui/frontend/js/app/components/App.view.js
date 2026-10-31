@@ -37,24 +37,26 @@ function AppView({ activeTab, onSetTab, error, loading, children, homeInitialize
         </div>
       </div>
       <div className="container">
-        <div className="tabs">
-          {homeInitialized ? (
-            <>
-              <button className={`tab ${activeTab === "products" ? "active" : ""}`} onClick={() => onSetTab("products")}>
-                products
-              </button>
-              <button className={`tab ${activeTab === "infra" ? "active" : ""}`} onClick={() => onSetTab("infra")}>
-                infra
-              </button>
-              <button className={`tab ${activeTab === "role-mgmt" ? "active" : ""}`} onClick={() => onSetTab("role-mgmt")}>
-                role management
-              </button>
-            </>
-          ) : null}
-          <button className={`tab ${activeTab === "home" ? "active" : ""}`} onClick={() => onSetTab("home")}>
-            Home
-          </button>
-        </div>
+        {isNonEmptyString(getCurrentProductFromPath()) ? null : (
+          <div className="tabs">
+            {homeInitialized ? (
+              <>
+                <button className={`tab ${activeTab === "products" ? "active" : ""}`} onClick={() => onSetTab("products")}>
+                  products
+                </button>
+                <button className={`tab ${activeTab === "infra" ? "active" : ""}`} onClick={() => onSetTab("infra")}>
+                  infra
+                </button>
+                <button className={`tab ${activeTab === "role-mgmt" ? "active" : ""}`} onClick={() => onSetTab("role-mgmt")}>
+                  role management
+                </button>
+              </>
+            ) : null}
+            <button className={`tab ${activeTab === "home" ? "active" : ""}`} onClick={() => onSetTab("home")}>
+              Home
+            </button>
+          </div>
+        )}
 
         {error ? (
           <div className="card" style={{ padding: 12, borderColor: "rgba(220,53,69,0.5)", color: "#dc3545" }}>

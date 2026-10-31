@@ -529,6 +529,22 @@ function FwRulesTable({ setLoading, setError }) {
   const rows = React.useMemo(() => {
     const ppKnown = new Set((Array.isArray(portProtocolNames) ? portProtocolNames : []).map((x) => safeTrim(x)).filter(Boolean));
     const bpKnown = new Set((Array.isArray(businessPurposeNames) ? businessPurposeNames : []).map((x) => safeTrim(x)).filter(Boolean));
+    const groupKnown = new Set(
+      (Array.isArray(groupOptions) ? groupOptions : []).map((x) => safeTrim(x).toUpperCase()).filter(Boolean)
+    );
+
+    const toEndpointItems = (arr) =>
+      (Array.isArray(arr) ? arr : [])
+        .map((it) => {
+          const group = safeTrim(it?.group);
+          const envs = Array.isArray(it?.envs) ? it.envs.map((x) => safeTrim(x)).filter(Boolean) : [];
+          return {
+            group,
+            envsText: `[${envs.join(",")}]`,
+            valid: !group || groupKnown.has(group.toUpperCase()),
+          };
+        })
+        .filter((x) => x.group || x.envsText !== "[]");
 
     return (items || []).map((it) => {
       const refs = Array.isArray(it?.data?.["protocol-port-reference"]) ? it.data["protocol-port-reference"] : [];
@@ -560,6 +576,8 @@ function FwRulesTable({ setLoading, setError }) {
         appflowid,
         sourceDisplay: formatEndpoint(src),
         destinationDisplay: formatEndpoint(dst),
+        sourceItems: toEndpointItems(src),
+        destinationItems: toEndpointItems(dst),
         protocolPortItems,
         protocolPortRefs: protocolPortItems.map((x) => x.key),
         protocolPortDisplay: protocolPortItems.map((x) => x.display).filter(Boolean).join("\n"),
@@ -570,7 +588,7 @@ function FwRulesTable({ setLoading, setError }) {
         envsJoined: envs.map((x) => safeTrim(x)).filter(Boolean).join("\n"),
       };
     });
-  }, [items, formatEndpoint, portProtocolDisplayByName, businessPurposeDisplayByName, portProtocolNames, businessPurposeNames]);
+  }, [items, formatEndpoint, portProtocolDisplayByName, businessPurposeDisplayByName, portProtocolNames, businessPurposeNames, groupOptions]);
 
   const { sortedRows, filters, setFilters } = useTableFilter({
     rows,

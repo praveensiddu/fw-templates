@@ -236,14 +236,14 @@ def _env_letteridentifier(env: str) -> str:
 
 
 def allowed_group_names(product: str, env: Optional[str] = None) -> List[str]:
-    """Group names a product may reference (SITE-COMP-<ES> convention).
+    """Group names a product may reference (SITE-COMP-<envletter> convention).
 
     A component contributes its names when it belongs to the product itself,
     or when its 'exposedto' list contains 'ALL' or the product name.
 
     Args:
         product: Product name (case-insensitive)
-        env: When given, '<ES>' is replaced by the env's letteridentifier
+        env: When given, gropu name will end with env's letteridentifier
              (left literal when the env has none)
 
     Returns:
@@ -282,10 +282,15 @@ def allowed_group_names(product: str, env: Optional[str] = None) -> List[str]:
                 for s in (lst if isinstance(lst, list) else []):
                     site = str(s or "").strip()
                     if site:
-                        names.add(f"{site}-{comp}-<ES>")
+                        names.add(f"{site}-{comp}")
 
     letter = _env_letteridentifier(env) if env is not None else ""
     if letter:
-        names = {n.replace("<ES>", letter) for n in names}
+        resolved: set[str] = set()
+        for nn in names:
+            if not nn.endswith(f"-{letter}"):
+                nn = f"{nn}-{letter}"
+            resolved.add(nn)
+        names = resolved
 
     return sorted(names, key=str.lower)

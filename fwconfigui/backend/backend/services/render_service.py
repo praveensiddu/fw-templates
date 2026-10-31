@@ -12,6 +12,7 @@ from backend.services.common_service import (
     get_product_templates_repo_name,
     get_rendered_folder_prefix,
 )
+from backend.services.business_purpose_service import BusinessPurposeService
 from backend.services.port_protocol_service import PortProtocolService
 from backend.services.predef_port_protocol_service import PredefPortProtocolService
 from backend.utils.logging_utils import log_all_methods
@@ -71,6 +72,16 @@ class RenderService:
                 out[name] = vals
         return out
 
+    def _business_purpose_lookup(self) -> Dict[str, str]:
+        """business-purpose name (lower) -> purpose text."""
+        out: Dict[str, str] = {}
+        for it in BusinessPurposeService(self._product).list_items():
+            name = str(it.get("name") or "").strip().lower()
+            text = str((it.get("data") or {}).get("business-purpose") or "").strip()
+            if name and text:
+                out[name] = text
+        return out
+
     @staticmethod
     def _envs_set(v: Any) -> set:
         vals = v if isinstance(v, list) else []
@@ -88,6 +99,8 @@ class RenderService:
                 continue
             if letter:
                 group = group.replace("<ES>", letter)
+                if not group.endswith(f"-{letter}"):
+                    group = f"{group}-{letter}"
             out.append({"group": group})
         return out
 
@@ -100,6 +113,7 @@ class RenderService:
 
         dst_root = self._rendered_fw_rules_dir(e)
         pp_lookup = self._port_protocol_lookup()
+        bp_lookup = self._business_purpose_lookup()
         letter = _env_letteridentifier(e)
 
         files: List[Dict[str, Any]] = []
@@ -138,12 +152,25 @@ class RenderService:
                     else:
                         warnings.append(f"{p.name}:{appflowid} unknown port-protocol '{ref}'")
 
+                bp_ref = str(rule.get("business-purpose-reference") or "").strip()
+                bp_text = bp_lookup.get(bp_ref.lower(), "") if bp_ref else ""
+                if bp_ref and not bp_text:
+                    warnings.append(f"{p.name}:{appflowid} unknown business-purpose '{bp_ref}'")
+
+                keywords = [
+                    str(x or "").strip()
+                    for x in (rule.get("keywords") if isinstance(rule.get("keywords"), list) else [])
+                    if str(x or "").strip()
+                ]
+
                 rendered.append(
                     {
                         "name": appflowid,
                         "source-list": src,
                         "destination-list": dst,
-                        "protocol-port-list": port_list,
+                        "protocol-port-map": [{"protocol-port": v, "service_offered": ""} for v in port_list],
+                        "business-purpose": bp_text,
+                        "keywords": keywords,
                     }
                 )
 

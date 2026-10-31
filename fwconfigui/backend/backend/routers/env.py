@@ -23,9 +23,10 @@ def save_item(
     request: Request,
     name: str,
     letteridentifier: str = "",
+    uidisplayorder: str = "",
     service: EnvService = Depends(get_service),
 ) -> Dict[str, Any]:
-    service.save_item(name=name, letteridentifier=letteridentifier)
+    service.save_item(name=name, letteridentifier=letteridentifier, uidisplayorder=uidisplayorder)
     return {"ok": True}
 
 

@@ -190,8 +190,8 @@ function AddrsTableView({ env, rows, duplicateValues, filters, setFilters, onAdd
             </th>
             <th className="fwTableHeaderCell" style={{ width: 160 }}>
               <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 8 }}>
-                <span>in-firewall</span>
-                <HelpIconButton docPath="/static/help/addrs/in-firewall.html" title="in-firewall" />
+                <span>IN-FW</span>
+                <HelpIconButton docPath="/static/help/addrs/in-fw.html" title="IN-FW" />
               </div>
             </th>
             <th className="fwTableHeaderCell" style={{ width: 160 }}>
@@ -234,7 +234,7 @@ function AddrsTableView({ env, rows, duplicateValues, filters, setFilters, onAdd
             <th>
               <input
                 className={`filterInput ${isNonEmptyString(filters.inFirewall) ? "filterInput-active" : ""}`}
-                placeholder="Filter in-firewall..."
+                placeholder="Filter IN-FW..."
                 value={filters.inFirewall}
                 onChange={(e) => setFilters((p) => ({ ...p, inFirewall: e.target.value }))}
               />

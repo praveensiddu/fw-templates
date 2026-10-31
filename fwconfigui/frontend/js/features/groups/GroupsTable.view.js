@@ -225,8 +225,8 @@ function GroupsTableView({ env, rows, filters, setFilters, onAdd, onCheckUsed, i
             </th>
             <th className="fwTableHeaderCell" style={{ width: 160 }}>
               <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 8 }}>
-                <span>in-firewall</span>
-                <HelpIconButton docPath="/static/help/groups/in-firewall.html" title="in-firewall" />
+                <span>IN-FW</span>
+                <HelpIconButton docPath="/static/help/groups/in-fw.html" title="IN-FW" />
               </div>
             </th>
             <th className="fwTableHeaderCell" style={{ width: 160 }}>
@@ -269,7 +269,7 @@ function GroupsTableView({ env, rows, filters, setFilters, onAdd, onCheckUsed, i
             <th>
               <input
                 className={`filterInput ${isNonEmptyString(filters.inFirewall) ? "filterInput-active" : ""}`}
-                placeholder="Filter in-firewall..."
+                placeholder="Filter IN-FW..."
                 value={filters.inFirewall}
                 onChange={(e) => setFilters((p) => ({ ...p, inFirewall: e.target.value }))}
               />
@@ -334,7 +334,7 @@ function GroupsTableView({ env, rows, filters, setFilters, onAdd, onCheckUsed, i
                     <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 8 }}>
                       {!validGroupNames.has(safeTrim(r?.name).toLowerCase()) ? (
                         <span
-                          title="group name does not match a site-component-<ES> combination from the components table"
+                          title="group name does not match a site-component-<envletter> combination from the components table"
                           style={{ background: "#dc3545", color: "#fff", padding: "1px 6px", borderRadius: 4 }}
                         >
                           {r.name}

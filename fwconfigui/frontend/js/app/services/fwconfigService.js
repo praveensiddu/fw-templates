@@ -122,7 +122,9 @@ async function saveFwConfigItem(type, payload) {
     let u = `${url}${sep}name=${encodeURIComponent(name)}`;
     if (t === "env") {
       const li = safeTrim(payload?.data?.letteridentifier);
-      if (li) u += `&letteridentifier=${encodeURIComponent(li)}`;
+      u += `&letteridentifier=${encodeURIComponent(li)}`;
+      const uo = safeTrim(payload?.data?.uidisplayorder);
+      u += `&uidisplayorder=${encodeURIComponent(uo)}`;
     }
     return await postJson(u);
   }
@@ -382,11 +384,62 @@ async function listIpInventory(env) {
   return await fetchJson(`/api/v1/products/${encodeURIComponent(product)}/ip_inventory/${encodeURIComponent(e)}`);
 }
 
-async function listRules(env) {
+function rulesBasePath(env) {
   const product = getCurrentProduct();
   if (!isNonEmptyString(product)) throw new Error("Select a product first");
   const e = requireEnv(env);
-  return await fetchJson(`/api/v1/products/${encodeURIComponent(product)}/rules/${encodeURIComponent(e)}`);
+  return `/api/v1/products/${encodeURIComponent(product)}/rules/${encodeURIComponent(e)}`;
+}
+
+async function listRules(env) {
+  return await fetchJson(rulesBasePath(env));
+}
+
+async function saveRule(env, payload) {
+  const name = safeTrim(payload?.name);
+  if (!name) throw new Error("name is required");
+  const filename = safeTrim(payload?.filename);
+  const body = { name, ...(filename ? { filename } : {}), data: payload?.data || {} };
+  return await postJson(rulesBasePath(env), body);
+}
+
+async function updateRule(env, payload) {
+  const name = safeTrim(payload?.name);
+  if (!name) throw new Error("name is required");
+  const originalName = safeTrim(payload?.original_name);
+  if (!originalName) throw new Error("original_name is required");
+  const filename = safeTrim(payload?.filename);
+  const body = { name, original_name: originalName, ...(filename ? { filename } : {}), data: payload?.data || {} };
+  return await putJson(rulesBasePath(env), body);
+}
+
+async function deleteRule(env, payload) {
+  const name = safeTrim(payload?.name);
+  if (!name) throw new Error("name is required");
+  const filename = safeTrim(payload?.filename);
+  if (!filename) throw new Error("filename is required");
+  return await deleteJson(
+    `${rulesBasePath(env)}?filename=${encodeURIComponent(filename)}&name=${encodeURIComponent(name)}`
+  );
+}
+
+async function getRuleYaml(env, filename, appflowid) {
+  const fn = safeTrim(filename);
+  const af = safeTrim(appflowid);
+  if (!fn || !af) throw new Error("filename and appflowid are required");
+  return await fetchJson(
+    `${rulesBasePath(env)}/yaml?filename=${encodeURIComponent(fn)}&appflowid=${encodeURIComponent(af)}`
+  );
+}
+
+async function putRuleYaml(env, filename, appflowid, yamlText) {
+  const fn = safeTrim(filename);
+  const af = safeTrim(appflowid);
+  if (!fn || !af) throw new Error("filename and appflowid are required");
+  return await putJson(
+    `${rulesBasePath(env)}/yaml?filename=${encodeURIComponent(fn)}&appflowid=${encodeURIComponent(af)}`,
+    { yaml_text: String(yamlText || "") }
+  );
 }
 
 async function saveIpInventory(env, payload) {

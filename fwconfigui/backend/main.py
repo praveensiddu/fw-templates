@@ -172,6 +172,15 @@ app.mount(
 
 attach_local_swagger(app, route="/docs")
 
+
+@app.middleware("http")
+async def no_cache_static(request, call_next):
+    response = await call_next(request)
+    if request.url.path.startswith("/static/") or request.url.path in {"/", "/index.html"}:
+        response.headers["Cache-Control"] = "no-cache"
+    return response
+
+
 INDEX_HTML = FRONTEND_DIR / "index.html"
 
 

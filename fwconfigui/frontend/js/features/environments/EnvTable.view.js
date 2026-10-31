@@ -25,6 +25,10 @@ function EnvTableView({
       .slice(0, 1);
   }
 
+  function normalizeUiDisplayOrder(v) {
+    return String(v || "").replace(/[^0-9]/g, "");
+  }
+
   function onNewEntryKeyDown(e) {
     if (e.key !== "Enter" || e.repeat || !canSubmit) return;
     e.preventDefault();
@@ -58,6 +62,12 @@ function EnvTableView({
                 <HelpIconButton docPath="/static/help/environments/letteridentifier.html" title="LetterIdentifier" />
               </div>
             </th>
+            <th className="fwTableHeaderCell" style={{ width: 140 }}>
+              <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 8 }}>
+                <span>UI display order</span>
+                <HelpIconButton docPath="/static/help/environments/uidisplayorder.html" title="UI display order" />
+              </div>
+            </th>
             <th className="fwTableHeaderCell" style={{ width: 100 }}>Actions</th>
           </tr>
           <tr>
@@ -75,6 +85,14 @@ function EnvTableView({
                 placeholder="Filter letter..."
                 value={filters.letteridentifier}
                 onChange={(e) => setFilters((p) => ({ ...p, letteridentifier: e.target.value }))}
+              />
+            </th>
+            <th>
+              <input
+                className={`filterInput ${isNonEmptyString(filters.uidisplayorder) ? "filterInput-active" : ""}`}
+                placeholder="Filter order..."
+                value={filters.uidisplayorder}
+                onChange={(e) => setFilters((p) => ({ ...p, uidisplayorder: e.target.value }))}
               />
             </th>
             <th />
@@ -100,8 +118,18 @@ function EnvTableView({
                   value={draft.letteridentifier || ""}
                   onChange={(e) => setDraft((p) => ({ ...p, letteridentifier: normalizeLetterIdentifier(e.target.value) }))}
                   onKeyDown={onNewEntryKeyDown}
-                  placeholder="A"
+                  placeholder="A *"
                   maxLength={1}
+                />
+              </td>
+              <td>
+                <input
+                  className="filterInput"
+                  style={{ width: 60, textAlign: "center" }}
+                  value={draft.uidisplayorder || ""}
+                  onChange={(e) => setDraft((p) => ({ ...p, uidisplayorder: normalizeUiDisplayOrder(e.target.value) }))}
+                  onKeyDown={onNewEntryKeyDown}
+                  placeholder="1 *"
                 />
               </td>
               <td>
@@ -142,8 +170,19 @@ function EnvTableView({
                         onChange={(e) =>
                           setDraft((p) => ({ ...p, letteridentifier: normalizeLetterIdentifier(e.target.value) }))
                         }
-                        placeholder="A"
+                        placeholder="A *"
                         maxLength={1}
+                      />
+                    </td>
+                    <td>
+                      <input
+                        className="filterInput"
+                        style={{ width: 60, textAlign: "center" }}
+                        value={draft.uidisplayorder || ""}
+                        onChange={(e) =>
+                          setDraft((p) => ({ ...p, uidisplayorder: normalizeUiDisplayOrder(e.target.value) }))
+                        }
+                        placeholder="1 *"
                       />
                     </td>
                     <td>
@@ -166,6 +205,7 @@ function EnvTableView({
                 <tr key={`${r.name || idx}`}>
                   <td>{r.name}</td>
                   <td>{safeTrim(r?.data?.letteridentifier)}</td>
+                  <td>{safeTrim(r?.data?.uidisplayorder)}</td>
                   <td>
                     <button className="iconBtn iconBtn-primary" title="Edit" onClick={() => onEdit(r)}>
                       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
@@ -188,7 +228,7 @@ function EnvTableView({
           ))}
           {rows.length === 0 ? (
             <tr>
-              <td colSpan={3} className="muted">
+              <td colSpan={4} className="muted">
                 No items
               </td>
             </tr>

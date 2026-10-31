@@ -188,10 +188,50 @@ function FwRulesTableView({
                       </div>
                     </td>
                     <td>
-                      <div style={{ whiteSpace: "pre-line" }}>{safeTrim(r.sourceDisplay)}</div>
+                      <div style={{ display: "flex", flexDirection: "column", gap: 4 }}>
+                        {(Array.isArray(r?.sourceItems) ? r.sourceItems : []).length === 0 ? (
+                          <div className="muted" />
+                        ) : (
+                          (r.sourceItems || []).map((s, i) => (
+                            <div
+                              key={`${s.group}:${i}`}
+                              title={s.valid ? "" : "group is not in the allowed group names for this product"}
+                              style={{
+                                padding: "4px 6px",
+                                borderRadius: 8,
+                                border: "1px solid rgba(0,0,0,0.10)",
+                                background: s.valid ? "transparent" : "rgba(220,53,69,0.10)",
+                                color: s.valid ? "inherit" : "#dc3545",
+                              }}
+                            >
+                              {s.group ? `${s.group} ${s.envsText}` : s.envsText}
+                            </div>
+                          ))
+                        )}
+                      </div>
                     </td>
                     <td>
-                      <div style={{ whiteSpace: "pre-line" }}>{safeTrim(r.destinationDisplay)}</div>
+                      <div style={{ display: "flex", flexDirection: "column", gap: 4 }}>
+                        {(Array.isArray(r?.destinationItems) ? r.destinationItems : []).length === 0 ? (
+                          <div className="muted" />
+                        ) : (
+                          (r.destinationItems || []).map((s, i) => (
+                            <div
+                              key={`${s.group}:${i}`}
+                              title={s.valid ? "" : "group is not in the allowed group names for this product"}
+                              style={{
+                                padding: "4px 6px",
+                                borderRadius: 8,
+                                border: "1px solid rgba(0,0,0,0.10)",
+                                background: s.valid ? "transparent" : "rgba(220,53,69,0.10)",
+                                color: s.valid ? "inherit" : "#dc3545",
+                              }}
+                            >
+                              {s.group ? `${s.group} ${s.envsText}` : s.envsText}
+                            </div>
+                          ))
+                        )}
+                      </div>
                     </td>
                     <td>
                       <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>

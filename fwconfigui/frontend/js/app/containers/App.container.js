@@ -405,6 +405,17 @@ function App() {
     };
   }, [activeTab, productSubTab, routeVersion, getProductFromPath, productItems]);
 
+  const sortedProductEnvOptions = React.useMemo(() => {
+    const orderByName = {};
+    (infraEnvItems || []).forEach((it) => {
+      const n = safeTrim(it?.name);
+      const o = parseInt(String(it?.data?.uidisplayorder ?? ""), 10);
+      if (n && Number.isFinite(o) && o >= 1) orderByName[n] = o;
+    });
+    const list = (productEnvOptions || []).map((x) => safeTrim(x)).filter(Boolean);
+    return [...list].sort((a, b) => (orderByName[a] || 0) - (orderByName[b] || 0));
+  }, [productEnvOptions, infraEnvItems]);
+
   React.useEffect(() => {
     if (activeTab !== "products") return;
     if (productSubTab !== "groups" && productSubTab !== "addrs" && productSubTab !== "rules" && productSubTab !== "ip_inventory") return;
@@ -413,7 +424,7 @@ function App() {
     if (!isNonEmptyString(currentProduct)) return;
 
     const envFromPath = getProductEnvFromPath(window.location.pathname);
-    const envNames = (productEnvOptions || []).length ? productEnvOptions : [];
+    const envNames = (sortedProductEnvOptions || []).length ? sortedProductEnvOptions : [];
     if (envNames.length === 0) return;
 
     const preferred = safeTrim(envFromPath) || safeTrim(productEnv) || (envNames.length ? envNames[0] : "");
@@ -423,11 +434,13 @@ function App() {
     }
 
     const expected = `/products/${encodeURIComponent(currentProduct)}/${encodeURIComponent(productSubTab)}/${encodeURIComponent(preferred)}`;
-    if (`${window.location.pathname}${window.location.search}` !== expected) {
+    const pn = String(window.location.pathname || "");
+    const allowed = pn === expected || pn === `${expected}/add` || pn === `${expected}/edit`;
+    if (!allowed) {
       window.history.replaceState({}, "", expected);
       setRouteVersion((v) => v + 1);
     }
-  }, [activeTab, productSubTab, productEnv, infraEnvItems, productEnvOptions, getProductFromPath, getProductEnvFromPath]);
+  }, [activeTab, productSubTab, productEnv, infraEnvItems, productEnvOptions, sortedProductEnvOptions, getProductFromPath, getProductEnvFromPath]);
 
   const content = React.useMemo(() => {
     if (homeInitialized !== true || activeTab === "home") {
@@ -447,6 +460,7 @@ function App() {
             <div style={{ display: "flex", gap: 8, flexWrap: "wrap", alignItems: "center" }}>
               <button
                 className="btn"
+                style={{ background: "rgba(108,117,125,0.15)", borderColor: "rgba(108,117,125,0.45)", color: "#495057" }}
                 onClick={async () => {
                   const ok = await canNavigateAway();
                   if (!ok) return;
@@ -493,7 +507,7 @@ function App() {
               <button
                 className={`tab ${productSubTab === "groups" ? "active" : ""}`}
                 onClick={() => {
-                  const envNames = (productEnvOptions || []).length ? productEnvOptions : [];
+                  const envNames = (sortedProductEnvOptions || []).length ? sortedProductEnvOptions : [];
                   const nextEnv = safeTrim(productEnv) || getProductEnvFromPath(window.location.pathname) || (envNames.length ? envNames[0] : "");
                   const nextPath = nextEnv
                     ? `/products/${encodeURIComponent(currentProduct)}/groups/${encodeURIComponent(nextEnv)}`
@@ -511,7 +525,7 @@ function App() {
               <button
                 className={`tab ${productSubTab === "addrs" ? "active" : ""}`}
                 onClick={() => {
-                  const envNames = (productEnvOptions || []).length ? productEnvOptions : [];
+                  const envNames = (sortedProductEnvOptions || []).length ? sortedProductEnvOptions : [];
                   const nextEnv = safeTrim(productEnv) || getProductEnvFromPath(window.location.pathname) || (envNames.length ? envNames[0] : "");
                   const nextPath = nextEnv
                     ? `/products/${encodeURIComponent(currentProduct)}/addrs/${encodeURIComponent(nextEnv)}`
@@ -529,7 +543,7 @@ function App() {
               <button
                 className={`tab ${productSubTab === "rules" ? "active" : ""}`}
                 onClick={() => {
-                  const envNames = (productEnvOptions || []).length ? productEnvOptions : [];
+                  const envNames = (sortedProductEnvOptions || []).length ? sortedProductEnvOptions : [];
                   const nextEnv = safeTrim(productEnv) || getProductEnvFromPath(window.location.pathname) || (envNames.length ? envNames[0] : "");
                   const nextPath = nextEnv
                     ? `/products/${encodeURIComponent(currentProduct)}/rules/${encodeURIComponent(nextEnv)}`
@@ -600,7 +614,7 @@ function App() {
               <button
                 className={`tab ${productSubTab === "ip_inventory" ? "active" : ""}`}
                 onClick={() => {
-                  const envNames = (productEnvOptions || []).length ? productEnvOptions : [];
+                  const envNames = (sortedProductEnvOptions || []).length ? sortedProductEnvOptions : [];
                   const nextEnv = safeTrim(productEnv) || getProductEnvFromPath(window.location.pathname) || (envNames.length ? envNames[0] : "");
                   const nextPath = nextEnv
                     ? `/products/${encodeURIComponent(currentProduct)}/ip_inventory/${encodeURIComponent(nextEnv)}`
@@ -620,7 +634,7 @@ function App() {
           {productSubTab === "groups" || productSubTab === "addrs" || productSubTab === "rules" || productSubTab === "ip_inventory" ? (
             <div className="actions" style={{ marginTop: 10, justifyContent: "flex-start" }}>
               <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
-                {(productEnvOptions || []).map((envName) => (
+                {(sortedProductEnvOptions || []).map((envName) => (
                     <button
                       key={envName}
                       className={`tab ${safeTrim(productEnv) === envName ? "active" : ""}`}
@@ -688,6 +702,9 @@ function App() {
 
       return (
         <>
+          <div style={{ textAlign: "center", fontSize: 18, fontWeight: 700, margin: "4px 0 10px" }}>
+            {currentProduct}
+          </div>
           {subTabs}
           {body}
         </>
@@ -757,7 +774,7 @@ function App() {
       return <RoleMgmt setLoading={setLoading} setError={setError} />;
     }
     return <FwRulesTable setLoading={setLoading} setError={setError} />;
-  }, [activeTab, homeInitialized, onHomeSaved, infraSubTab, productSubTab, productEnv, infraEnvItems, getProductFromPath, getProductEnvFromPath, routeVersion]);
+  }, [activeTab, homeInitialized, onHomeSaved, infraSubTab, productSubTab, productEnv, infraEnvItems, sortedProductEnvOptions, getProductFromPath, getProductEnvFromPath, routeVersion]);
 
   return (
     <>

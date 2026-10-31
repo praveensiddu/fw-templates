@@ -2,7 +2,7 @@ function EnvTable({ setLoading, setError }) {
   const FIXED_FILENAME = "env.yaml";
   const [items, setItems] = React.useState([]);
   const [editingKey, setEditingKey] = React.useState("");
-  const [draft, setDraft] = React.useState({ name: "", letteridentifier: "" });
+  const [draft, setDraft] = React.useState({ name: "", letteridentifier: "", uidisplayorder: "" });
   const [originalRef, setOriginalRef] = React.useState({ name: "" });
   const [confirmDelete, setConfirmDelete] = React.useState({ show: false, row: null });
 
@@ -29,23 +29,28 @@ function EnvTable({ setLoading, setError }) {
 
   const { sortedRows, filters, setFilters } = useTableFilter({
     rows,
-    initialFilters: { name: "", letteridentifier: "" },
+    initialFilters: { name: "", letteridentifier: "", uidisplayorder: "" },
     fieldMapping: (row) => ({
       name: safeTrim(row.name),
       letteridentifier: safeTrim(row?.data?.letteridentifier),
+      uidisplayorder: String(row?.data?.uidisplayorder ?? ""),
     }),
     sortBy: (a, b) => safeTrim(a?.name).localeCompare(safeTrim(b?.name)),
   });
 
   const onAdd = React.useCallback(() => {
-    setDraft({ name: "", letteridentifier: "" });
+    setDraft({ name: "", letteridentifier: "", uidisplayorder: "" });
     setOriginalRef({ name: "" });
     setEditingKey("__new__");
   }, []);
 
   const onEdit = React.useCallback((row) => {
     const n = safeTrim(row.name);
-    setDraft({ name: n, letteridentifier: safeTrim(row?.data?.letteridentifier).toUpperCase() });
+    setDraft({
+      name: n,
+      letteridentifier: safeTrim(row?.data?.letteridentifier).toUpperCase(),
+      uidisplayorder: row?.data?.uidisplayorder ? String(row.data.uidisplayorder) : "",
+    });
     setOriginalRef({ name: n });
     setEditingKey(n);
   }, []);
@@ -55,12 +60,16 @@ function EnvTable({ setLoading, setError }) {
   }, []);
 
   const canSubmit = React.useMemo(() => {
-    return isNonEmptyString(draft.name);
+    return (
+      isNonEmptyString(draft.name) &&
+      isNonEmptyString(draft.letteridentifier) &&
+      isNonEmptyString(draft.uidisplayorder)
+    );
   }, [draft]);
 
   const onCancelEdit = React.useCallback(() => {
     setEditingKey("");
-    setDraft({ name: "", letteridentifier: "" });
+    setDraft({ name: "", letteridentifier: "", uidisplayorder: "" });
     setOriginalRef({ name: "" });
   }, []);
 
@@ -78,11 +87,27 @@ function EnvTable({ setLoading, setError }) {
         .replace(/[^A-Z]/g, "")
         .slice(0, 1);
 
+      const uidisplayorder = safeTrim(draft.uidisplayorder).replace(/[^0-9]/g, "");
+      const orderNum = parseInt(uidisplayorder, 10);
+      if (!Number.isFinite(orderNum) || orderNum < 1) {
+        setError("UI display order must be a number starting from 1");
+        return;
+      }
+      const takenBy = (items || []).find(
+        (it) =>
+          safeTrim(it?.name) !== safeTrim(originalRef.name) &&
+          parseInt(String(it?.data?.uidisplayorder ?? ""), 10) === orderNum
+      );
+      if (takenBy) {
+        setError(`UI display order ${orderNum} is already used by '${safeTrim(takenBy?.name)}'`);
+        return;
+      }
+
       await saveFwConfigItem("env", {
         filename: FIXED_FILENAME,
         name: nextName,
         original_name: safeTrim(originalRef.name) || undefined,
-        data: { name: nextName, letteridentifier },
+        data: { name: nextName, letteridentifier, uidisplayorder },
       });
 
       const oldName = safeTrim(originalRef.name);
@@ -100,7 +125,7 @@ function EnvTable({ setLoading, setError }) {
     } finally {
       setLoading(false);
     }
-  }, [draft, originalRef, setLoading, setError, load, onCancelEdit]);
+  }, [draft, originalRef, items, setLoading, setError, load, onCancelEdit]);
 
   const onConfirmDelete = React.useCallback(async () => {
     const row = confirmDelete.row;
