@@ -64,6 +64,7 @@ function App() {
   const [homeInitialized, setHomeInitialized] = React.useState(null);
 
   const [currentUserInfo, setCurrentUserInfo] = React.useState({ user: "", demo_mode: false });
+  const [switchToast, setSwitchToast] = React.useState("");
   const [demoUsers, setDemoUsers] = React.useState([]);
 
   const [infraEnvItems, setInfraEnvItems] = React.useState([]);
@@ -262,14 +263,17 @@ function App() {
     async (userid) => {
       const u = safeTrim(userid);
       if (!u) return;
+      const prevUser = safeTrim(currentUserInfo?.user || currentUserInfo?.username) || "unknown";
       try {
         const resp = await putJson("/api/v1/current-user", { user: u });
         setCurrentUserInfo(resp && typeof resp === "object" ? resp : {});
+        setSwitchToast(`switchover from ${prevUser} to ${u} is successful`);
+        setTimeout(() => setSwitchToast(""), 7000);
       } catch (e) {
         setError(formatError(e));
       }
     },
-    [setError]
+    [setError, currentUserInfo]
   );
 
   React.useEffect(() => {
@@ -738,6 +742,26 @@ function App() {
       >
         {content}
       </AppView>
+
+      {switchToast ? (
+        <div
+          className="card"
+          style={{
+            position: "fixed",
+            top: 56,
+            right: 16,
+            zIndex: 50,
+            padding: "10px 14px",
+            fontSize: 13,
+            color: "#1f7a35",
+            borderColor: "rgba(31,122,53,0.4)",
+            boxShadow: "0 4px 12px rgba(0,0,0,0.15)",
+          }}
+          onClick={() => setSwitchToast("")}
+        >
+          {switchToast}
+        </div>
+      ) : null}
     </>
   );
 }

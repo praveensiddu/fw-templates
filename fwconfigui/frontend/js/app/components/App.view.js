@@ -1,7 +1,8 @@
 function AppView({ activeTab, onSetTab, error, loading, children, homeInitialized, demoMode, currentUser, demoUsers, onSwitchUser }) {
+  const [userMenuOpen, setUserMenuOpen] = React.useState(false);
+  const [switchMenuOpen, setSwitchMenuOpen] = React.useState(false);
   const user = safeTrim(currentUser);
-  const switchOptions = Array.isArray(demoUsers) ? demoUsers.slice() : [];
-  if (user && !switchOptions.includes(user)) switchOptions.push(user);
+  const switchOptions = (Array.isArray(demoUsers) ? demoUsers : []).filter((u) => safeTrim(u) && safeTrim(u) !== user);
 
   return (
     <>
@@ -13,26 +14,94 @@ function AppView({ activeTab, onSetTab, error, loading, children, homeInitialize
         <div style={{ display: "flex", gap: 14, alignItems: "center", color: "rgba(255,255,255,0.88)", fontSize: 13 }}>
           <span>{loading ? "Loading..." : ""}</span>
           {demoMode ? (
-            <label style={{ display: "flex", gap: 6, alignItems: "center" }}>
-              <span>switch user</span>
-              <select
-                style={{ padding: "2px 6px", fontSize: 12, borderRadius: 4, border: "1px solid rgba(255,255,255,0.5)" }}
-                value={user || ""}
-                onChange={(e) => {
-                  if (typeof onSwitchUser === "function") onSwitchUser(e.target.value);
-                }}
+            <span style={{ position: "relative", display: "inline-flex" }}>
+              <button
+                className="btn"
+                style={{ padding: "2px 10px", fontSize: 12, background: "rgba(255,255,255,0.15)", borderColor: "rgba(255,255,255,0.4)", color: "rgba(255,255,255,0.95)" }}
+                onClick={() => setSwitchMenuOpen((v) => !v)}
               >
-                {!user ? <option value="">select user</option> : null}
-                {switchOptions.map((u) => (
-                  <option key={u} value={u}>
-                    {u}
-                  </option>
-                ))}
-              </select>
-            </label>
+                switch user
+              </button>
+              {switchMenuOpen ? (
+                <>
+                  <div
+                    style={{ position: "fixed", inset: 0, zIndex: 40 }}
+                    onClick={() => setSwitchMenuOpen(false)}
+                  />
+                  <div
+                    className="card"
+                    style={{
+                      position: "absolute",
+                      top: "calc(100% + 6px)",
+                      right: 0,
+                      zIndex: 41,
+                      padding: 4,
+                      minWidth: 140,
+                      color: "#333",
+                      fontSize: 13,
+                      whiteSpace: "nowrap",
+                    }}
+                  >
+                    {switchOptions.length === 0 ? (
+                      <div className="muted" style={{ padding: "6px 10px" }}>no other users</div>
+                    ) : (
+                      switchOptions.map((u) => (
+                        <div
+                          key={u}
+                          style={{ padding: "6px 10px", cursor: "pointer", borderRadius: 4 }}
+                          onMouseEnter={(e) => (e.currentTarget.style.background = "rgba(0,0,0,0.06)")}
+                          onMouseLeave={(e) => (e.currentTarget.style.background = "transparent")}
+                          onClick={() => {
+                            setSwitchMenuOpen(false);
+                            if (typeof onSwitchUser === "function") onSwitchUser(u);
+                          }}
+                        >
+                          {u}
+                        </div>
+                      ))
+                    )}
+                  </div>
+                </>
+              ) : null}
+            </span>
           ) : null}
-          <span>
-            logged in as <b>{user || "unknown"}</b>
+          <span style={{ position: "relative", display: "inline-flex" }}>
+            <button
+              className="iconBtn"
+              title={user ? `Logged in as ${user}` : "User"}
+              style={{ color: "rgba(255,255,255,0.9)", border: "none", background: "transparent", cursor: "pointer", padding: 4 }}
+              onClick={() => setUserMenuOpen((v) => !v)}
+            >
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ width: 20, height: 20 }}>
+                <circle cx="12" cy="8" r="4" />
+                <path d="M4 21c0-4 3.6-7 8-7s8 3 8 7" />
+              </svg>
+            </button>
+            {userMenuOpen ? (
+              <>
+                <div
+                  style={{ position: "fixed", inset: 0, zIndex: 40 }}
+                  onClick={() => setUserMenuOpen(false)}
+                />
+                <div
+                  className="card"
+                  style={{
+                    position: "absolute",
+                    top: "calc(100% + 6px)",
+                    right: 0,
+                    zIndex: 41,
+                    padding: "8px 12px",
+                    minWidth: 140,
+                    color: "#333",
+                    fontSize: 13,
+                    whiteSpace: "nowrap",
+                  }}
+                >
+                  <div className="muted" style={{ fontSize: 11, marginBottom: 2 }}>logged in as</div>
+                  <div style={{ fontWeight: 700 }}>{user || "unknown"}</div>
+                </div>
+              </>
+            ) : null}
           </span>
         </div>
       </div>

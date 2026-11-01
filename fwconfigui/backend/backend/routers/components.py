@@ -21,14 +21,20 @@ def list_items(request: Request, product: str, service: ComponentsService = Depe
 
 
 @router.get("/group-name-options")
-def group_name_options(request: Request, product: str, env: Optional[str] = None) -> Dict[str, Any]:
+def group_name_options(
+    request: Request,
+    product: str,
+    env: Optional[str] = None,
+    scope: Optional[str] = None,
+) -> Dict[str, Any]:
     """Group names the product may reference (SITE-COMP-<envletter>).
 
     Includes names derived from this product's components plus components of
     other products exposed to 'ALL' or to this product. When 'env' is given,
-    group name will end with env's letteridentifier.
+    group name will end with env's letteridentifier. scope=own restricts to
+    the product's own components.
     """
-    return {"options": allowed_group_names(product, env=env)}
+    return {"options": allowed_group_names(product, env=env, scope=scope or "all")}
 
 
 @router.post("")

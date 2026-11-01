@@ -18,6 +18,28 @@ function RulesTable({ env, setLoading, setError }) {
   const [yamlEditor, setYamlEditor] = React.useState({ show: false, row: null, name: "", yaml: "" });
   const [confirmDelete, setConfirmDelete] = React.useState({ show: false, row: null });
 
+  const parseUrlFilters = React.useCallback(() => {
+    const p = new URLSearchParams(window.location.search);
+    const list = (k) =>
+      String(p.get(k) || "")
+        .split(",")
+        .map((x) => safeTrim(x).toLowerCase())
+        .filter(Boolean);
+    return { flowids: list("flowids"), keywords: list("keywords") };
+  }, []);
+
+  const [urlFilters, setUrlFilters] = React.useState(parseUrlFilters);
+
+  React.useEffect(() => {
+    const apply = () => setUrlFilters(parseUrlFilters());
+    window.addEventListener("locationchange", apply);
+    window.addEventListener("popstate", apply);
+    return () => {
+      window.removeEventListener("locationchange", apply);
+      window.removeEventListener("popstate", apply);
+    };
+  }, [parseUrlFilters]);
+
   const rows = React.useMemo(() => {
     return (items || []).map((it) => ({
       ...it,
@@ -61,6 +83,28 @@ function RulesTable({ env, setLoading, setError }) {
       return (a?.idx || 0) - (b?.idx || 0);
     },
   });
+
+  const visibleRows = React.useMemo(() => {
+    const flows = urlFilters.flowids;
+    const kws = urlFilters.keywords;
+    if (!flows.length && !kws.length) return sortedRows;
+    return (sortedRows || []).filter((r) => {
+      const d = r?.data || {};
+      if (flows.length && !flows.includes(safeTrim(d.appflowid).toLowerCase())) return false;
+      if (kws.length) {
+        const rowKws = (Array.isArray(d.keywords) ? d.keywords : []).map((x) => safeTrim(x).toLowerCase());
+        if (!rowKws.some((k) => kws.includes(k))) return false;
+      }
+      return true;
+    });
+  }, [sortedRows, urlFilters]);
+
+  const urlFilterNote = React.useMemo(() => {
+    const parts = [];
+    if (urlFilters.flowids.length) parts.push(`flowids=${urlFilters.flowids.join(",")}`);
+    if (urlFilters.keywords.length) parts.push(`keywords=${urlFilters.keywords.join(",")}`);
+    return parts.join(" ");
+  }, [urlFilters]);
 
   const load = React.useCallback(async () => {
     try {
@@ -382,7 +426,9 @@ function RulesTable({ env, setLoading, setError }) {
     <>
       <RulesTableView
         env={env}
-        rows={sortedRows}
+        rows={visibleRows}
+        allRows={rows}
+        urlFilterNote={urlFilterNote}
         filters={filters}
         setFilters={setFilters}
         onAdd={onAdd}

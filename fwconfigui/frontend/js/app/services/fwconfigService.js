@@ -169,12 +169,17 @@ async function listGroups(env) {
  * (own components plus components of other products exposed via 'ALL').
  * @returns {Promise<Array>} - Array of group name strings
  */
-async function listGroupNameOptions(env) {
+async function listGroupNameOptions(env, scope) {
   const product = getCurrentProduct();
   if (!isNonEmptyString(product)) throw new Error("Select a product first");
   const e = safeTrim(env);
-  const qs = e ? `?env=${encodeURIComponent(e)}` : "";
-  const resp = await fetchJson(`/api/v1/products/${encodeURIComponent(product)}/components/group-name-options${qs}`);
+  const s = safeTrim(scope);
+  const qs = [];
+  if (e) qs.push(`env=${encodeURIComponent(e)}`);
+  if (s) qs.push(`scope=${encodeURIComponent(s)}`);
+  const resp = await fetchJson(
+    `/api/v1/products/${encodeURIComponent(product)}/components/group-name-options${qs.length ? "?" + qs.join("&") : ""}`
+  );
   return Array.isArray(resp?.options) ? resp.options : [];
 }
 

@@ -185,7 +185,7 @@ def _env_letteridentifier(env: str) -> str:
     return ""
 
 
-def allowed_group_names(product: str, env: Optional[str] = None) -> List[str]:
+def allowed_group_names(product: str, env: Optional[str] = None, scope: str = "all") -> List[str]:
     """Group names a product may reference (SITE-COMP-<envletter> convention).
 
     A component contributes its names when it belongs to the product itself,
@@ -195,11 +195,14 @@ def allowed_group_names(product: str, env: Optional[str] = None) -> List[str]:
         product: Product name (case-insensitive)
         env: When given, gropu name will end with env's letteridentifier
              (left literal when the env has none)
+        scope: "own" returns only the product's own component groups;
+               "all" (default) also includes other products' exposed components
 
     Returns:
         Sorted, de-duplicated list of allowed group names
     """
     current = str(product or "").strip().upper()
+    own_only = str(scope or "").strip().lower() == "own"
 
     raw = read_yaml_dict(get_settings_yaml_path("products.yaml"))
     if not isinstance(raw, dict):
@@ -209,6 +212,8 @@ def allowed_group_names(product: str, env: Optional[str] = None) -> List[str]:
     for prod_key in raw.keys():
         owner = str(prod_key or "").strip()
         if not owner:
+            continue
+        if own_only and owner.upper() != current:
             continue
         try:
             items = ComponentsService(owner).list_items()
