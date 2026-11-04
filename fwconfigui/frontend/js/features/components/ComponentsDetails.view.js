@@ -10,12 +10,13 @@ function ComponentsDetailsView({
   siteNames,
   productNames,
   applyAllRule,
+  envNames,
 }) {
-  const defaultEnvOptions = ["prd", "rtb", "qa", "ent", "dev"];
+  const baseEnvOptions = Array.isArray(envNames) ? envNames : [];
   const existingEnvOptions = (Array.isArray(form?.sitesItems) ? form.sitesItems : [])
     .map((x) => safeTrim(x?.env))
-    .filter((x) => x && !defaultEnvOptions.includes(x));
-  const envOptions = [...defaultEnvOptions, ...existingEnvOptions];
+    .filter((x) => x && !baseEnvOptions.includes(x));
+  const envOptions = [...baseEnvOptions, ...existingEnvOptions];
 
   function renderTitle() {
     return mode === "edit" ? "Edit component" : "Add component";

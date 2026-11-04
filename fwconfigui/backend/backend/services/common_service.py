@@ -107,6 +107,25 @@ def get_infra_repo() -> Path:
     return get_fwconfigfiles_root(None) / "cloned-repositories"/ p
 
 
+def get_env_names() -> List[str]:
+    """Env names from the infra repo settings/env.yaml, ordered by uidisplayorder."""
+    from backend.services.env_service import EnvService
+
+    def order_key(it: Dict[str, Any]) -> int:
+        data = it.get("data") if isinstance(it.get("data"), dict) else {}
+        try:
+            return int(data.get("uidisplayorder"))
+        except (TypeError, ValueError):
+            return 1_000_000
+
+    names: List[str] = []
+    for it in sorted(EnvService().list_items(), key=order_key):
+        name = str(it.get("name") or "").strip()
+        if name:
+            names.append(name)
+    return names
+
+
 def _gitrepo_group_relpath(*, env_key: str) -> str:
     """Return the Home-tab git repo group value as a relative path.
 

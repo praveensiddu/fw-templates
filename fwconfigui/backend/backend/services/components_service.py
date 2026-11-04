@@ -4,13 +4,12 @@ from pathlib import Path
 from typing import Any, Dict, List, Optional
 
 from backend.exceptions.custom import ValidationError
-from backend.services.common_service import get_product_templates_repo_name
+from backend.services.common_service import get_env_names, get_product_templates_repo_name
 from backend.utils.logging_utils import log_all_methods
 from backend.utils.workspace import get_fwconfigfiles_root, get_settings_yaml_path
 from backend.utils.yaml_utils import read_yaml_dict, write_yaml_dict
 
 _COMPONENTS_FILENAME = "components.yaml"
-_ALLOWED_SITE_ENVS = {"prd", "qa", "rtb", "ent", "dev"}
 
 logger = logging.getLogger("uvicorn.error")
 
@@ -77,11 +76,13 @@ class ComponentsService:
 
     @staticmethod
     def _normalize_sites(v: Any) -> Dict[str, List[str]]:
+        env_order = [e.lower() for e in get_env_names()]
+        allowed_envs = set(env_order)
         raw = v if isinstance(v, dict) else {}
-        out: Dict[str, List[str]] = {}
+        by_env: Dict[str, List[str]] = {}
         for env, sites in raw.items():
             env_key = str(env or "").strip().lower()
-            if env_key not in _ALLOWED_SITE_ENVS:
+            if env_key not in allowed_envs:
                 continue
 
             lst = sites if isinstance(sites, list) else []
@@ -94,9 +95,11 @@ class ComponentsService:
 
             uniq = sorted(list(dict.fromkeys(norm_sites)))
             if uniq:
-                out[env_key] = uniq
+                by_env[env_key] = uniq
 
-        return out
+        ordered_keys = [e for e in env_order if e in by_env]
+        ordered_keys += sorted(e for e in by_env.keys() if e not in env_order)
+        return {e: by_env[e] for e in ordered_keys}
 
     def list_items(self) -> List[Dict[str, Any]]:
         path = self._path()
@@ -153,12 +156,12 @@ class ComponentsService:
             raw.pop(prev, None)
 
         raw[key] = {
-            "networkarea": networkarea,
             "description": description,
             "exposedto": exposedto,
+            "networkarea": networkarea,
             "sites": sites,
         }
-        write_yaml_dict(path, raw, sort_keys=True)
+        write_yaml_dict(path, dict(sorted(raw.items(), key=lambda kv: str(kv[0]).lower())), sort_keys=False)
 
     def delete_item(self, *, name: str) -> None:
         key = self._normalize_component_name(name)
@@ -168,7 +171,7 @@ class ComponentsService:
             raw = {}
 
         raw.pop(key, None)
-        write_yaml_dict(path, raw, sort_keys=True)
+        write_yaml_dict(path, dict(sorted(raw.items(), key=lambda kv: str(kv[0]).lower())), sort_keys=False)
 
 
 def _env_letteridentifier(env: str) -> str:

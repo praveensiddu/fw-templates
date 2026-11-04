@@ -50,7 +50,9 @@ function ProductsDetailsView({
                   <HelpIconButton docPath="/static/help/product/envs.html" title="Envs" />
                 </div>
                 <MultiSelectPicker
-                  options={envOptions}
+                  options={envOptions.filter(
+                    (e) => !(Array.isArray(form?.envs) ? form.envs : []).some((v) => safeTrim(v) === safeTrim(e))
+                  )}
                   values={Array.isArray(form?.envs) ? form.envs : []}
                   onChange={(next) => setForm((p) => ({ ...p, envs: next }))}
                   placeholder="Add env..."

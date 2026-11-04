@@ -50,9 +50,15 @@ function ComponentsTable({ setLoading, setError }) {
       );
       setEnvNames(
         (envResp?.items || [])
+          .slice()
+          .sort((a, b) => {
+            const ao = Number(a?.data?.uidisplayorder);
+            const bo = Number(b?.data?.uidisplayorder);
+            if (Number.isFinite(ao) && Number.isFinite(bo) && ao !== bo) return ao - bo;
+            return safeTrim(a?.name).localeCompare(safeTrim(b?.name));
+          })
           .map((x) => safeTrim(x?.name))
           .filter((x) => x)
-          .sort((a, b) => a.localeCompare(b))
       );
 
       setProducts(productsResp?.items || []);
@@ -74,6 +80,18 @@ function ComponentsTable({ setLoading, setError }) {
     return Array.from(new Set(out.map((x) => safeTrim(x)).filter(Boolean)));
   }, [productNames]);
 
+  const productEnvNames = React.useMemo(() => {
+    const current = safeTrim(typeof getCurrentProduct === "function" ? getCurrentProduct() : "").toLowerCase();
+    const prod = (Array.isArray(products) ? products : []).find(
+      (x) => safeTrim(x?.name).toLowerCase() === current
+    );
+    const prodEnvs = new Set(
+      (Array.isArray(prod?.data?.envs) ? prod.data.envs : []).map((x) => safeTrim(x).toLowerCase()).filter(Boolean)
+    );
+    if (!prodEnvs.size) return envNames;
+    return (Array.isArray(envNames) ? envNames : []).filter((e) => prodEnvs.has(safeTrim(e).toLowerCase()));
+  }, [products, envNames]);
+
   const applyAllRule = React.useCallback((vals) => {
     const xs = (Array.isArray(vals) ? vals : []).map((x) => safeTrim(x)).filter(Boolean);
     const uniq = Array.from(new Set(xs));
@@ -91,8 +109,7 @@ function ComponentsTable({ setLoading, setError }) {
       const data = it?.data || {};
       const sites = data?.sites && typeof data.sites === "object" ? data.sites : {};
 
-      const envOrder = ["prd", "qa", "rtb", "ent", "dev"];
-      const envKeys = [...envOrder.filter((k) => Object.prototype.hasOwnProperty.call(sites || {}, k)), ...Object.keys(sites || {}).filter((k) => !envOrder.includes(k))];
+      const envKeys = [...envNames.filter((k) => Object.prototype.hasOwnProperty.call(sites || {}, k)), ...Object.keys(sites || {}).filter((k) => !envNames.includes(k))];
       const sitesItems = envKeys
         .map((env) => ({ env, sites: Array.isArray(sites?.[env]) ? sites[env] : [] }))
         .filter((x) => isNonEmptyString(x?.env) && x.sites.length > 0);
@@ -115,7 +132,7 @@ function ComponentsTable({ setLoading, setError }) {
         sitesLines,
       };
     });
-  }, [items]);
+  }, [items, envNames]);
 
   const { sortedRows, filters, setFilters } = useTableFilter({
     rows,
@@ -175,8 +192,7 @@ function ComponentsTable({ setLoading, setError }) {
     const data = row?.data || {};
     const sites = data?.sites && typeof data.sites === "object" ? data.sites : {};
 
-    const envOrder = ["prd", "qa", "rtb", "ent", "dev"];
-    const envKeys = [...envOrder.filter((k) => Object.prototype.hasOwnProperty.call(sites || {}, k)), ...Object.keys(sites || {}).filter((k) => !envOrder.includes(k))];
+    const envKeys = [...envNames.filter((k) => Object.prototype.hasOwnProperty.call(sites || {}, k)), ...Object.keys(sites || {}).filter((k) => !envNames.includes(k))];
     const sitesItems = envKeys
       .map((env) => ({ env, sites: Array.isArray(sites?.[env]) ? sites[env] : [] }))
       .filter((x) => isNonEmptyString(x?.env));
@@ -204,7 +220,7 @@ function ComponentsTable({ setLoading, setError }) {
     if (`${window.location.pathname}${window.location.search}` !== nextPath) {
       window.history.pushState({}, "", nextPath);
     }
-  }, []);
+  }, [envNames]);
 
   const onBack = React.useCallback(() => {
     setActivePage("list");
@@ -447,6 +463,7 @@ function ComponentsTable({ setLoading, setError }) {
           siteNames={siteNames}
           productNames={exposedtoOptions}
           applyAllRule={applyAllRule}
+          envNames={productEnvNames}
         />
       ) : (
         <ComponentsTableView
